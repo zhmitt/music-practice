@@ -116,8 +116,10 @@ END:    /specify
 │   ├── templates/         # Spec Templates
 │   └── scripts/           # Automation Scripts
 ├── .claude/
-│   ├── commands/          # Slash Commands
-│   ├── agents/            # Claude Agents
+│   ├── commands/          # Slash Commands (explicit triggers)
+│   ├── agents/            # Claude Agents (specialized)
+│   ├── skills/            # Skills (workflow bundles)
+│   │   └── speckit/       # Spec-Driven Development Skill
 │   └── personas/          # User Personas (project-specific)
 ├── working-memory/        # Session Decisions & Status
 ├── src/                   # Source Code
@@ -182,26 +184,39 @@ git push -u origin feature/XXX-description
 
 ## Commands Reference
 
-### Spec-Kit Commands
+### SpecKit Skill (`.claude/skills/speckit/`)
+
+SpecKit is a consolidated skill for spec-driven development. All workflows are auto-loaded when relevant.
 
 ```bash
-/speckit.specify "{desc}"  # Create spec
+# Entry Point
+/specify                   # Detect phase, guide next step
+
+# Specification Phase
+/speckit.specify "{desc}"  # Create spec from description
+/speckit.clarify           # Clarify ambiguous requirements
+
+# Planning Phase
 /speckit.plan              # Create technical plan
-/speckit.tasks             # Generate task list
-/speckit.implement         # Start implementation
-/speckit.clarify           # Clarify spec requirements
-/speckit.analyze           # Run consistency analysis
 /speckit.checklist         # Generate implementation checklist
-/speckit.constitution      # Review constitution compliance
-/speckit.usertest          # Generate user tests
+
+# Review Phase
+/spec-review               # Persona-based spec validation
+/speckit.constitution      # Constitution compliance check
+/speckit.analyze           # Consistency analysis
+
+# Implementation Phase
+/speckit.tasks             # Generate task list
+/speckit.implement         # Execute implementation
+
+# Post-Implementation
+/post-implementation       # Tests, docs, completion report
+/speckit.usertest          # Generate user test suites
 ```
 
-### Workflow Commands
+### Standalone Commands
 
 ```bash
-/specify                   # Main workflow orchestrator
-/spec-review               # Persona-based spec validation (Opus)
-/post-implementation       # Post-impl orchestration (Sonnet)
 /session-end               # Session cleanup
 /init-project              # Initialize new project (run once)
 ```
@@ -209,12 +224,24 @@ git push -u origin feature/XXX-description
 ### Team Pattern Commands
 
 ```bash
+# Development
 /code {task}               # Delegate coding task to Developer Agent (Sonnet)
 /review --{type}           # Code review against standards (Opus)
   --compliance {standard}  #   Domain-specific compliance
   --security               #   OWASP Top 10
   --performance            #   Performance anti-patterns
   --architecture           #   Architecture patterns
+
+# Testing
+/test                      # Run automated tests with coverage
+/user-test --critical      # Run P0 user acceptance tests
+/user-test --regression    # Run all P0+P1 user tests
+/persona-test {persona}    # Test from persona perspective
+
+# Operations
+/deploy {app}              # Deploy with pre/post validation
+/doc-update                # Sync documentation after feature
+/security-scan             # Security audit before commit
 ```
 
 ---
@@ -227,15 +254,50 @@ This template uses a **Tech Lead + Specialized Agents** pattern for scalable dev
 
 ```
 Main Agent (Tech Lead) - Opus
-  ├─ /code → Coding Agent (Developer) - Sonnet
-  ├─ /review → Code Review Agent (Compliance) - Opus
-  ├─ /post-impl → Post-Implementation Agent - Sonnet
-  └─ /spec-review → Spec Review Agent (Persona Validation) - Opus
+  │
+  ├── Development
+  │   ├─ /code → Coding Agent - Sonnet
+  │   └─ /review → Code Review Agent - Opus
+  │
+  ├── Workflow
+  │   ├─ /specify → Specify Agent - Sonnet
+  │   ├─ /post-impl → Post-Implementation Agent - Sonnet
+  │   └─ /session-end → Session End Agent - Sonnet
+  │
+  ├── Testing
+  │   ├─ /test → Test Runner Agent - Sonnet
+  │   ├─ /user-test → User Test Runner Agent - Sonnet
+  │   └─ /persona-test → Persona Testing Agent - Sonnet
+  │
+  ├── Review
+  │   ├─ /spec-review → Spec Review Agent - Opus
+  │   └─ /security-scan → Security Scanner Agent - Sonnet
+  │
+  └── Operations
+      ├─ /deploy → Deployment Helper Agent - Sonnet
+      └─ /doc-update → Doc Updater Agent - Sonnet
 ```
 
 **Model Assignment Rationale:**
 - **Opus (Main Agent, Review Agents)**: Highest quality for architecture decisions, compliance checks, and persona analysis
-- **Sonnet (Coding, Post-Impl)**: Balanced cost/performance for implementation and orchestration
+- **Sonnet (Implementation, Operations)**: Balanced cost/performance for implementation and orchestration
+
+### Available Agents
+
+| Agent | Purpose | Model |
+|-------|---------|-------|
+| `coding-agent` | Focused coding tasks (<500 lines) | Sonnet |
+| `code-review` | Compliance, security, performance reviews | Opus |
+| `specify` | Workflow orchestration, phase detection | Sonnet |
+| `spec-review` | Persona-based spec validation | Opus |
+| `post-implementation` | Tests, docs, reports after implementation | Sonnet |
+| `session-end` | Clean session closure, context preservation | Sonnet |
+| `test-runner` | Automated test execution with coverage | Sonnet |
+| `user-test-runner` | User acceptance testing via browser | Sonnet |
+| `persona-testing` | UX validation from persona perspectives | Sonnet |
+| `security-scanner` | OWASP, secrets, vulnerability scanning | Sonnet |
+| `deployment-helper` | Multi-app deployments, migrations | Sonnet |
+| `doc-updater` | Documentation sync after features | Sonnet |
 
 ### When to Use Team Pattern Commands
 
