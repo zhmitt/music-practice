@@ -1,0 +1,19 @@
+# User Personas
+
+This directory contains user persona definitions for spec review.
+
+Personas are created by running `/init-project` which will ask about your users.
+
+## Persona Format
+
+Each persona file should define:
+- Name and role
+- Goals and motivations
+- Pain points
+- Workflows and use cases
+- Technical proficiency
+- Accessibility needs
+
+## Example
+
+See `.claude/personas/example-persona.md` for format reference.

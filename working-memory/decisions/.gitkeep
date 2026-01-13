@@ -1,0 +1,5 @@
+# Architecture Decision Records
+
+Store decision records here in format: D###-short-description.md
+
+Example: D001-database-choice.md
