@@ -19,7 +19,7 @@ Orchestrator for post-implementation workflow. **MANDATORY** after `/speckit.imp
 
 **BEFORE starting, MUST read:**
 ```
-working-memory/README.md
+.specify/memory/README.md
 ```
 
 This is the **Single Source of Truth** for file structure and formats.
@@ -96,7 +96,7 @@ npm test | pytest | pnpm test:run
 
 **Creates:**
 1. User test suite in `.specify/specs/{feature-id}/usertests/{date}-usertest.md`
-2. Entry in `working-memory/pending-usertests.md` (if configured)
+2. Entry in `.specify/memory/pending-usertests.md` (if configured)
 
 **Parse from test file:**
 - Count P0 tests (critical)
@@ -117,9 +117,9 @@ npm test | pytest | pnpm test:run
 
 ## Phase 5: Working Memory Update
 
-**Read structure from:** `working-memory/README.md`
+**Read structure from:** `.specify/memory/README.md`
 
-**Update:** `working-memory/status.md`
+**Update:** `.specify/memory/status.md`
 
 ```markdown
 ### [{YYYY-MM-DD HH:MM}] Feature {feature-id} - Implementation Complete
@@ -232,7 +232,7 @@ Or continue with `/specify`
 ## Best Practices
 
 ### DO
-- **Always read working-memory/README.md first**
+- **Always read .specify/memory/README.md first**
 - **Parse test output** for metrics
 - **Preserve existing content** (append, don't overwrite)
 - **Use exact timestamp formats**

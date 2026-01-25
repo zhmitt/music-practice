@@ -46,7 +46,7 @@ Generate user test suites for completed feature.
 
 4. **Save**: `.specify/specs/[branch]/usertests.md`
 
-5. **Update Tracking**: Add to `working-memory/pending-usertests.md`
+5. **Update Tracking**: Add to `.specify/memory/pending-usertests.md`
    - Feature name
    - Test count by priority
    - Estimated time

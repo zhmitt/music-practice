@@ -89,6 +89,6 @@
 
 ## Related Documentation
 
-- `working-memory/status.md` - Current work status
+- `.specify/memory/status.md` - Current work status
 - `.specify/specs/{feature-id}/spec.md` - Feature specifications
 - `.specify/memory/NEXT-SESSION.md` - Cross-feature context

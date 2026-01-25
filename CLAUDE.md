@@ -1,192 +1,250 @@
 # CLAUDE.md - {{PROJECT_NAME}}
 
-> **STOP! Read this FIRST before implementing anything!**
+You are the **Tech Lead** for this project. You plan architecture, coordinate development, and ensure quality.
 
-## MANDATORY: Spec-Driven Development
+> **Core rules for Claude. Details in linked docs.**
 
-**BEFORE you write ANY code for a new feature or major change:**
+---
 
-### Specify Workflow
+## 🚨 CORE RULES (Non-Negotiable)
 
+### 1. Spec-Driven Development
+
+**NO code without spec** (unless < 20 lines bug fix)
+
+**Workflow:**
 ```bash
-/specify  # Main workflow guide - detects phase, validates compliance
+/specify  # Entry point - detects phase, guides next step
 ```
 
-**Workflow Phases:**
+**Phases:**
 ```
-0. No Spec     → /speckit.specify "{description}"
-1. Spec Only   → /speckit.plan
-2. Planned     → /spec-review (validates from persona perspectives)
-3. Reviewed    → /speckit.tasks (after gaps addressed)
-4. Tasked      → /speckit.implement
-5. Implemented → /post-implementation
-6. Tested      → Execute user tests
+0. No Spec     → /speckit.specify "{description}"  ⏸️ STOP → Wait for spec approval
+1. Spec Only   → /speckit.plan                      ⏸️ STOP → Review plan with user
+2. Planned     → /spec-review                       ⏸️ STOP → Address persona feedback
+3. Reviewed    → /speckit.tasks                     ⏸️ STOP → Verify task breakdown
+4. Tasked      → /speckit.implement                 ⏸️ STOP → MANDATORY: /post-impl next!
+5. Implemented → /post-implementation               ⏸️ STOP → Execute user tests
+6. Tested      → Mark complete, update roadmap
 7. Complete    → Feature done!
 ```
 
-### When to Use SpecKit (Full Workflow)
+**⏸️ STOP points prevent shortcuts** - Each phase gates the next
 
-**USE SpecKit for:**
-- New features (any size)
-- Significant changes (> 20 lines, multiple files)
-- Architectural changes
-- New API endpoints
-
-**Workflow:** `/specify` → plan → tasks → implement → post-impl
-
-### When to Skip SpecKit (Quick Changes)
-
-**SKIP SpecKit for:**
+**Skip ONLY for:**
 - Bug fixes (< 20 lines, single file)
 - Typo/comment fixes
-- Small tweaks to existing code
 - Documentation-only changes
 
-**Quick workflow:**
-1. Make change
-2. Tests pass
-3. Update working-memory if relevant
-4. Commit
-
-### Core Rules
-
-1. **NO code without spec** (unless < 20 lines bug fix)
-2. **Use Specify workflow** - Don't skip compliance checks
-3. **post-impl is MANDATORY** - Tests, docs, report
-
 ---
 
-## MANDATORY Workflow Enforcement
+### 2. Session Protocol
 
-### Session Bookends
-
+**START:**
 ```bash
-START:  git branch --show-current
-        cat working-memory/branch-context.md  # SESSION START FILE!
-        cat .specify/memory/NEXT-SESSION.md
-        /specify
-
-END:    /specify
-        /post-implementation  # If feature complete
-        /session-end          # Optional: clean session end
+git branch --show-current
+cat .specify/memory/INDEX.md           # 30-second overview
+cat .specify/memory/NEXT-SESSION.md    # Session context
+/tasks show --stats                     # Task status
 ```
 
-### Per User Story (BLOCKING!)
-
-**BEFORE marking story complete:**
-1. Tests pass
-2. Update `working-memory/status.md`:
-   ```markdown
-   [YYYY-MM-DD HH:MM] Story: {ID} - {title}
-   - Implemented: {what}
-   - Tests: Passed
-   - Next: {blocker/next-story}
-   ```
-3. Commit with: `feat: {description}\n\nStory: {ID}\nTests: Passed`
-
-### Per Feature (after /speckit.implement)
-
-**YOU MUST orchestrate:**
+**END:**
 ```bash
-/post-implementation      # Tests, docs, report
-/session-end              # Optional: context cleanup
+/post-implementation  # If code changed (MANDATORY!)
+/session-end          # Always run
 ```
 
-### Anti-Shortcut Rules
-
-- "Just a small change" → Tests required
-- "I'll update later" → Update NOW
-- "Tests pass locally" → CI MUST also pass
-
-**Consequence: Incomplete = NOT DONE = Cannot proceed**
+**⚠️ NEVER skip /post-impl** - 3-layer enforcement prevents this
 
 ---
 
-## Project Overview
+### 3. Agent Delegation (MANDATORY - No Shortcuts!)
 
-**{{PROJECT_NAME}}** - {{PROJECT_DESCRIPTION}}
+**Tech Lead orchestrates, agents implement**
 
-## Repository Structure
+| Task | Agent | Why |
+|------|-------|-----|
+| **Coding (>20 lines)** | `/code "{task}"` or Task tool | Isolated context |
+| **Code Review** | `/review` or Task tool | Compliance, Security |
+| **Testing** | `/test` or Task tool | Structured runs |
+| **Documentation** | Task tool with doc-updater | Consistent updates |
 
+**FORBIDDEN (Anti-Patterns):**
+- ❌ Main Agent writes >20 lines code directly
+- ❌ Main Agent runs deploy scripts directly
+- ❌ Main Agent does manual grep/sed instead of Task tool
+
+**Why mandatory?**
+- Sub-Agent context discarded after task completion
+- Main Agent context stays clean for orchestration
+- Better quality through specialized agents
+
+**Workflow with STOP points:**
 ```
-{{PROJECT_NAME}}/
-├── .specify/              # Spec-Driven Development System
-│   ├── memory/            # Constitution, Session Context
-│   ├── specs/             # Feature Specifications
-│   ├── templates/         # Spec Templates
-│   └── scripts/           # Automation Scripts
-├── .claude/
-│   ├── commands/          # Slash Commands (explicit triggers)
-│   ├── agents/            # Claude Agents (specialized)
-│   ├── skills/            # Skills (workflow bundles)
-│   │   └── speckit/       # Spec-Driven Development Skill
-│   └── personas/          # User Personas (project-specific)
-├── working-memory/        # Session Decisions & Status
-├── src/                   # Source Code
-├── tests/                 # Test Files
-└── CLAUDE.md              # This File (Core Rules)
+1. Plan architecture (Tech Lead)     ⏸️ STOP → Get user approval
+2. Delegate to coding-agent           ⏸️ STOP → Review agent's work
+3. Run /post-impl (MANDATORY)         ⏸️ STOP → Execute user tests
+4. Commit changes (Tech Lead)
 ```
 
 ---
 
-## Git Workflow
+### 4. Post-Implementation (MANDATORY)
 
-### Branch Strategy
+**3-Layer Enforcement** (you CANNOT skip this):
 
+**Layer 1: Coding Agent Auto-Reminder** (Always On)
+- Every coding-agent completion ends with:
+  ```
+  ⚠️ TECH LEAD: Execute /post-impl BEFORE committing!
+  ```
+- Automatic, cannot be forgotten
+
+**Layer 2: Session-End Safety Check** (Always On)
+- `/session-end` checks:
+  - Were code files modified?
+  - Was /post-impl executed?
+- If YES + NO: **BLOCKS session-end**
+- Must run /post-impl first
+
+**Layer 3: Git Pre-Commit Hook** (Optional - Recommended)
+- Checks: Code files in commit + doc files also in commit?
+- If code without docs: **BLOCKS commit**
+- Install: `.git-hooks/install.sh`
+
+**Result**: Post-impl compliance ↑ from ~60% to ~99%
+
+**⏸️ STOP**: After /post-impl, execute user tests before marking complete
+
+---
+
+### 5. Testing Strategy
+
+**Where to test:**
+
+| Test Type | Location | When |
+|-----------|----------|------|
+| **Automated (Unit, Integration)** | Local or CI | After every code change |
+| **User Acceptance (P0)** | {{DEV_SERVER}} | After /post-impl (MANDATORY) |
+| **User Acceptance (P1, P2)** | {{DEV_SERVER}} | Before release |
+| **Production Validation** | {{PROD_SERVER}} | After deployment |
+
+**Why dev server for user tests?**
+- Realistic environment (not localhost)
+- Proper data/config
+- Catch deployment issues early
+
+**⚠️ NEVER skip P0 user tests** - Critical user-facing features MUST be tested
+
+---
+
+### 6. Branch → Deploy Mapping
+
+| Branch | Server | Deploy Script | Status |
+|--------|--------|---------------|--------|
+| `main` | {{PROD_SERVER}} | `deploy-prod.sh` | Production |
+| `develop` | {{STAGING_SERVER}} | `deploy-staging.sh` | Staging |
+| `feature/*` | {{DEV_SERVER}} | `deploy-dev.sh` | Development |
+
+**Customize for your project** - Edit this table after `/init-project`
+
+---
+
+### 7. Working Memory Architecture
+
+**Location**: `.specify/memory/` (consolidated in v2.0)
+
+**Key Files:**
+- **INDEX.md** - Quick overview (read FIRST at session start!)
+- **task-registry.md** - Single source of truth for ALL tasks
+- **NEXT-SESSION.md** - Session context
+- **branch-context.md** - Branch-specific context
+- **status.md** - Project status log
+- **feature-roadmap.md** - High-level feature tracking
+- **constitution.md** - Project principles
+
+**CRITICAL:**
+- ✅ ALL agents MUST read `.specify/memory/README.md` FIRST
+- ✅ Use task-registry.md (not inline TODOs)
+- ✅ Update status.md (append only, never overwrite!)
+
+---
+
+### 8. Task Registry System 🆕
+
+**Single Source of Truth for ALL Tasks**
+
+**3-Level Hierarchy:**
 ```
-main (Production)
-    │
-    └── feature/XXX-description
+Level 1: feature-roadmap.md          # High-level (✅🚧📋)
+         ↓
+Level 2: task-registry.md            # ALL tasks (SSOT)
+         ↓
+Level 3: .specify/specs/{feature}/tasks.md  # Granular details
 ```
 
-### Feature Development
-
+**Commands:**
 ```bash
-# 1. Start new feature (from main)
-git checkout main && git pull origin main
-git checkout -b feature/XXX-description
-
-# 2. Implement feature (use /specify workflow)
-# ... code ...
-
-# 3. Push and create PR
-git push -u origin feature/XXX-description
+/tasks show              # View registry (dashboard)
+/tasks show --active     # Show only active features
+/tasks sync              # Sync from tasks.md files
+/tasks sync --feature XXX  # Sync specific feature
+/tasks next              # Get smart recommendation
 ```
+
+**Auto-Sync Integration:**
+- `/speckit.tasks` → AUTO-ADD feature to registry
+- `/post-implementation` → AUTO-MARK complete
+- `/session-end` → AUTO-CHECK & sync
+
+**Time Savings**: 80-90% reduction (10-15 min → 1-2 min for task research)
+
+**Why GAME CHANGER?**
+- No more searching through 30+ tasks.md files
+- Single-page view of all work
+- Smart recommendations
+- Automatic updates
 
 ---
 
-## Working Memory Protocol
+### 9. Documentation Triggers
 
-### Session Start (REQUIRED)
+**When code changes, update docs:**
 
-1. ✅ **READ `working-memory/branch-context.md`** (FIRST! - SESSION START FILE)
-2. Read `working-memory/status.md` for project status
-3. Read `working-memory/feature-roadmap.md` (if planning features)
-4. Check `.specify/memory/NEXT-SESSION.md` for cross-feature context
-5. Check `git status`
-6. Review recent commits: `git log --oneline -5`
-7. Load feature progress: `.specify/specs/{feature-id}/progress.md`
+| Code Changed | Doc to Update | How |
+|--------------|---------------|-----|
+| New API endpoint | API docs, spec.md, CHANGELOG | /post-impl auto-prompts |
+| Database schema | Schema docs, migration guide | Manual update |
+| Configuration | README, .env.example | Manual update |
+| Feature complete | feature-roadmap.md, NEXT-SESSION.md | /post-impl auto-updates |
+| Architecture decision | decisions/DXXX.md (ADR) | Manual ADR |
+| Dependencies added | package.json/requirements.txt, README | Manual update |
 
-### During Session (REQUIRED)
-
-- Update `progress.md` when completing tasks or hitting blockers
-- Keep `tasks.md` current with checkbox updates
-- Document decisions in working-memory
-
-### Session End (REQUIRED)
-
-1. Update `progress.md` with final session state
-2. Update `NEXT-SESSION.md` if switching features
-3. Git commit with meaningful message
-4. Mark todos complete in `tasks.md`
+**⏸️ STOP**: After code changes, /post-impl BLOCKS until docs updated
 
 ---
 
 ## Commands Reference
 
-### SpecKit Skill (`.claude/skills/speckit/`)
+### Task Registry (NEW)
 
-SpecKit is a consolidated skill for spec-driven development. All workflows are auto-loaded when relevant.
+```bash
+/tasks show              # Display registry status
+/tasks show --active     # Show active features only
+/tasks show --pending    # Show pending tasks
+/tasks sync              # Sync from tasks.md files
+/tasks sync --check-orphans  # Detect orphaned TODOs
+/tasks next              # Get smart recommendation
+/tasks next --top-3      # Top 3 options with reasoning
+```
+
+**Use at session start:**
+```bash
+/tasks show --stats      # Quick status check
+/tasks next              # What should I work on?
+```
+
+### SpecKit Skill
 
 ```bash
 # Entry Point
@@ -210,22 +268,15 @@ SpecKit is a consolidated skill for spec-driven development. All workflows are a
 /speckit.implement         # Execute implementation
 
 # Post-Implementation
-/post-implementation       # Tests, docs, completion report
+/post-implementation       # Tests, docs, completion report (MANDATORY!)
 /speckit.usertest          # Generate user test suites
 ```
 
-### Standalone Commands
-
-```bash
-/session-end               # Session cleanup
-/init-project              # Initialize new project (run once)
-```
-
-### Team Pattern Commands
+### Team Pattern
 
 ```bash
 # Development
-/code {task}               # Delegate coding task to Developer Agent (Sonnet)
+/code "{task}"             # Delegate coding task to Developer Agent (Sonnet)
 /review --{type}           # Code review against standards (Opus)
   --compliance {standard}  #   Domain-specific compliance
   --security               #   OWASP Top 10
@@ -242,6 +293,9 @@ SpecKit is a consolidated skill for spec-driven development. All workflows are a
 /deploy {app}              # Deploy with pre/post validation
 /doc-update                # Sync documentation after feature
 /security-scan             # Security audit before commit
+
+# Session Management
+/session-end               # Clean session end (ALWAYS RUN!)
 ```
 
 ---
@@ -249,8 +303,6 @@ SpecKit is a consolidated skill for spec-driven development. All workflows are a
 ## Team Pattern & Model Configuration
 
 ### Agent Roles
-
-This template uses a **Tech Lead + Specialized Agents** pattern for scalable development:
 
 ```
 Main Agent (Tech Lead) - Opus
@@ -278,134 +330,34 @@ Main Agent (Tech Lead) - Opus
       └─ /doc-update → Doc Updater Agent - Sonnet
 ```
 
-**Model Assignment Rationale:**
-- **Opus (Main Agent, Review Agents)**: Highest quality for architecture decisions, compliance checks, and persona analysis
-- **Sonnet (Implementation, Operations)**: Balanced cost/performance for implementation and orchestration
+**Model Rationale:**
+- **Opus** (Main Agent, Review Agents): Highest quality for architecture, compliance, persona analysis
+- **Sonnet** (Implementation, Operations): Balanced cost/performance for coding, orchestration
 
-### Available Agents
+**Available Agents:**
 
-| Agent | Purpose | Model |
-|-------|---------|-------|
-| `coding-agent` | Focused coding tasks (<500 lines) | Sonnet |
-| `code-review` | Compliance, security, performance reviews | Opus |
-| `specify` | Workflow orchestration, phase detection | Sonnet |
-| `spec-review` | Persona-based spec validation | Opus |
-| `post-implementation` | Tests, docs, reports after implementation | Sonnet |
-| `session-end` | Clean session closure, context preservation | Sonnet |
-| `test-runner` | Automated test execution with coverage | Sonnet |
-| `user-test-runner` | User acceptance testing via browser | Sonnet |
-| `persona-testing` | UX validation from persona perspectives | Sonnet |
-| `security-scanner` | OWASP, secrets, vulnerability scanning | Sonnet |
-| `deployment-helper` | Multi-app deployments, migrations | Sonnet |
-| `doc-updater` | Documentation sync after features | Sonnet |
-
-### When to Use Team Pattern Commands
-
-#### /code - Delegate Implementation
-
-**Use when:**
-- Clear, focused coding task (<500 lines)
-- Architecture decisions already made
-- Task has well-defined acceptance criteria
-- Want to offload implementation details
-
-**Tech Lead provides:**
-```yaml
-Task: {clear description}
-Files:
-  to_modify: [list]
-  to_create: [list]
-Acceptance_Criteria:
-  - [ ] Criterion 1
-  - [ ] Criterion 2
-Context: {spec file, related code}
-Constraints: {patterns to follow}
-```
-
-**Developer delivers:**
-- ✅ Implemented feature/fix
-- ✅ Unit tests (>90% coverage)
-- ✅ Documentation
-- ✅ Self-reviewed code
-- ✅ Completion report
-
-#### /review - Code Review
-
-**Use when:**
-- Critical code (API integrations, auth, data processing)
-- Security-sensitive changes
-- Compliance-required features
-- Performance-critical paths
-
-**Review types:**
-```bash
-/review --compliance {standard}  # Domain-specific compliance
-/review --security               # OWASP Top 10
-/review --performance            # Performance anti-patterns
-/review --architecture           # Architecture patterns
-```
-
-**Review standards location:**
-- `.claude/review-standards/` - Compliance checklists
-- Customize for your domain (add `{domain}-compliance.md`)
-
-#### /post-impl - MANDATORY After Implementation
-
-**Orchestrates:**
-1. Run automated tests (BLOCKING gate)
-2. Generate user test suites
-3. Update documentation
-4. Update working memory (SSOT)
-5. Create completion report
-
-**NEVER skip** - This ensures:
-- ✅ Tests pass before marking complete
-- ✅ Documentation up to date
-- ✅ Working memory updated
-- ✅ User tests ready for execution
-
-### Working Memory SSOT
-
-**CRITICAL:** All agents MUST read `working-memory/README.md` FIRST before accessing working-memory.
-
-**Why?**
-- Prevents hardcoded structure
-- Documents format specifications (timestamps, tables)
-- Defines agent permissions (who reads/writes what)
-- Version-controlled and auditable
-
-**Key files:**
-- `branch-context.md` - SESSION START file (read first!)
-- `status.md` - Project status with timestamped entries
-- `feature-roadmap.md` - Feature tracking & Phase 2 backlog
-- `decisions/` - Architecture Decision Records (ADRs)
-- `reports/` - Auto-generated reports
-
-### Persona Review Bias Warning
-
-**⚠️ IMPORTANT:** `/spec-review` provides persona-based feedback which can be **biased** or **overly prescriptive**.
-
-**Main Agent MUST:**
-1. ✅ Review feedback for plausibility
-2. ✅ Discuss with user before implementing
-3. ❌ DO NOT implement 1:1 - User has final say
-
-**Why?**
-- Personas may over-emphasize edge cases
-- AI-generated feedback may contradict project constraints
-- User context (budget, timeline, priorities) may differ
-
-**Workflow:**
-```
-Persona Review → Main Agent validates → Discuss with User → User decides
-```
+| Agent | Purpose | Model | When to Use |
+|-------|---------|-------|-------------|
+| `coding-agent` | Focused coding (<500 lines) | Sonnet | Via /code or Task tool |
+| `code-review` | Compliance, security, performance | Opus | Via /review or Task tool |
+| `specify` | Workflow orchestration, phase detection | Sonnet | Via /specify |
+| `spec-review` | Persona-based spec validation | Opus | Via /spec-review |
+| `post-implementation` | Tests, docs, reports | Sonnet | Via /post-impl (MANDATORY) |
+| `session-end` | Session cleanup, context preservation | Sonnet | Via /session-end (ALWAYS) |
+| `test-runner` | Automated tests with coverage | Sonnet | Auto or manual |
+| `user-test-runner` | User acceptance testing (browser) | Sonnet | Auto or manual |
+| `persona-testing` | UX validation from personas | Sonnet | Via /persona-test |
+| `security-scanner` | OWASP, secrets scanning | Sonnet | Auto or manual |
+| `deployment-helper` | Multi-environment deployment | Sonnet | Via /deploy or Task tool |
+| `doc-updater` | Documentation sync | Sonnet | Auto or manual |
 
 ---
 
 ## Constitution Reference
 
-The project constitution at `.specify/memory/constitution.md` defines:
+**Location**: `.specify/memory/constitution.md`
 
+**Core Principles:**
 1. **Specification-Driven Development** - Specs before code
 2. **Security-First Development** - Security is non-negotiable
 3. **Modular Architecture** - Self-contained modules
@@ -414,7 +366,96 @@ The project constitution at `.specify/memory/constitution.md` defines:
 6. **Minimal Dependencies** - Reduce supply chain risk
 7. **Progressive Enhancement** - Graceful degradation
 
-**Constitution SUPERSEDES all other documentation when in conflict.**
+**⚠️ Constitution SUPERSEDES all other documentation when in conflict**
+
+[Read full constitution →](.specify/memory/constitution.md)
+
+---
+
+## Deprecated Components
+
+**DO NOT USE** these patterns:
+
+### Inline TODOs
+❌ **Old**: `// TODO: Fix this bug`
+✅ **New**: Create task in task-registry.md or tasks.md
+
+**Why?** TODOs get lost in code. Task registry tracks everything.
+
+### Scattered Documentation
+❌ **Old**: Reports in app directories, summaries at root
+✅ **New**: All in `.specify/memory/reports/` and `.specify/memory/sessions/`
+
+**Why?** Centralized docs are easier to find and maintain.
+
+### Manual Task Tracking
+❌ **Old**: Search through 30+ tasks.md files
+✅ **New**: `/tasks show` (single source of truth)
+
+**Why?** 80-90% time savings.
+
+### Skipping /post-impl
+❌ **Old**: "I'll update docs later"
+✅ **New**: 3-layer enforcement (MANDATORY)
+
+**Why?** Compliance went from ~60% to ~99%.
+
+---
+
+## Quick Reference
+
+### Session Start (2 minutes)
+```bash
+git branch --show-current
+cat .specify/memory/INDEX.md       # 30-second overview
+cat .specify/memory/NEXT-SESSION.md
+/tasks show --stats
+/tasks next                         # Get recommendation
+```
+
+### During Session
+```bash
+# After checking off tasks in tasks.md:
+/tasks sync --feature XXX
+
+# When stuck:
+/tasks next --top-3
+
+# When making architecture decision:
+# Create ADR in .specify/memory/decisions/DXXX.md
+```
+
+### Session End (MANDATORY)
+```bash
+# If code changed:
+/post-implementation    # MANDATORY - 3-layer enforcement
+
+# Always:
+/session-end            # Updates NEXT-SESSION, INDEX, syncs registry
+
+# Then commit:
+git add .
+git commit -m "feat: Description
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+git push
+```
+
+### Git Commit Template
+```bash
+git commit -m "$(cat <<'EOF'
+<type>: <description>
+
+[Optional body explaining WHY, not WHAT]
+
+[Optional footer: Breaking Changes, Issues, etc.]
+
+Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>
+EOF
+)"
+```
+
+**Types**: feat, fix, docs, style, refactor, test, chore
 
 ---
 
@@ -440,7 +481,51 @@ Add project-specific details here after initialization.
 
 <!-- Add deployment details after project setup -->
 
+**Servers:**
+- **Dev**: {{DEV_SERVER}}
+- **Staging**: {{STAGING_SERVER}}
+- **Production**: {{PROD_SERVER}}
+
+**Deploy Scripts:**
+- Dev: `deploy-dev.sh`
+- Staging: `deploy-staging.sh`
+- Production: `deploy-prod.sh`
+
 ---
 
-*Last Updated: {{DATE}}*
-*Template Version: 1.0.0*
+## Getting Help
+
+### Commands
+- `/help` - Get help with using Claude Code
+- [GitHub Issues](https://github.com/anthropics/claude-code/issues) - Report bugs, request features
+
+### Documentation
+- **Core Rules**: This file (CLAUDE.md)
+- **Memory SSOT**: [.specify/memory/README.md](.specify/memory/README.md)
+- **Constitution**: [.specify/memory/constitution.md](.specify/memory/constitution.md)
+- **Task Registry**: [.specify/memory/task-registry.md](.specify/memory/task-registry.md)
+- **Quick Navigation**: [.specify/memory/INDEX.md](.specify/memory/INDEX.md)
+- **Template README**: [README.md](README.md)
+
+### Key Workflows
+
+**Feature Development:**
+```
+/specify → plan → review → tasks → implement → /post-impl → user tests → complete
+```
+
+**Bug Fix (<20 lines):**
+```
+Fix → Tests pass → Update memory → Commit
+```
+
+**Architecture Decision:**
+```
+Create ADR → Discuss → Implement → Update constitution if needed
+```
+
+---
+
+*Last Updated: 2026-01-25*
+*Template Version: 2.0.0*
+*Production-Proven: ✅ Yes (aiio-apps, 6 months, 59 features)*

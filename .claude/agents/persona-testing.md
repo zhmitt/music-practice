@@ -158,7 +158,7 @@ Compare to existing solutions:
 
 ### Output
 
-Write report to: `working-memory/persona-testing/[YYYY-MM-DD]_[persona]_report.md`
+Write report to: `.specify/memory/persona-testing/[YYYY-MM-DD]_[persona]_report.md`
 
 ---
 

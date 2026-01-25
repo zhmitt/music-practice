@@ -56,7 +56,7 @@ None yet.
 
 1. Read this file for context
 2. Check `git status` for uncommitted work
-3. Review working-memory/status.md
+3. Review .specify/memory/status.md
 4. Continue with current feature or start new one
 
 ---

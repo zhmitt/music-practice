@@ -142,7 +142,7 @@ Duration: 45s
 
 ✅ ALL TESTS PASSED!
 
-📄 Report: working-memory/test-results/{timestamp}-report.md
+📄 Report: .specify/memory/test-results/{timestamp}-report.md
 ```
 
 ---

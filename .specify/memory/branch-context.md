@@ -7,8 +7,8 @@
 ## Quick Start
 
 1. Read this file (✅ You're here!)
-2. Read working-memory/status.md for project status
-3. Read working-memory/feature-roadmap.md (if planning features)
+2. Read .specify/memory/status.md for project status
+3. Read .specify/memory/feature-roadmap.md (if planning features)
 4. Run `/specify` to continue or start new feature
 
 ## Current Feature

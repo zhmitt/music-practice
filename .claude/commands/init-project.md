@@ -138,7 +138,7 @@ For **Python**:
 
 ### 6. Setup Working Memory
 
-Create `working-memory/` structure:
+Create `.specify/memory/` structure:
 - `status.md` - Project status tracking
 - `decisions/` - Architecture decisions
 - `README.md` - Working memory guide
@@ -171,7 +171,7 @@ After initialization, display:
 - .specify/memory/constitution.md
 - .specify/memory/NEXT-SESSION.md
 - .claude/personas/[...].md
-- working-memory/status.md
+- .specify/memory/status.md
 
 ## Next Steps
 

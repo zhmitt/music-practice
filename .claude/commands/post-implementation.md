@@ -42,7 +42,7 @@ This command orchestrates the post-implementation workflow after all tasks are c
 4. **Update Documentation**:
 
    Based on what changed:
-   - Update working-memory/status.md
+   - Update .specify/memory/status.md
    - Update NEXT-SESSION.md
    - Update any API documentation
 
@@ -78,7 +78,7 @@ This command orchestrates the post-implementation workflow after all tasks are c
    - Location: `.specify/specs/[branch]/usertests.md`
 
    ## Documentation Updated
-   - [ ] working-memory/status.md
+   - [ ] .specify/memory/status.md
    - [ ] NEXT-SESSION.md
    - [ ] API docs (if applicable)
 

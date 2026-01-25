@@ -39,7 +39,7 @@ docs/
 | `docker-compose*.yml` | `deployment.md` |
 | Auth changes | `authentication.md` |
 | New user feature | `user/features/` |
-| Feature completion | `working-memory/status.md` |
+| Feature completion | `.specify/memory/status.md` |
 
 ---
 
@@ -107,7 +107,7 @@ Format (Keep a Changelog):
 ## Updated Files
 - [x] docs/technical/api-reference.md
 - [x] docs/technical/database.md
-- [x] working-memory/status.md
+- [x] .specify/memory/status.md
 
 ## Changes Made
 ### [File]

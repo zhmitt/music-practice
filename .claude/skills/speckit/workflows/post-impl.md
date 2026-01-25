@@ -19,7 +19,7 @@ Orchestrate post-implementation workflow.
 3. **Generate User Tests**: Run `/speckit.usertest`
 
 4. **Update Documentation**:
-   - working-memory/status.md
+   - .specify/memory/status.md
    - NEXT-SESSION.md
    - API docs (if applicable)
 

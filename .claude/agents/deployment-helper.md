@@ -32,7 +32,7 @@ git branch --show-current
 
 **Read branch context:**
 ```
-working-memory/branch-context.md
+.specify/memory/branch-context.md
 ```
 
 **Branch → Environment Mapping:**

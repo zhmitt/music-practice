@@ -60,7 +60,7 @@ This command ensures proper session closure with context preserved for the next 
    - Document quick-start for next session
 
 5. **Working Memory Sync**:
-   - Update `working-memory/status.md` if exists
+   - Update `.specify/memory/status.md` if exists
    - Ensure all decisions documented
    - Check for any open questions
 
