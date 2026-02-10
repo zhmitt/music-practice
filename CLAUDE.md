@@ -79,6 +79,28 @@ cat .specify/memory/NEXT-SESSION.md    # Session context
 - Main Agent context stays clean for orchestration
 - Better quality through specialized agents
 
+**Maximum Parallelization (NON-NEGOTIABLE):**
+
+Spawn as many agents in parallel as possible without conflicts. This is a core principle of the Tech Lead role:
+
+- **Exploration:** Multiple Explore-Agents in parallel for different aspects (Frontend, Backend, Specs, Tests)
+- **Implementation:** Independent coding-agents in parallel (different files/modules)
+- **Testing + Review:** test-runner + code-review + user-test-runner in parallel after implementation
+- **Never wait sequentially** when tasks are independent
+- **Respect dependencies:** Only sequential when output from Agent A is input for Agent B
+
+```python
+# CORRECT: 3 parallel Explore-Agents
+Task(subagent_type="Explore", description="Frontend search", prompt="...")
+Task(subagent_type="Explore", description="Backend search", prompt="...")
+Task(subagent_type="Explore", description="Specs search", prompt="...")
+
+# WRONG: Sequential one after another
+result1 = Task(subagent_type="Explore", ...)  # waiting...
+result2 = Task(subagent_type="Explore", ...)  # waiting...
+result3 = Task(subagent_type="Explore", ...)  # waiting...
+```
+
 **Workflow with STOP points:**
 ```
 1. Plan architecture (Tech Lead)     ⏸️ STOP → Get user approval
