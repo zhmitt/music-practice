@@ -345,7 +345,7 @@ Main Agent (Tech Lead) - Opus
 | `post-implementation` | Tests, docs, reports | Sonnet | Via /post-impl (MANDATORY) |
 | `session-end` | Session cleanup, context preservation | Sonnet | Via /session-end (ALWAYS) |
 | `test-runner` | Automated tests with coverage | Sonnet | Auto or manual |
-| `user-test-runner` | User acceptance testing (browser) | Sonnet | Auto or manual |
+| `user-test-runner` | Browser test observer (raw observations for Opus analysis) | Sonnet | Auto or manual |
 | `persona-testing` | UX validation from personas | Sonnet | Via /persona-test |
 | `security-scanner` | OWASP, secrets scanning | Sonnet | Auto or manual |
 | `deployment-helper` | Multi-environment deployment | Sonnet | Via /deploy or Task tool |
