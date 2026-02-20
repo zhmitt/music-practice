@@ -54,3 +54,6 @@ Thumbs.db
 
 # Claude Code local settings (not shared)
 .claude/settings.local.json
+
+# Codex app local workspace artifacts
+.codex/

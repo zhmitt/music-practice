@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased]
+
+### ✨ Added
+
+- **Codex runtime structure**:
+  - `AGENTS.md` (skill trigger rules and runtime entrypoints)
+  - `codex/skills/*` (specify-core, tasks-registry, post-implementation, session-closure)
+  - `codex/scripts/*` (phase detect, task sync, post-impl check, session close)
+  - `Makefile` wrappers (`make daily`, `make phase`, `make sync`, `make post-check`, `make close`)
+- **Missing Claude command definitions**:
+  - `.claude/commands/test.md`
+  - `.claude/commands/deploy.md`
+  - `.claude/commands/doc-update.md`
+  - `.claude/commands/persona-test.md`
+  - `.claude/commands/security-scan.md`
+  - `.claude/commands/post-impl.md` (alias)
+- **Git hook implementation**:
+  - `.git-hooks/pre-commit`
+  - `.git-hooks/install.sh`
+  - `.git-hooks/README.md`
+- **Template completeness fixes**:
+  - `.specify/templates/adr-template.md`
+  - `.specify/memory/pending-usertests.md`
+
+### 🔄 Changed
+
+- **README.md** updated for dual runtime support (Claude + Codex) and new command examples.
+- **Shell script portability** improved in:
+  - `.specify/scripts/create-new-feature.sh`
+  - `.specify/scripts/setup-plan.sh`
+  (BSD/GNU `sed` compatibility)
+- **Git ignore** updated to ignore temporary `.codex/` local artifacts.
+
+---
+
 ## [2.0.0] - 2026-01-25
 
 ### 🎯 Major Changes

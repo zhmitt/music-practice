@@ -5,6 +5,18 @@
 
 set -e
 
+replace_in_file() {
+    local pattern="$1"
+    local replacement="$2"
+    local file="$3"
+
+    if sed --version >/dev/null 2>&1; then
+        sed -i "s|${pattern}|${replacement}|g" "$file"
+    else
+        sed -i '' "s|${pattern}|${replacement}|g" "$file"
+    fi
+}
+
 # Parse arguments
 JSON_OUTPUT=false
 FEATURE_NUMBER=""
@@ -60,9 +72,9 @@ if [ -f ".specify/templates/spec-template.md" ]; then
     cp ".specify/templates/spec-template.md" "$SPEC_FILE"
 
     # Replace placeholders
-    sed -i '' "s/\[FEATURE NAME\]/${DESCRIPTION:-$SHORT_NAME}/g" "$SPEC_FILE"
-    sed -i '' "s/\[###-feature-name\]/${BRANCH_NAME}/g" "$SPEC_FILE"
-    sed -i '' "s/\[DATE\]/$(date +%Y-%m-%d)/g" "$SPEC_FILE"
+    replace_in_file "\\[FEATURE NAME\\]" "${DESCRIPTION:-$SHORT_NAME}" "$SPEC_FILE"
+    replace_in_file "\\[###-feature-name\\]" "${BRANCH_NAME}" "$SPEC_FILE"
+    replace_in_file "\\[DATE\\]" "$(date +%Y-%m-%d)" "$SPEC_FILE"
 fi
 
 # Create progress.md

@@ -1,9 +1,9 @@
 # App Development Template
 
-Production-ready, spec-driven development template for Claude Code.
+Production-ready, spec-driven development template for Claude Code and Codex.
 
-**Version**: 2.0.0
-**Last Updated**: 2026-01-25
+**Version**: 2.1.0-dev
+**Last Updated**: 2026-02-20
 **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 **Production-Proven**: ✅ Yes (aiio-apps, 6 months, 59 features)
 
@@ -20,6 +20,7 @@ This template implements a rigorous spec-driven development workflow with:
 - 💾 **Working Memory SSOT** - Session continuity and knowledge persistence
 - 🧪 **Testing Framework** - Automated + user testing with Playwright
 - 📝 **Constitution Governance** - Project principles supersede all docs
+- 🤖 **Codex Runtime** - Local skills + deterministic scripts + one-command `make daily`
 
 ---
 
@@ -52,6 +53,8 @@ cd .git-hooks
 
 ### 3. Start Development
 
+#### Option A: Claude Commands
+
 ```bash
 # Session start
 git branch --show-current
@@ -61,6 +64,19 @@ cat .specify/memory/NEXT-SESSION.md      # Session context
 
 # Create first feature
 /speckit.specify "Add user authentication"
+```
+
+#### Option B: Codex Runtime (recommended in Codex app)
+
+```bash
+# Show available workflow commands
+make help
+
+# Run daily start routine (phase + sync + post-check)
+make daily
+
+# Close session with context handoff
+make close SUMMARY="What was done and next step"
 ```
 
 ---
@@ -96,6 +112,11 @@ app-dev-template/
 │   ├── pre-commit         # 3-layer enforcement
 │   ├── install.sh         # Installation script
 │   └── README.md          # Hook documentation
+├── codex/
+│   ├── scripts/           # Deterministic workflow scripts (phase/sync/check/close)
+│   └── skills/            # Codex-native local skills
+├── AGENTS.md              # Codex skill trigger rules + runtime guide
+├── Makefile               # One-command wrappers (make daily, make close, ...)
 ├── src/                   # Source Code
 ├── tests/                 # Test Files
 ├── CLAUDE.md              # 🔄 Core Rules (v2.0 - restructured)
@@ -104,6 +125,21 @@ app-dev-template/
 
 🆕 New in v2.0 | 🔄 Updated in v2.0
 ```
+
+---
+
+## What's New in v2.1-dev
+
+### Codex Runtime (NEW)
+
+Added a Codex-native execution layer for teams that want deterministic orchestration:
+
+- `AGENTS.md` with skill trigger rules
+- `codex/skills/*` for lifecycle orchestration
+- `codex/scripts/*` for deterministic execution
+- `Makefile` wrappers (`make daily`, `make post-check`, `make close`)
+
+This keeps the spec-driven model while reducing cognitive load for daily operation.
 
 ---
 
@@ -179,11 +215,35 @@ New file for fast session resume:
 ### Git Hooks
 
 **Pre-Commit Validation**:
-1. Scattered files check (prevents docs in wrong locations)
-2. Post-impl check (code changes require docs)
-3. TODO detection (suggests task-registry instead)
+1. Code changes require docs/memory updates
+2. Code changes require post-implementation evidence
+3. New inline TODO/FIXME/XXX comments are blocked
 
 **Installation**: `.git-hooks/install.sh`
+
+---
+
+## Codex Runtime Commands
+
+### Makefile (one-command entrypoints)
+
+```bash
+make help
+make daily
+make phase
+make sync
+make post-check
+make close SUMMARY="what changed and what to do next"
+```
+
+### Script-level commands
+
+```bash
+codex/scripts/phase-detect.sh --json
+codex/scripts/tasks-sync.sh
+codex/scripts/post-impl-check.sh
+codex/scripts/session-close.sh --summary "..."
+```
 
 ---
 
@@ -233,6 +293,22 @@ cat .specify/memory/NEXT-SESSION.md    # Session context
 # END
 /post-impl                              # If code changed
 /session-end                            # Cleanup & persistence
+```
+
+---
+
+### Codex Session Management
+
+```bash
+# START
+make daily
+
+# DURING
+make sync
+make phase
+
+# END
+make close SUMMARY="Finished task X; next: task Y"
 ```
 
 ---
@@ -333,6 +409,18 @@ cat .specify/memory/NEXT-SESSION.md  # Session context
 
 ---
 
+### I Forget Commands
+
+**Issue**: Can't remember workflow commands
+
+**Solution**:
+```bash
+make help
+make daily
+```
+
+---
+
 ## Configuration
 
 ### Tech Stack
@@ -380,6 +468,9 @@ Edit `CLAUDE.md` Section 6:
 - **Task Registry**: [.specify/memory/task-registry.md](.specify/memory/task-registry.md)
 - **Quick Navigation**: [.specify/memory/INDEX.md](.specify/memory/INDEX.md)
 - **Git Hooks**: [.git-hooks/README.md](.git-hooks/README.md)
+- **Codex Runtime Rules**: [AGENTS.md](AGENTS.md)
+- **Codex Skills**: [codex/skills/](codex/skills/)
+- **Codex Scripts**: [codex/scripts/](codex/scripts/)
 
 ### Issues
 
@@ -437,6 +528,6 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ---
 
-**Template Version**: 2.0.0
-**Last Updated**: 2026-01-25
+**Template Version**: 2.1.0-dev
+**Last Updated**: 2026-02-20
 **Production-Proven**: ✅ Yes

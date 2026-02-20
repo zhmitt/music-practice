@@ -1,0 +1,68 @@
+#!/bin/bash
+
+set -euo pipefail
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACMR)
+
+if [ -z "$staged_files" ]; then
+    exit 0
+fi
+
+code_regex='\.(c|cc|cpp|cs|go|h|hpp|java|js|jsx|kt|mjs|php|py|rb|rs|scala|sh|sql|swift|ts|tsx)$'
+docs_regex='^(README\.md|CHANGELOG\.md|CLAUDE\.md|docs/|\.specify/memory/|\.specify/specs/.+/(spec|plan|tasks|progress|usertests)\.md)'
+report_regex='^\.specify/memory/reports/post-implementation-.*\.md$'
+
+has_code=false
+has_docs=false
+has_post_impl_evidence=false
+
+while IFS= read -r file; do
+    [ -z "$file" ] && continue
+
+    if [[ "$file" =~ $code_regex ]]; then
+        has_code=true
+    fi
+
+    if [[ "$file" =~ $docs_regex ]]; then
+        has_docs=true
+    fi
+
+    if [[ "$file" =~ $report_regex ]] || [[ "$file" == ".specify/memory/status.md" ]] || [[ "$file" == ".specify/memory/task-registry.md" ]] || [[ "$file" == ".specify/memory/NEXT-SESSION.md" ]]; then
+        has_post_impl_evidence=true
+    fi
+done <<< "$staged_files"
+
+if [ "$has_code" = true ] && [ "$has_docs" = false ]; then
+    echo "❌ Commit blocked: code changes without docs/memory updates."
+    echo "   Add relevant documentation (README/docs/.specify/memory) and retry."
+    exit 1
+fi
+
+if [ "$has_code" = true ] && [ "$has_post_impl_evidence" = false ]; then
+    echo "❌ Commit blocked: missing post-implementation evidence."
+    echo "   Run /post-implementation (or update status/task-registry/NEXT-SESSION) and stage those files."
+    exit 1
+fi
+
+todo_hits=""
+while IFS= read -r file; do
+    [ -z "$file" ] && continue
+
+    if [[ "$file" =~ $code_regex ]]; then
+        file_hits=$(git diff --cached --unified=0 -- "$file" | rg '^\+.*(TODO|FIXME|XXX)' -n || true)
+        if [ -n "$file_hits" ]; then
+            todo_hits="${todo_hits}\n${file}\n${file_hits}\n"
+        fi
+    fi
+done <<< "$staged_files"
+
+if [ -n "$todo_hits" ]; then
+    echo "❌ Commit blocked: new inline TODO/FIXME/XXX comments detected."
+    echo "   Track these items in .specify/memory/task-registry.md or feature tasks.md instead."
+    printf "%b\n" "$todo_hits"
+    exit 1
+fi
+
+echo "✅ pre-commit checks passed"
+exit 0
+

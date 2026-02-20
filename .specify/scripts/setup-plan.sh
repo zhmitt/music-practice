@@ -5,6 +5,18 @@
 
 set -e
 
+replace_in_file() {
+    local pattern="$1"
+    local replacement="$2"
+    local file="$3"
+
+    if sed --version >/dev/null 2>&1; then
+        sed -i "s|${pattern}|${replacement}|g" "$file"
+    else
+        sed -i '' "s|${pattern}|${replacement}|g" "$file"
+    fi
+}
+
 JSON_OUTPUT=false
 
 while [[ $# -gt 0 ]]; do
@@ -43,9 +55,9 @@ if [ ! -f "$IMPL_PLAN" ]; then
         FEATURE_NAME=$(head -1 "$FEATURE_SPEC" | sed 's/# Feature Specification: //')
 
         # Replace placeholders
-        sed -i '' "s/\[FEATURE\]/${FEATURE_NAME}/g" "$IMPL_PLAN"
-        sed -i '' "s/\[###-feature-name\]/${BRANCH}/g" "$IMPL_PLAN"
-        sed -i '' "s/\[DATE\]/$(date +%Y-%m-%d)/g" "$IMPL_PLAN"
+        replace_in_file "\\[FEATURE\\]" "${FEATURE_NAME}" "$IMPL_PLAN"
+        replace_in_file "\\[###-feature-name\\]" "${BRANCH}" "$IMPL_PLAN"
+        replace_in_file "\\[DATE\\]" "$(date +%Y-%m-%d)" "$IMPL_PLAN"
     fi
 fi
 
