@@ -28,6 +28,49 @@ Specialized agent for complete test execution with detailed reports.
 
 ---
 
+## Regression Detection (CRITICAL)
+
+**Before running tests, capture the baseline:**
+
+### Why?
+LLMs frequently break existing tests while implementing new features. Without a baseline comparison, we only know "2 tests failed" — not whether those failures are *new* (regression) or *pre-existing*.
+
+### How?
+1. **Before any code changes** (or from last known state): Record passing test count
+2. **After code changes**: Run tests again
+3. **Compare**: If previously-passing tests now fail → **REGRESSION DETECTED**
+
+### Baseline Capture
+```bash
+# Run tests quietly, capture pass/fail count BEFORE changes
+# Store in variable or temp file for comparison
+```
+
+### Regression Report (add to output when detected)
+```markdown
+## ⚠️ Regression Detected
+
+| Metric | Before | After | Delta |
+|--------|--------|-------|-------|
+| Passing | {n} | {n} | {-n} ❌ |
+| Failing | {n} | {n} | {+n} |
+
+### Newly Broken Tests
+| Test | File | Was | Now |
+|------|------|-----|-----|
+| {name} | {file}:{line} | ✅ Pass | ❌ Fail |
+
+**Action Required:** Fix regressions before proceeding. New failures in previously-passing tests are BLOCKERS.
+```
+
+### When Baseline is Unavailable
+If no baseline exists (first run, new project), skip regression comparison and note it:
+```
+ℹ️ No test baseline available — regression comparison skipped.
+```
+
+---
+
 ## Workflow
 
 ### 1. Detect Test Framework
@@ -105,7 +148,16 @@ Extract:
 |------|-------|------|
 | {name} | {error} | {file}:{line} |
 
+## Regressions
+| Test | File | Status |
+|------|------|--------|
+| {name} | {file}:{line} | 🔴 REGRESSION (was passing) |
+
+> If regressions detected: **BLOCKER** — fix before proceeding.
+> If no regressions: ✅ No regressions detected.
+
 ## Recommendations
+- {if regressions} Fix regressions FIRST — these are previously-passing tests now broken
 - {if coverage < 80%} Add tests for files below target
 - {if failures} Fix failing tests before proceeding
 - {if all good} Ready for User Testing

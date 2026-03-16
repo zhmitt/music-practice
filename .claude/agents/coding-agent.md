@@ -41,7 +41,13 @@ Constraints: [requirements]
 ```
 
 ### 3. Developer Implements
-1. Read context files → 2. Implement → 3. Write tests → 4. Run tests → 5. Add docstrings → 6. Self-review → 7. Report
+1. Read architecture context → 2. Read task context files → 3. Implement → 4. Write tests → 5. Run tests → 6. Add docstrings → 7. Self-review → 8. Report
+
+**Step 1 — Architecture Context (ALWAYS read before coding):**
+- `.specify/memory/INDEX.md` — Project overview, active patterns, current state
+- `.specify/memory/decisions/` — Architecture Decision Records (ADRs). Scan for any ADR relevant to your task. These document *why* past decisions were made — violating them without Tech Lead approval creates long-term maintenance debt.
+
+If ADRs or INDEX reference patterns relevant to your task, follow them. If your implementation would contradict an existing ADR, **STOP and report to Tech Lead** — do not silently diverge.
 
 ### 4. Completion Report
 ```markdown
@@ -96,10 +102,12 @@ describe('Feature', () => {
 **Before reporting completion:**
 
 - [ ] Follows existing patterns
+- [ ] Consistent with ADRs in `.specify/memory/decisions/`
 - [ ] Type hints on all functions
 - [ ] Error handling complete
 - [ ] No hardcoded values
 - [ ] Unit tests pass (>90% coverage)
+- [ ] No regressions (previously-passing tests still pass)
 - [ ] Docstrings on public methods
 - [ ] No breaking changes
 
