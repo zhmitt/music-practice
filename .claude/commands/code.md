@@ -76,11 +76,13 @@ Constraints:
 ## After Developer Reports Completion
 
 **Your (Tech Lead) responsibilities**:
-1. Review code changes
+1. **Review**: Run `/review --auto` for non-trivial changes (>50 lines or touching critical paths like auth, payments, data models)
 2. Run integration tests
 3. Commit changes (or request revisions)
 4. Update working-memory
 5. Continue with next task
+
+**For features with multiple /code delegations:** Review after EACH delegation, not just at feature-end. Errors compound across tasks — a bad pattern in Task 1 propagates into Tasks 2-4.
 
 ## When to Use
 

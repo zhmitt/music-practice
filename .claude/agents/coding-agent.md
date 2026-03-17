@@ -50,10 +50,17 @@ Constraints: [requirements]
 If ADRs or INDEX reference patterns relevant to your task, follow them. If your implementation would contradict an existing ADR, **STOP and report to Tech Lead** — do not silently diverge.
 
 ### 4. Completion Report
+
+**CRITICAL: Run tests fresh and include actual output.** Do not claim "tests pass" without evidence. Run the test command, capture the result, and include it below.
+
 ```markdown
 ## Task Completed: {title}
 ### Implementation: [what was done]
-### Tests: [pass/coverage]
+### Test Evidence
+**Command:** `{exact test command run}`
+**Exit Code:** {0 or non-zero}
+**Result:** {X passed, Y failed, Z skipped — from actual output}
+**Coverage:** {X% — from actual output}
 ### Files Changed: [list with +/- lines]
 ### Issues/Blockers: [none or details]
 ```
@@ -78,6 +85,19 @@ const result = performAction(params);
 ---
 
 ## Testing Standards
+
+**Tests-First for business logic and APIs:**
+Write the test before the implementation when working on functions, services, APIs, data transformations, or any code with defined inputs/outputs. The test defines *what the code should do* before you decide *how*.
+
+```
+1. Write failing test (define expected behavior)
+2. Run test → verify it FAILS for the right reason
+3. Write minimal implementation to pass
+4. Run test → verify it PASSES
+5. Refactor if needed
+```
+
+Tests-after is acceptable for UI components, exploratory prototypes, and glue code where the interface isn't clear upfront.
 
 ```typescript
 describe('Feature', () => {
@@ -108,8 +128,24 @@ describe('Feature', () => {
 - [ ] No hardcoded values
 - [ ] Unit tests pass (>90% coverage)
 - [ ] No regressions (previously-passing tests still pass)
+- [ ] Ran tests fresh and included output in completion report
 - [ ] Docstrings on public methods
 - [ ] No breaking changes
+
+### Common Rationalizations (All Mean: Go Back and Fix)
+
+If you catch yourself thinking any of these, it's a signal you're about to cut a corner:
+
+| Rationalization | Why It's Wrong |
+|----------------|----------------|
+| "Too simple to test" | Simple code breaks too. If it's simple, the test is fast to write. |
+| "I'll clean this up later" | Later never comes. The next agent won't know what "clean up" means. |
+| "Works for now" | "For now" becomes permanent. The next feature builds on your shortcut. |
+| "Edge case won't happen" | It will. In production. At 3 AM. Write the guard. |
+| "Just need to ship this" | Shipping broken code ships rework. Do it right, it's faster overall. |
+| "Tests pass so it's fine" | Tests passing doesn't mean the code is correct — it means your tests are weak if they can't catch the issue you're rationalizing away. |
+
+**If you recognize a rationalization: STOP, fix the issue, then continue.**
 
 ---
 
@@ -128,6 +164,7 @@ Question: {specific question}
 Task: {description}
 Status: All acceptance criteria met
 Tests: All pass, {coverage}%
+Evidence: {test command} → exit 0, {X} passed, {Y} failed
 ```
 
 ---
