@@ -94,6 +94,46 @@ trivy image [image-name]  # Container scanning
 
 ---
 
+## Supply Chain Defense
+
+### New Dependency Vetting
+
+When new packages/dependencies are added, check **before approving**:
+
+| Signal | Red Flag | Action |
+|--------|----------|--------|
+| **Age** | Published < 30 days ago | BLOCK — wait or find alternative |
+| **Downloads** | < 1,000 weekly downloads | REVIEW — low adoption = unvetted |
+| **Maintainer** | New account, no other packages | BLOCK — common attacker pattern |
+| **Name** | Typosquat of popular package (e.g. `lodassh`, `reqeusts`) | BLOCK — likely malicious |
+| **Scope** | Does more than advertised (network calls in a string util) | BLOCK — suspicious |
+
+```bash
+# NPM: Check package metadata
+npm view {package} time.created time.modified maintainers dist-tags.latest
+
+# PyPI: Check package metadata
+pip index versions {package}  # or check pypi.org/project/{package}
+```
+
+### Invisible Unicode Payload Detection
+
+Attackers embed malicious code in Unicode characters invisible to editors and reviewers (U+200B zero-width space, U+2060 word joiner, etc.). A small decoder extracts the hidden bytes at runtime via `eval()`.
+
+**Scan new/updated dependencies for suspicious Unicode ranges:**
+
+```bash
+# Detect invisible Unicode in source files (node_modules or vendor)
+grep -rP '[\x{200B}-\x{200F}\x{2060}-\x{2064}\x{FEFF}\x{00AD}\x{034F}\x{180E}]' {path}
+
+# Detect eval() paired with String.fromCharCode or charCodeAt (common decoder pattern)
+grep -rP 'eval\s*\(' {path} --include='*.js' --include='*.ts' --include='*.py'
+```
+
+**If invisible Unicode found in any dependency source → BLOCK COMMIT, report as Critical.**
+
+---
+
 ## OWASP Top 10 Checklist
 
 | # | Vulnerability | Check |

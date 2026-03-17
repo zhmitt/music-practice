@@ -186,7 +186,7 @@ Evidence: {test command} → exit 0, {X} passed, {Y} failed
 ### Ask First
 - Refactoring adjacent code
 - Changing API signatures
-- Adding new dependencies
+- Adding new dependencies — **always report to Tech Lead with**: package name, purpose, weekly downloads, age, maintainer. Never install packages < 30 days old or < 1,000 weekly downloads without explicit Tech Lead approval.
 
 ---
 
