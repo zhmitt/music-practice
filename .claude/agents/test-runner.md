@@ -30,44 +30,20 @@ Specialized agent for complete test execution with detailed reports.
 
 ## Regression Detection (CRITICAL)
 
-**Before running tests, capture the baseline:**
+**Compare test results before and after code changes.** If previously-passing tests now fail → REGRESSION. Regressions are **BLOCKERS** (higher priority than new test failures).
 
-### Why?
-LLMs frequently break existing tests while implementing new features. Without a baseline comparison, we only know "2 tests failed" — not whether those failures are *new* (regression) or *pre-existing*.
+**Process:**
+1. Record passing test count from last known state (before changes)
+2. Run tests after changes
+3. Compare — any previously-passing test now failing = regression
 
-### How?
-1. **Before any code changes** (or from last known state): Record passing test count
-2. **After code changes**: Run tests again
-3. **Compare**: If previously-passing tests now fail → **REGRESSION DETECTED**
+**If no baseline exists** (first run, new project): Skip regression comparison, note it in report.
 
-### Baseline Capture
-```bash
-# Run tests quietly, capture pass/fail count BEFORE changes
-# Store in variable or temp file for comparison
-```
+**Regression Report format** (add to output when detected):
 
-### Regression Report (add to output when detected)
-```markdown
-## ⚠️ Regression Detected
-
-| Metric | Before | After | Delta |
-|--------|--------|-------|-------|
-| Passing | {n} | {n} | {-n} ❌ |
-| Failing | {n} | {n} | {+n} |
-
-### Newly Broken Tests
 | Test | File | Was | Now |
 |------|------|-----|-----|
 | {name} | {file}:{line} | ✅ Pass | ❌ Fail |
-
-**Action Required:** Fix regressions before proceeding. New failures in previously-passing tests are BLOCKERS.
-```
-
-### When Baseline is Unavailable
-If no baseline exists (first run, new project), skip regression comparison and note it:
-```
-ℹ️ No test baseline available — regression comparison skipped.
-```
 
 ---
 
