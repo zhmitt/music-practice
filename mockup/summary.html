@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToneTrainer — Session Summary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    [data-theme="dark"] {
+      --bg: #08080c; --bg-solid: #0e0e14;
+      --surface: rgba(255,255,255,0.03); --surface-2: rgba(255,255,255,0.05);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.06); --border-subtle: rgba(255,255,255,0.04);
+      --shadow-sm: none;
+      --text: #ededf0; --text-2: rgba(255,255,255,0.45); --text-3: rgba(255,255,255,0.2);
+      --accent: #6366f1; --accent-2: #818cf8;
+      --accent-soft: rgba(99,102,241,0.1); --accent-softer: rgba(99,102,241,0.06);
+      --green: #34d399; --green-2: #34d399; --green-soft: rgba(52,211,153,0.08);
+      --amber: #fbbf24; --amber-soft: rgba(251,191,36,0.08);
+      --red: #f87171; --red-soft: rgba(248,113,113,0.08);
+      --glow-accent: rgba(99,102,241,0.04); --glow-green: rgba(52,211,153,0.03);
+      color-scheme: dark;
+    }
+    [data-theme="light"] {
+      --bg: #f5f5f7; --bg-solid: #ffffff;
+      --surface: rgba(0,0,0,0.02); --surface-2: rgba(0,0,0,0.04);
+      --surface-hover: rgba(0,0,0,0.06);
+      --border: rgba(0,0,0,0.06); --border-subtle: rgba(0,0,0,0.04);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+      --text: #1a1a2e; --text-2: rgba(0,0,0,0.45); --text-3: rgba(0,0,0,0.25);
+      --accent: #6366f1; --accent-2: #5558e8;
+      --accent-soft: rgba(99,102,241,0.08); --accent-softer: rgba(99,102,241,0.04);
+      --green: #16a34a; --green-2: #22c55e; --green-soft: rgba(22,163,74,0.06);
+      --amber: #d97706; --amber-soft: rgba(217,119,6,0.06);
+      --red: #dc2626; --red-soft: rgba(220,38,38,0.06);
+      --glow-accent: transparent; --glow-green: transparent;
+      color-scheme: light;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      -webkit-font-smoothing: antialiased; transition: background 0.3s, color 0.3s;
+    }
+
+    .glow { position: fixed; pointer-events: none; z-index: 0; }
+    .glow-1 { top: -200px; right: 20%; width: 500px; height: 500px; background: radial-gradient(circle, var(--glow-accent) 0%, transparent 70%); }
+    .glow-2 { bottom: -200px; left: 30%; width: 400px; height: 400px; background: radial-gradient(circle, var(--glow-green) 0%, transparent 70%); }
+
+    .summary {
+      max-width: 580px; width: 100%; padding: 24px;
+      position: relative; z-index: 1;
+    }
+
+    .card {
+      background: var(--bg-solid); border: 1px solid var(--border);
+      border-radius: 16px; box-shadow: var(--shadow-sm);
+      position: relative; transition: background 0.3s;
+    }
+
+    [data-theme="dark"] .card::after {
+      content: ''; position: absolute; top: 0; left: 20px; right: 20px;
+      height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    }
+
+    /* Header */
+    .s-header {
+      text-align: center;
+      padding: 36px 28px 24px;
+    }
+
+    .s-check {
+      width: 48px; height: 48px; border-radius: 50%;
+      background: var(--green-soft); border: 2px solid var(--green);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .s-check svg { width: 22px; height: 22px; stroke: var(--green); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .s-title {
+      font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px;
+    }
+
+    .s-meta { font-size: 13px; color: var(--text-2); }
+
+    /* Stats row */
+    .s-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 1px; background: var(--border);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .s-stat {
+      background: var(--bg-solid);
+      padding: 18px 16px; text-align: center;
+    }
+
+    .s-stat-value { font-size: 26px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+    .s-stat-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
+
+    /* Sections */
+    .s-section { padding: 20px 24px; }
+    .s-section + .s-section { border-top: 1px solid var(--border-subtle); }
+
+    .s-section-title {
+      font-size: 10px; color: var(--text-3); text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 12px;
+    }
+
+    /* Highlights */
+    .s-highlight {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0;
+    }
+
+    .s-highlight-icon {
+      width: 20px; height: 20px; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+      font-size: 11px;
+    }
+
+    .s-highlight-icon.good { background: var(--green-soft); color: var(--green); }
+    .s-highlight-icon.work { background: var(--amber-soft); color: var(--amber); }
+
+    .s-highlight-text { font-size: 13px; line-height: 1.4; }
+    .s-highlight-text strong { font-weight: 600; }
+
+    /* Exercise breakdown */
+    .s-exercise {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0;
+    }
+
+    .s-exercise + .s-exercise { border-top: 1px solid var(--border-subtle); }
+
+    .s-exercise-num {
+      width: 22px; height: 22px; border-radius: 6px;
+      font-size: 10px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .s-exercise-num.p { background: var(--accent-soft); color: var(--accent-2); }
+    .s-exercise-num.s { background: var(--green-soft); color: var(--green); }
+    .s-exercise-num.d { background: var(--amber-soft); color: var(--amber); }
+    .s-exercise-num.r { background: var(--red-soft); color: var(--red); }
+
+    .s-exercise-info { flex: 1; }
+    .s-exercise-name { font-size: 12px; font-weight: 500; }
+    .s-exercise-detail { font-size: 10px; color: var(--text-3); }
+    .s-exercise-score { font-size: 13px; font-weight: 600; }
+
+    /* Milestone */
+    .s-milestone {
+      background: linear-gradient(135deg, var(--accent-softer), var(--green-soft));
+      border: 1px solid var(--accent-soft);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      margin-top: 4px;
+    }
+
+    .s-milestone-icon {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--accent-soft);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .s-milestone-icon svg { width: 14px; height: 14px; stroke: var(--accent-2); fill: none; stroke-width: 2; stroke-linecap: round; }
+
+    .s-milestone-text { font-size: 13px; font-weight: 500; }
+    .s-milestone-sub { font-size: 10px; color: var(--text-2); }
+
+    /* Streak */
+    .s-streak {
+      text-align: center;
+      padding: 20px 24px 24px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .s-streak-num {
+      font-size: 36px; font-weight: 900; letter-spacing: -1px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+
+    .s-streak-label { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+
+    .s-days {
+      display: flex; justify-content: center; gap: 4px; margin-top: 12px;
+    }
+
+    .s-day {
+      width: 28px; height: 28px; border-radius: 7px;
+      font-size: 9px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-3);
+    }
+
+    .s-day.done { background: var(--accent-soft); color: var(--accent-2); }
+    .s-day.now { background: var(--accent); color: white; }
+
+    /* Buttons */
+    .s-actions {
+      display: flex; gap: 10px;
+      padding: 0 24px 28px;
+    }
+
+    .s-btn {
+      flex: 1; padding: 13px; border-radius: 12px;
+      border: 1px solid var(--border); background: var(--bg-solid);
+      color: var(--text-2); font-family: inherit;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; box-shadow: var(--shadow-sm);
+    }
+
+    .s-btn:hover { background: var(--surface-hover); color: var(--text); }
+
+    .s-btn-primary {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+
+    .s-btn-primary:hover { filter: brightness(1.1); }
+
+    /* Theme toggle */
+    .theme-float {
+      position: fixed; top: 16px; right: 16px; z-index: 100;
+      width: 36px; height: 36px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--bg-solid);
+      color: var(--text-2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .theme-float:hover { background: var(--surface-hover); color: var(--text); }
+    .theme-float svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .theme-float .icon-sun { display: none; }
+    [data-theme="light"] .theme-float .icon-sun { display: block; }
+    [data-theme="light"] .theme-float .icon-moon { display: none; }
+  </style>
+</head>
+<body>
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <button class="theme-float" onclick="toggleTheme()">
+    <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+  </button>
+
+  <div class="summary">
+    <div class="card">
+
+      <!-- Header -->
+      <div class="s-header">
+        <div class="s-check">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="s-title">Session fertig!</div>
+        <div class="s-meta">Freitag, 28. Mär — 18 Minuten</div>
+      </div>
+
+      <!-- Stats -->
+      <div class="s-stats">
+        <div class="s-stat">
+          <div class="s-stat-value" style="color:var(--green)">89%</div>
+          <div class="s-stat-label">Pitch</div>
+        </div>
+        <div class="s-stat">
+          <div class="s-stat-value" style="color:var(--amber)">82%</div>
+          <div class="s-stat-label">Rhythmus</div>
+        </div>
+        <div class="s-stat">
+          <div class="s-stat-value">±6ct</div>
+          <div class="s-stat-label">Avg Abweichung</div>
+        </div>
+      </div>
+
+      <!-- Highlights -->
+      <div class="s-section">
+        <div class="s-section-title">Highlights</div>
+        <div class="s-highlight">
+          <div class="s-highlight-icon good">
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="s-highlight-text"><strong>Bb4 perfekt getroffen</strong> — 0ct Abweichung</div>
+        </div>
+        <div class="s-highlight">
+          <div class="s-highlight-icon good">
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="s-highlight-text"><strong>Rhythmus-Pattern #3 gemeistert</strong> — 4. Runde: 91%</div>
+        </div>
+      </div>
+
+      <!-- Dran bleiben -->
+      <div class="s-section">
+        <div class="s-section-title">Dran bleiben</div>
+        <div class="s-highlight">
+          <div class="s-highlight-icon work">
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="s-highlight-text"><strong>F5 weiterhin +15ct</strong> — morgen wieder dran</div>
+        </div>
+        <div class="s-highlight">
+          <div class="s-highlight-icon work">
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="s-highlight-text"><strong>Schlag 4 im Rhythmus</strong> kommt oft zu früh</div>
+        </div>
+      </div>
+
+      <!-- Exercise Breakdown -->
+      <div class="s-section">
+        <div class="s-section-title">Übungen</div>
+        <div class="s-exercise">
+          <div class="s-exercise-num p">1</div>
+          <div class="s-exercise-info">
+            <div class="s-exercise-name">Einblasen — Long Tones</div>
+            <div class="s-exercise-detail">5 Töne, ±4ct Avg</div>
+          </div>
+          <div class="s-exercise-score" style="color:var(--green)">94%</div>
+        </div>
+        <div class="s-exercise">
+          <div class="s-exercise-num s">2</div>
+          <div class="s-exercise-info">
+            <div class="s-exercise-name">Tonleiter — F-Dur</div>
+            <div class="s-exercise-detail">C5 +11ct, F5 +15ct problematisch</div>
+          </div>
+          <div class="s-exercise-score" style="color:var(--amber)">85%</div>
+        </div>
+        <div class="s-exercise">
+          <div class="s-exercise-num d">3</div>
+          <div class="s-exercise-info">
+            <div class="s-exercise-name">Intonation — Drone Bb</div>
+            <div class="s-exercise-detail">Quinten: gut, Quarten: +8ct</div>
+          </div>
+          <div class="s-exercise-score" style="color:var(--green)">88%</div>
+        </div>
+        <div class="s-exercise">
+          <div class="s-exercise-num r">4</div>
+          <div class="s-exercise-info">
+            <div class="s-exercise-name">Rhythmus — Pattern #3</div>
+            <div class="s-exercise-detail">R1: 72% → R4: 91% (+19%)</div>
+          </div>
+          <div class="s-exercise-score" style="color:var(--green)">82%</div>
+        </div>
+      </div>
+
+      <!-- Milestone -->
+      <div class="s-section">
+        <div class="s-section-title">Neu erreicht</div>
+        <div class="s-milestone">
+          <div class="s-milestone-icon">
+            <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          </div>
+          <div>
+            <div class="s-milestone-text">Rhythmus-Pattern #3 gemeistert</div>
+            <div class="s-milestone-sub">Alle 4 Runden über 85%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Streak -->
+      <div class="s-streak">
+        <div class="s-streak-num">6</div>
+        <div class="s-streak-label">Tage in Folge!</div>
+        <div class="s-days">
+          <div class="s-day done">Mo</div>
+          <div class="s-day done">Di</div>
+          <div class="s-day done">Mi</div>
+          <div class="s-day done">Do</div>
+          <div class="s-day done">Fr</div>
+          <div class="s-day now">Sa</div>
+          <div class="s-day">So</div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="s-actions">
+        <button class="s-btn" onclick="window.location='index.html'">Fertig</button>
+        <button class="s-btn s-btn-primary">Noch eine Übung</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const h = document.documentElement;
+      h.setAttribute('data-theme', h.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    }
+    if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  </script>
+</body>
+</html>

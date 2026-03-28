@@ -1,0 +1,1502 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToneTrainer — Settings & Onboarding</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ========================================= */
+    /* THEME TOKENS (exact from index.html)      */
+    /* ========================================= */
+
+    [data-theme="dark"] {
+      --bg: #08080c;
+      --bg-solid: #0e0e14;
+      --surface: rgba(255,255,255,0.03);
+      --surface-2: rgba(255,255,255,0.05);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.06);
+      --border-subtle: rgba(255,255,255,0.04);
+      --shadow-sm: none;
+      --shadow-md: none;
+      --text: #ededf0;
+      --text-2: rgba(255,255,255,0.45);
+      --text-3: rgba(255,255,255,0.2);
+      --accent: #6366f1;
+      --accent-2: #818cf8;
+      --accent-soft: rgba(99,102,241,0.1);
+      --accent-softer: rgba(99,102,241,0.06);
+      --green: #34d399;
+      --green-2: #34d399;
+      --green-soft: rgba(52,211,153,0.08);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251,191,36,0.08);
+      --red: #f87171;
+      --red-soft: rgba(248,113,113,0.08);
+      --track-gradient: linear-gradient(to bottom,
+        rgba(248,113,113,0.25) 0%, rgba(251,191,36,0.15) 20%,
+        rgba(52,211,153,0.25) 40%, rgba(52,211,153,0.25) 60%,
+        rgba(251,191,36,0.15) 80%, rgba(248,113,113,0.25) 100%);
+      --glow-accent: rgba(99,102,241,0.04);
+      --glow-green: rgba(52,211,153,0.03);
+      --dot-shadow: 0 0 14px rgba(52,211,153,0.5), 0 0 4px rgba(52,211,153,0.8);
+      --bar-opacity: 0.6;
+      --week-track: rgba(255,255,255,0.04);
+      --weak-track: rgba(255,255,255,0.04);
+      --stab-line: rgba(255,255,255,0.06);
+      color-scheme: dark;
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f5f7;
+      --bg-solid: #ffffff;
+      --surface: rgba(0,0,0,0.02);
+      --surface-2: rgba(0,0,0,0.04);
+      --surface-hover: rgba(0,0,0,0.06);
+      --border: rgba(0,0,0,0.06);
+      --border-subtle: rgba(0,0,0,0.04);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+      --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+      --text: #1a1a2e;
+      --text-2: rgba(0,0,0,0.45);
+      --text-3: rgba(0,0,0,0.25);
+      --accent: #6366f1;
+      --accent-2: #5558e8;
+      --accent-soft: rgba(99,102,241,0.08);
+      --accent-softer: rgba(99,102,241,0.04);
+      --green: #16a34a;
+      --green-2: #22c55e;
+      --green-soft: rgba(22,163,74,0.06);
+      --amber: #d97706;
+      --amber-soft: rgba(217,119,6,0.06);
+      --red: #dc2626;
+      --red-soft: rgba(220,38,38,0.06);
+      --track-gradient: linear-gradient(to bottom,
+        rgba(220,38,38,0.12) 0%, rgba(217,119,6,0.08) 20%,
+        rgba(22,163,74,0.15) 40%, rgba(22,163,74,0.15) 60%,
+        rgba(217,119,6,0.08) 80%, rgba(220,38,38,0.12) 100%);
+      --glow-accent: transparent;
+      --glow-green: transparent;
+      --dot-shadow: 0 2px 8px rgba(34,197,94,0.35);
+      --bar-opacity: 0.5;
+      --week-track: rgba(0,0,0,0.06);
+      --weak-track: rgba(0,0,0,0.06);
+      --stab-line: rgba(0,0,0,0.05);
+      color-scheme: light;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ========================================= */
+    /* LAYOUT                                    */
+    /* ========================================= */
+
+    .app {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      grid-template-rows: 52px 1fr;
+      height: 100vh;
+    }
+
+    /* ========================================= */
+    /* SIDEBAR                                   */
+    /* ========================================= */
+
+    .sidebar {
+      grid-row: 1 / -1;
+      background: var(--bg-solid);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      gap: 2px;
+      z-index: 10;
+      transition: background 0.3s;
+    }
+
+    .sidebar-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), #818cf8);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; flex-shrink: 0;
+    }
+    .sidebar-logo svg { width: 15px; height: 15px; fill: none; stroke: white; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+    .nav-item {
+      width: 40px; height: 40px; border-radius: 10px; border: none;
+      background: transparent; color: var(--text-3); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; position: relative;
+    }
+    .nav-item svg {
+      width: 18px; height: 18px; stroke: currentColor; fill: none;
+      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+    }
+    .nav-item:hover { color: var(--text-2); background: var(--surface); }
+    .nav-item.active { color: var(--accent); background: var(--accent-soft); }
+    .nav-item.active::before {
+      content: ''; position: absolute; left: -8px; top: 50%;
+      transform: translateY(-50%); width: 3px; height: 16px;
+      background: var(--accent); border-radius: 0 2px 2px 0;
+    }
+
+    .sidebar-spacer { flex: 1; }
+
+    .sidebar-stats {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; padding: 12px 0; border-top: 1px solid var(--border);
+      margin-top: 8px; width: 100%;
+    }
+    .sidebar-stat { text-align: center; line-height: 1; }
+    .sidebar-stat-num { font-size: 13px; font-weight: 700; }
+    .sidebar-stat-label { font-size: 8px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    /* ========================================= */
+    /* HEADER                                    */
+    /* ========================================= */
+
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; background: var(--bg-solid);
+      border-bottom: 1px solid var(--border); transition: background 0.3s;
+    }
+    .page-title { font-size: 14px; font-weight: 600; letter-spacing: -0.3px; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .date-label { font-size: 11px; color: var(--text-3); }
+    .instrument-chip {
+      font-size: 11px; font-weight: 500; color: var(--text-2);
+      padding: 5px 11px; border-radius: 7px; background: var(--surface-2);
+    }
+
+    .theme-toggle {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); }
+    .theme-toggle svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .theme-toggle .icon-sun { display: none; }
+    .theme-toggle .icon-moon { display: block; }
+    [data-theme="light"] .theme-toggle .icon-sun { display: block; }
+    [data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+    .settings-trigger-btn {
+      height: 32px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-2); cursor: pointer;
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .settings-trigger-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .settings-trigger-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+    .onboarding-trigger-btn {
+      height: 32px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--accent-soft); color: var(--accent-2); cursor: pointer;
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      display: flex; align-items: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .onboarding-trigger-btn:hover { background: var(--accent-soft); filter: brightness(1.1); }
+
+    /* ========================================= */
+    /* MAIN (background dashboard)               */
+    /* ========================================= */
+
+    .main { overflow-y: auto; padding: 24px 28px; }
+
+    .card {
+      background: var(--bg-solid); border: 1px solid var(--border);
+      border-radius: 16px; box-shadow: var(--shadow-sm);
+      position: relative; transition: background 0.3s, border-color 0.3s;
+    }
+    [data-theme="dark"] .card::after {
+      content: ''; position: absolute; top: 0; left: 20px; right: 20px;
+      height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    }
+
+    .bento { display: grid; gap: 12px; }
+    .bento-dashboard { grid-template-columns: 1fr 320px; grid-template-rows: auto auto auto; }
+    .bento-session { grid-column: 1; grid-row: 1 / 3; }
+    .bento-right-top { grid-column: 2; grid-row: 1; }
+    .bento-right-bottom { grid-column: 2; grid-row: 2; }
+    .bento-bottom { grid-column: 1 / -1; grid-row: 3; }
+
+    .session-card { padding: 28px; }
+    .session-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+    .session-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+    .session-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
+    .session-duration { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--accent); }
+    .session-duration span { font-size: 13px; font-weight: 400; color: var(--text-3); margin-left: 2px; }
+
+    .exercise-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 24px; }
+    .exercise-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; }
+    .exercise-num { width: 24px; height: 24px; border-radius: 7px; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .exercise-num.pitch { background: var(--accent-soft); color: var(--accent-2); }
+    .exercise-num.scale { background: var(--green-soft); color: var(--green); }
+    .exercise-num.drone { background: var(--amber-soft); color: var(--amber); }
+    .exercise-num.rhythm { background: var(--red-soft); color: var(--red); }
+    .exercise-info { flex: 1; }
+    .exercise-name { font-size: 13px; font-weight: 500; letter-spacing: -0.2px; }
+    .exercise-detail { font-size: 11px; color: var(--text-3); }
+    .exercise-time { font-size: 11px; color: var(--text-3); }
+
+    .start-btn {
+      width: 100%; padding: 13px; border: none; border-radius: 12px;
+      background: var(--accent); color: white; font-family: inherit;
+      font-size: 13px; font-weight: 600; cursor: pointer; letter-spacing: -0.2px;
+      transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    .streak-card { padding: 22px; display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .streak-num { font-size: 44px; font-weight: 900; letter-spacing: -2px; line-height: 1; background: linear-gradient(135deg, var(--accent), var(--green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .streak-sub { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; margin-bottom: 14px; }
+    .days-row { display: flex; gap: 4px; }
+    .day { width: 30px; height: 30px; border-radius: 8px; font-size: 9px; font-weight: 600; display: flex; align-items: center; justify-content: center; color: var(--text-3); }
+    .day.done { background: var(--accent-soft); color: var(--accent-2); }
+    .day.now { background: var(--accent); color: white; }
+
+    .week-card { padding: 22px; }
+    .week-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
+    .week-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; }
+    .week-pct { font-size: 22px; font-weight: 800; letter-spacing: -1px; }
+    .week-track { height: 5px; background: var(--week-track); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .week-fill { height: 100%; width: 65%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--green-2)); }
+    .week-meta { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-3); }
+
+    .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .last-session { padding: 20px; }
+    .ls-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .ls-date { font-size: 12px; font-weight: 500; }
+    .ls-stats { display: flex; gap: 12px; margin-top: 8px; }
+    .ls-stat { display: flex; align-items: baseline; gap: 4px; }
+    .ls-stat-value { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+    .ls-stat-unit { font-size: 10px; color: var(--text-3); }
+
+    .weak-card { padding: 20px; }
+    .weak-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+    .weak-list { display: flex; flex-direction: column; gap: 8px; }
+    .weak-row { display: flex; align-items: center; gap: 10px; }
+    .weak-note { font-size: 13px; font-weight: 600; width: 32px; }
+    .weak-bar-wrap { flex: 1; height: 4px; background: var(--weak-track); border-radius: 2px; position: relative; }
+    .weak-indicator { position: absolute; top: 50%; transform: translate(-50%,-50%); width: 8px; height: 8px; border-radius: 50%; }
+    .weak-val { font-size: 11px; font-weight: 500; width: 45px; text-align: right; }
+
+    .glow { position: fixed; pointer-events: none; z-index: 0; }
+    .glow-1 { top: -200px; right: 20%; width: 500px; height: 500px; background: radial-gradient(circle, var(--glow-accent) 0%, transparent 70%); }
+    .glow-2 { bottom: -200px; left: 30%; width: 400px; height: 400px; background: radial-gradient(circle, var(--glow-green) 0%, transparent 70%); }
+
+    /* ========================================= */
+    /* SETTINGS PANEL                            */
+    /* ========================================= */
+
+    .settings-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    .settings-backdrop.open { opacity: 1; pointer-events: auto; }
+
+    .settings-panel {
+      position: fixed; top: 0; right: 0; bottom: 0;
+      width: 380px;
+      background: var(--bg-solid);
+      border-left: 1px solid var(--border);
+      z-index: 101;
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      box-shadow: -20px 0 60px rgba(0,0,0,0.2);
+    }
+    [data-theme="light"] .settings-panel { box-shadow: -8px 0 32px rgba(0,0,0,0.08); }
+    .settings-panel.open { transform: translateX(0); }
+
+    .settings-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .settings-title { font-size: 14px; font-weight: 600; letter-spacing: -0.3px; }
+
+    .settings-close {
+      width: 28px; height: 28px; border-radius: 7px; border: none;
+      background: var(--surface); color: var(--text-2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .settings-close:hover { background: var(--surface-hover); color: var(--text); }
+    .settings-close svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+    .settings-body {
+      flex: 1; overflow-y: auto; padding: 8px 0;
+    }
+    .settings-body::-webkit-scrollbar { width: 4px; }
+    .settings-body::-webkit-scrollbar-track { background: transparent; }
+    .settings-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .settings-section {
+      padding: 20px 24px 4px;
+    }
+    .settings-section + .settings-section {
+      border-top: 1px solid var(--border-subtle);
+      margin-top: 4px;
+    }
+
+    .settings-section-label {
+      font-size: 9px; font-weight: 700; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 1.2px;
+      margin-bottom: 14px;
+    }
+
+    .settings-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; padding: 7px 0;
+      min-height: 36px;
+    }
+
+    .settings-row-label {
+      font-size: 12px; font-weight: 500; color: var(--text-2);
+      white-space: nowrap; flex-shrink: 0;
+    }
+
+    .settings-row-control { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+    /* Select */
+    .s-select {
+      height: 30px; padding: 0 8px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: 7px; color: var(--text); font-family: inherit;
+      font-size: 11px; font-weight: 500; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 24px;
+      transition: border-color 0.15s, background 0.15s;
+      max-width: 180px;
+    }
+    .s-select:focus { outline: none; border-color: var(--accent); }
+
+    /* Tuning stepper */
+    .tuning-stepper { display: flex; align-items: center; gap: 6px; }
+    .tuning-value { font-size: 12px; font-weight: 600; min-width: 48px; text-align: center; }
+    .stepper-btn {
+      width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface-2); color: var(--text-2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 500; line-height: 1;
+      transition: all 0.15s;
+    }
+    .stepper-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .stepper-btn svg { width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+
+    /* Radio group */
+    .s-radio-group { display: flex; gap: 4px; }
+    .s-radio-label {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px; border-radius: 7px;
+      font-size: 11px; font-weight: 500; color: var(--text-2);
+      cursor: pointer; transition: all 0.15s;
+      border: 1px solid transparent;
+    }
+    .s-radio-label input[type="radio"] { display: none; }
+    .s-radio-label:has(input:checked) {
+      background: var(--accent-soft); color: var(--accent-2);
+      border-color: rgba(99,102,241,0.15);
+    }
+    .s-radio-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      border: 1.5px solid currentColor; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .s-radio-label:has(input:checked) .s-radio-dot::after {
+      content: ''; width: 3px; height: 3px; border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Pill selector */
+    .pill-group { display: flex; gap: 3px; }
+    .pill {
+      padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-3);
+      font-family: inherit; font-size: 11px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .pill:hover { color: var(--text-2); background: var(--surface-hover); }
+    .pill.active {
+      background: var(--accent-soft); color: var(--accent-2);
+      border-color: rgba(99,102,241,0.2);
+    }
+
+    /* Slider */
+    .s-slider {
+      width: 120px; height: 4px; -webkit-appearance: none; appearance: none;
+      background: var(--surface-2); border-radius: 2px; outline: none; cursor: pointer;
+    }
+    .s-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--accent); cursor: pointer;
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .s-slider::-moz-range-thumb {
+      width: 14px; height: 14px; border-radius: 50%;
+      background: var(--accent); cursor: pointer; border: none;
+    }
+
+    /* Theme segmented */
+    .theme-segment { display: flex; gap: 3px; background: var(--surface); border-radius: 8px; padding: 3px; }
+    .theme-seg-btn {
+      padding: 4px 10px; border-radius: 6px; border: none;
+      background: transparent; color: var(--text-3);
+      font-family: inherit; font-size: 11px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .theme-seg-btn.active { background: var(--bg-solid); color: var(--text); box-shadow: var(--shadow-sm); }
+
+    /* Action buttons */
+    .s-action-btn {
+      height: 30px; padding: 0 12px; border-radius: 7px;
+      border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-2);
+      font-family: inherit; font-size: 11px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+    .s-action-btn:hover { background: var(--surface-hover); color: var(--text); }
+
+    .s-action-btn.danger { color: var(--red); border-color: transparent; background: transparent; }
+    .s-action-btn.danger:hover { background: var(--red-soft); }
+
+    .settings-version { font-size: 11px; color: var(--text-3); }
+
+    /* ========================================= */
+    /* ONBOARDING OVERLAY                        */
+    /* ========================================= */
+
+    .onboarding-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      transition: background 0.3s;
+    }
+    .onboarding-overlay.open { display: flex; }
+
+    .onboarding-container {
+      width: 100%; max-width: 480px;
+      display: flex; flex-direction: column;
+      align-items: center;
+      gap: 0;
+      flex: 1;
+      justify-content: center;
+    }
+
+    /* Screen */
+    .ob-screen { display: none; flex-direction: column; align-items: center; width: 100%; }
+    .ob-screen.active { display: flex; }
+
+    /* Screen 1: Welcome */
+    .ob-logo {
+      width: 64px; height: 64px;
+      background: linear-gradient(135deg, var(--accent), #818cf8);
+      border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 28px;
+      box-shadow: 0 8px 32px rgba(99,102,241,0.2);
+    }
+    .ob-logo svg { width: 28px; height: 28px; stroke: white; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+    .ob-headline {
+      font-size: 36px; font-weight: 900; letter-spacing: -1.5px;
+      line-height: 1;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+    .ob-subtitle {
+      font-size: 15px; color: var(--text-2); text-align: center;
+      line-height: 1.5; margin-bottom: 48px;
+      letter-spacing: -0.2px;
+    }
+
+    .ob-heading {
+      font-size: 24px; font-weight: 800; letter-spacing: -0.8px;
+      margin-bottom: 8px; align-self: flex-start;
+    }
+    .ob-subheading {
+      font-size: 13px; color: var(--text-2); margin-bottom: 28px;
+      align-self: flex-start; line-height: 1.5;
+    }
+
+    /* Instrument grid */
+    .instrument-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 8px; width: 100%; margin-bottom: 40px;
+    }
+    .instrument-card {
+      padding: 16px; border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-solid);
+      cursor: pointer; transition: all 0.2s;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 8px; text-align: center;
+      box-shadow: var(--shadow-sm);
+    }
+    .instrument-card:hover { border-color: rgba(99,102,241,0.25); background: var(--surface-hover); }
+    .instrument-card.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .instrument-icon {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .instrument-icon svg { width: 28px; height: 28px; stroke: var(--text-2); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+    .instrument-card.selected .instrument-icon svg { stroke: var(--accent-2); }
+    .instrument-name { font-size: 12px; font-weight: 600; letter-spacing: -0.2px; }
+    .instrument-card.selected .instrument-name { color: var(--accent-2); }
+
+    /* Experience options */
+    .experience-list {
+      display: flex; flex-direction: column; gap: 8px;
+      width: 100%; margin-bottom: 40px;
+    }
+    .experience-option {
+      padding: 14px 16px; border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-solid);
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; gap: 14px;
+      box-shadow: var(--shadow-sm);
+    }
+    .experience-option:hover { border-color: rgba(99,102,241,0.2); }
+    .experience-option.selected {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .exp-radio {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .experience-option.selected .exp-radio {
+      border-color: var(--accent);
+    }
+    .experience-option.selected .exp-radio::after {
+      content: ''; width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent);
+    }
+    .exp-text { flex: 1; }
+    .exp-label { font-size: 13px; font-weight: 600; letter-spacing: -0.2px; }
+    .exp-sublabel { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+    .experience-option.selected .exp-label { color: var(--accent-2); }
+
+    /* Übungsziel screen */
+    .ob-goal-section { width: 100%; margin-bottom: 20px; }
+    .ob-goal-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; }
+    .ob-pill-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .ob-pill {
+      padding: 7px 14px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg-solid);
+      color: var(--text-3); font-family: inherit; font-size: 12px; font-weight: 500;
+      cursor: pointer; transition: all 0.15s; box-shadow: var(--shadow-sm);
+    }
+    .ob-pill:hover { color: var(--text-2); }
+    .ob-pill.active {
+      background: var(--accent-soft); color: var(--accent-2);
+      border-color: rgba(99,102,241,0.3);
+    }
+    .ob-hint { font-size: 11px; color: var(--text-3); text-align: center; margin-top: 24px; margin-bottom: 40px; }
+
+    /* Microphone screen */
+    .ob-mic-section {
+      width: 100%; padding: 20px; border-radius: 14px;
+      border: 1px solid var(--border); background: var(--bg-solid);
+      box-shadow: var(--shadow-sm); margin-bottom: 16px;
+    }
+    .ob-mic-text { font-size: 13px; color: var(--text-2); line-height: 1.5; margin-bottom: 16px; }
+    .ob-mic-btn {
+      width: 100%; padding: 11px; border-radius: 10px;
+      border: 1px solid var(--accent); background: var(--accent-soft);
+      color: var(--accent-2); font-family: inherit; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .ob-mic-btn:hover { background: var(--accent); color: white; }
+    .ob-mic-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    .ob-divider { width: 100%; height: 1px; background: var(--border); margin: 16px 0; }
+
+    .ob-tone-section { width: 100%; }
+    .ob-tone-label { font-size: 12px; color: var(--text-2); text-align: center; margin-bottom: 20px; }
+
+    .ob-tone-result {
+      display: flex; align-items: center; justify-content: center; gap: 28px;
+      padding: 20px; border-radius: 12px;
+      background: var(--surface); border: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .ob-note-display { text-align: center; }
+    .ob-note-big { font-size: 52px; font-weight: 900; letter-spacing: -2px; line-height: 0.9; }
+    .ob-note-big sup { font-size: 20px; font-weight: 400; opacity: 0.35; }
+    .ob-hz { font-size: 11px; color: var(--text-3); margin-top: 4px; letter-spacing: 0.3px; }
+
+    .ob-pitch-meter { width: 24px; height: 120px; position: relative; }
+    .ob-pitch-track { position: absolute; left: 50%; transform: translateX(-50%); width: 4px; height: 100%; border-radius: 2px; background: var(--track-gradient); }
+    .ob-pitch-center { position: absolute; left: -3px; right: -3px; top: 50%; height: 1px; background: var(--stab-line); }
+    .ob-pitch-dot { position: absolute; left: 50%; top: 44%; transform: translate(-50%,-50%); width: 10px; height: 10px; border-radius: 50%; background: var(--green-2); box-shadow: var(--dot-shadow); }
+
+    .ob-cent-display { text-align: center; }
+    .ob-cent-num { font-size: 24px; font-weight: 700; color: var(--green); letter-spacing: -0.5px; }
+    .ob-cent-unit { font-size: 10px; color: var(--text-3); }
+
+    .ob-success {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 10px 16px; border-radius: 10px;
+      background: var(--green-soft); border: 1px solid rgba(52,211,153,0.15);
+      font-size: 12px; font-weight: 600; color: var(--green);
+      margin-bottom: 28px;
+    }
+    .ob-success svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Primary CTA */
+    .ob-cta {
+      width: 100%; padding: 14px; border: none; border-radius: 12px;
+      background: var(--accent); color: white; font-family: inherit;
+      font-size: 14px; font-weight: 700; cursor: pointer; letter-spacing: -0.3px;
+      transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .ob-cta:hover { filter: brightness(1.1); box-shadow: 0 6px 24px rgba(99,102,241,0.35); transform: translateY(-1px); }
+    .ob-cta svg { width: 14px; height: 14px; fill: white; stroke: none; }
+
+    /* Step dots */
+    .ob-dots {
+      display: flex; gap: 7px; align-items: center;
+      position: absolute; bottom: 36px;
+      left: 50%; transform: translateX(-50%);
+    }
+    .ob-dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--border); transition: all 0.2s;
+    }
+    .ob-dot.active { background: var(--accent); width: 20px; border-radius: 3px; }
+
+    /* ========================================= */
+    /* RESET CONFIRM DIALOG                      */
+    /* ========================================= */
+
+    .confirm-dialog {
+      position: fixed; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 300; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .confirm-dialog.open { opacity: 1; pointer-events: auto; }
+    .confirm-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(6px); }
+    .confirm-box {
+      position: relative; z-index: 1;
+      background: var(--bg-solid); border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px; max-width: 320px; width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .confirm-title { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 8px; }
+    .confirm-desc { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 20px; }
+    .confirm-actions { display: flex; gap: 8px; }
+    .confirm-cancel {
+      flex: 1; padding: 9px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-2); font-family: inherit;
+      font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    }
+    .confirm-cancel:hover { background: var(--surface-hover); color: var(--text); }
+    .confirm-delete {
+      flex: 1; padding: 9px; border-radius: 9px; border: none;
+      background: var(--red); color: white; font-family: inherit;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .confirm-delete:hover { filter: brightness(1.1); }
+
+  </style>
+</head>
+<body>
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <div class="app">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 18c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3zM21 16c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3z"/></svg>
+      </div>
+      <button class="nav-item active" title="Ueben">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </button>
+      <button class="nav-item" title="Tone Lab">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+      </button>
+      <button class="nav-item" title="Rhythmus">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg>
+      </button>
+      <button class="nav-item" title="Fortschritt">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-stats">
+        <div class="sidebar-stat">
+          <div class="sidebar-stat-num" style="color:var(--accent)">5</div>
+          <div class="sidebar-stat-label">Streak</div>
+        </div>
+        <div class="sidebar-stat">
+          <div class="sidebar-stat-num" style="color:var(--green)">+/-8</div>
+          <div class="sidebar-stat-label">ct Avg</div>
+        </div>
+      </div>
+      <button class="nav-item" title="Einstellungen" onclick="openSettings()">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </nav>
+
+    <!-- HEADER -->
+    <header class="header">
+      <span class="page-title">Ueben</span>
+      <div class="header-right">
+        <span class="date-label">Fr, 28. Mar</span>
+        <span class="instrument-chip">Horn in Bb</span>
+        <button class="onboarding-trigger-btn" onclick="openOnboarding()">
+          Onboarding zeigen
+        </button>
+        <button class="settings-trigger-btn" onclick="openSettings()">
+          <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          Einstellungen
+        </button>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Theme wechseln">
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN (background dashboard) -->
+    <main class="main">
+      <div class="bento bento-dashboard">
+        <div class="card session-card bento-session">
+          <div class="session-header">
+            <div>
+              <div class="session-label">Heutige Session</div>
+              <div class="session-title">Freitag: Review</div>
+            </div>
+            <div class="session-duration">15<span>min</span></div>
+          </div>
+          <div class="exercise-list">
+            <div class="exercise-row"><div class="exercise-num pitch">1</div><div class="exercise-info"><div class="exercise-name">Einblasen</div><div class="exercise-detail">Long Tones</div></div><div class="exercise-time">3 min</div></div>
+            <div class="exercise-row"><div class="exercise-num scale">2</div><div class="exercise-info"><div class="exercise-name">Tonleiter</div><div class="exercise-detail">F-Dur</div></div><div class="exercise-time">4 min</div></div>
+            <div class="exercise-row"><div class="exercise-num drone">3</div><div class="exercise-info"><div class="exercise-name">Intonation</div><div class="exercise-detail">Drone auf Bb</div></div><div class="exercise-time">4 min</div></div>
+            <div class="exercise-row"><div class="exercise-num rhythm">4</div><div class="exercise-info"><div class="exercise-name">Rhythmus</div><div class="exercise-detail">Pattern #3</div></div><div class="exercise-time">4 min</div></div>
+          </div>
+          <button class="start-btn">
+            <svg viewBox="0 0 24 24" style="width:14px;height:14px;fill:white;stroke:none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Session starten
+          </button>
+        </div>
+
+        <div class="card streak-card bento-right-top">
+          <div class="streak-num">5</div>
+          <div class="streak-sub">Tage in Folge</div>
+          <div class="days-row">
+            <div class="day done">Mo</div><div class="day done">Di</div><div class="day done">Mi</div>
+            <div class="day done">Do</div><div class="day now">Fr</div><div class="day">Sa</div><div class="day">So</div>
+          </div>
+        </div>
+
+        <div class="card week-card bento-right-bottom">
+          <div class="week-header"><span class="week-label">Diese Woche</span><span class="week-pct">65%</span></div>
+          <div class="week-track"><div class="week-fill"></div></div>
+          <div class="week-meta"><span>1h 42min</span><span>Ziel: 2h 30min</span></div>
+        </div>
+
+        <div class="bento-bottom bottom-grid">
+          <div class="card last-session">
+            <div class="ls-label">Letzte Session</div>
+            <div class="ls-date">Gestern, 18:30 — 22 min</div>
+            <div class="ls-stats">
+              <div class="ls-stat"><span class="ls-stat-value" style="color:var(--green)">89%</span><span class="ls-stat-unit">Pitch</span></div>
+              <div class="ls-stat"><span class="ls-stat-value" style="color:var(--amber)">82%</span><span class="ls-stat-unit">Rhythmus</span></div>
+              <div class="ls-stat"><span class="ls-stat-value">+/-6ct</span><span class="ls-stat-unit">Avg</span></div>
+            </div>
+          </div>
+          <div class="card weak-card">
+            <div class="weak-label">Schwachstellen</div>
+            <div class="weak-list">
+              <div class="weak-row"><span class="weak-note">F5</span><div class="weak-bar-wrap"><div class="weak-indicator" style="left:65%;background:var(--amber)"></div></div><span class="weak-val" style="color:var(--amber)">+15ct</span></div>
+              <div class="weak-row"><span class="weak-note">Eb4</span><div class="weak-bar-wrap"><div class="weak-indicator" style="left:38%;background:var(--amber)"></div></div><span class="weak-val" style="color:var(--amber)">-12ct</span></div>
+              <div class="weak-row"><span class="weak-note">C5</span><div class="weak-bar-wrap"><div class="weak-indicator" style="left:55%;background:var(--green)"></div></div><span class="weak-val" style="color:var(--green)">+5ct</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ======================================= -->
+  <!-- SETTINGS PANEL                          -->
+  <!-- ======================================= -->
+
+  <div class="settings-backdrop" id="settings-backdrop" onclick="closeSettings()"></div>
+
+  <aside class="settings-panel" id="settings-panel" role="dialog" aria-label="Einstellungen">
+    <div class="settings-header">
+      <span class="settings-title">Einstellungen</span>
+      <button class="settings-close" onclick="closeSettings()" aria-label="Schliessen">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="settings-body">
+
+      <!-- INSTRUMENT -->
+      <div class="settings-section">
+        <div class="settings-section-label">Instrument</div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Instrument</span>
+          <div class="settings-row-control">
+            <select class="s-select">
+              <option selected>Waldhorn in Bb</option>
+              <option>Waldhorn in F</option>
+              <option>Doppelhorn F/Bb</option>
+              <option>Trompete in Bb</option>
+              <option>Klarinette in Bb</option>
+              <option>Floete</option>
+              <option>Posaune</option>
+              <option>Oboe</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Stimmung</span>
+          <div class="settings-row-control">
+            <div class="tuning-stepper">
+              <button class="stepper-btn" onclick="changeTuning(-1)" aria-label="Verringern">
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <span class="tuning-value" id="tuning-display">442 Hz</span>
+              <button class="stepper-btn" onclick="changeTuning(1)" aria-label="Erhoehen">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-row" style="align-items:flex-start;padding-top:10px">
+          <span class="settings-row-label">Anzeige</span>
+          <div class="settings-row-control">
+            <div class="s-radio-group" style="flex-direction:column;gap:6px;align-items:flex-end">
+              <label class="s-radio-label">
+                <input type="radio" name="anzeige" value="notiert" checked>
+                <span class="s-radio-dot"></span>
+                Notiert (transponiert)
+              </label>
+              <label class="s-radio-label">
+                <input type="radio" name="anzeige" value="klingend">
+                <span class="s-radio-dot"></span>
+                Klingend
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UEBUNGSZIELE -->
+      <div class="settings-section">
+        <div class="settings-section-label">Uebungsziele</div>
+
+        <div class="settings-row" style="align-items:flex-start;padding-top:8px">
+          <span class="settings-row-label">Tage pro Woche</span>
+          <div class="settings-row-control">
+            <div class="pill-group" id="days-pills">
+              <button class="pill" data-group="days" data-value="3" onclick="selectPill(this)">3</button>
+              <button class="pill" data-group="days" data-value="4" onclick="selectPill(this)">4</button>
+              <button class="pill active" data-group="days" data-value="5" onclick="selectPill(this)">5</button>
+              <button class="pill" data-group="days" data-value="6" onclick="selectPill(this)">6</button>
+              <button class="pill" data-group="days" data-value="7" onclick="selectPill(this)">7</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-row" style="align-items:flex-start;padding-top:8px">
+          <span class="settings-row-label">Session-Dauer</span>
+          <div class="settings-row-control">
+            <div class="pill-group" id="duration-pills">
+              <button class="pill" data-group="dur" data-value="10" onclick="selectPill(this)">10</button>
+              <button class="pill active" data-group="dur" data-value="15" onclick="selectPill(this)">15</button>
+              <button class="pill" data-group="dur" data-value="20" onclick="selectPill(this)">20</button>
+              <button class="pill" data-group="dur" data-value="30" onclick="selectPill(this)">30</button>
+              <span style="font-size:10px;color:var(--text-3);align-self:center;margin-left:2px">min</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIO -->
+      <div class="settings-section">
+        <div class="settings-section-label">Audio</div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Mikrofon</span>
+          <div class="settings-row-control">
+            <select class="s-select">
+              <option selected>MacBook Pro Mikrofon</option>
+              <option>Externes Mikrofon</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label"></span>
+          <div class="settings-row-control">
+            <button class="s-action-btn">Mikrofon testen</button>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Metronom-Sound</span>
+          <div class="settings-row-control">
+            <select class="s-select">
+              <option>Klick</option>
+              <option selected>Holzblock</option>
+              <option>Rimshot</option>
+              <option>Leise</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Drone-Sound</span>
+          <div class="settings-row-control">
+            <select class="s-select">
+              <option selected>Blaeser (synth.)</option>
+              <option>Sinuston</option>
+              <option>Orgel</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Metronom-Lautst.</span>
+          <div class="settings-row-control">
+            <input type="range" class="s-slider" min="0" max="100" value="75">
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Drone-Lautst.</span>
+          <div class="settings-row-control">
+            <input type="range" class="s-slider" min="0" max="100" value="60">
+          </div>
+        </div>
+      </div>
+
+      <!-- ANZEIGE -->
+      <div class="settings-section">
+        <div class="settings-section-label">Anzeige</div>
+
+        <div class="settings-row" style="align-items:flex-start;padding-top:10px">
+          <span class="settings-row-label">Rhythmus-Notation</span>
+          <div class="settings-row-control">
+            <div class="s-radio-group" style="flex-direction:column;gap:6px;align-items:flex-end">
+              <label class="s-radio-label">
+                <input type="radio" name="rhythmus" value="noten" checked>
+                <span class="s-radio-dot"></span>
+                Noten
+              </label>
+              <label class="s-radio-label">
+                <input type="radio" name="rhythmus" value="bloecke">
+                <span class="s-radio-dot"></span>
+                Bloecke
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Pitch-Toleranz</span>
+          <div class="settings-row-control">
+            <select class="s-select">
+              <option>+/-3ct</option>
+              <option selected>+/-5ct (Standard)</option>
+              <option>+/-10ct</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Theme</span>
+          <div class="settings-row-control">
+            <div class="theme-segment" id="theme-segment">
+              <button class="theme-seg-btn active" data-theme-val="auto" onclick="setThemeMode('auto', this)">Auto</button>
+              <button class="theme-seg-btn" data-theme-val="dark" onclick="setThemeMode('dark', this)">Dark</button>
+              <button class="theme-seg-btn" data-theme-val="light" onclick="setThemeMode('light', this)">Light</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- APP -->
+      <div class="settings-section">
+        <div class="settings-section-label">App</div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Sprache</span>
+          <div class="settings-row-control">
+            <select class="s-select">
+              <option selected>Deutsch</option>
+              <option>English</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label">Version</span>
+          <div class="settings-row-control">
+            <span class="settings-version">0.1.0</span>
+          </div>
+        </div>
+
+        <div class="settings-row">
+          <span class="settings-row-label"></span>
+          <div class="settings-row-control">
+            <button class="s-action-btn">Daten exportieren</button>
+          </div>
+        </div>
+
+        <div class="settings-row" style="padding-bottom:12px">
+          <span class="settings-row-label"></span>
+          <div class="settings-row-control">
+            <button class="s-action-btn danger" onclick="openConfirm()">Daten zuruecksetzen</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- ======================================= -->
+  <!-- ONBOARDING OVERLAY                      -->
+  <!-- ======================================= -->
+
+  <div class="onboarding-overlay" id="onboarding-overlay" role="dialog" aria-label="Willkommen bei ToneTrainer">
+
+    <div class="onboarding-container">
+
+      <!-- Screen 1: Willkommen -->
+      <div class="ob-screen active" id="ob-screen-1">
+        <div class="ob-logo">
+          <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 18c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3zM21 16c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3z"/></svg>
+        </div>
+        <div class="ob-headline">ToneTrainer</div>
+        <div class="ob-subtitle">Dein Uebungsbegleiter fur Blasinstrumente.</div>
+        <button class="ob-cta" onclick="goToScreen(2)">
+          Los geht's
+          <svg viewBox="0 0 24 24" style="stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- Screen 2: Instrument -->
+      <div class="ob-screen" id="ob-screen-2">
+        <div class="ob-heading">Was spielst du?</div>
+        <div class="ob-subheading">Wir passen die Ubungen fur dein Instrument an.</div>
+
+        <div class="instrument-grid">
+          <div class="instrument-card selected" onclick="selectInstrument(this)">
+            <div class="instrument-icon">
+              <!-- French horn icon -->
+              <svg viewBox="0 0 28 28"><path d="M4 14c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10"/><circle cx="14" cy="14" r="3"/><path d="M14 4v4M14 18v2M4 14h4M20 14h4"/></svg>
+            </div>
+            <span class="instrument-name">Waldhorn in Bb</span>
+          </div>
+          <div class="instrument-card" onclick="selectInstrument(this)">
+            <div class="instrument-icon">
+              <svg viewBox="0 0 28 28"><path d="M4 14c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10"/><circle cx="14" cy="14" r="3"/><path d="M14 4v4M14 18v2M4 14h4M20 14h4"/></svg>
+            </div>
+            <span class="instrument-name">Waldhorn in F</span>
+          </div>
+          <div class="instrument-card" onclick="selectInstrument(this)">
+            <div class="instrument-icon">
+              <svg viewBox="0 0 28 28"><path d="M4 14c0-5.52 4.48-10 10-10s10 4.48 10 10-4.48 10-10 10"/><circle cx="14" cy="14" r="3"/><path d="M8 8l4 4M20 8l-4 4"/></svg>
+            </div>
+            <span class="instrument-name">Doppelhorn</span>
+          </div>
+          <div class="instrument-card" onclick="selectInstrument(this)">
+            <div class="instrument-icon">
+              <!-- Trumpet -->
+              <svg viewBox="0 0 28 28"><path d="M3 14h8l3-5 3 5h8"/><circle cx="22" cy="14" r="3"/><line x1="3" y1="14" x2="3" y2="18"/></svg>
+            </div>
+            <span class="instrument-name">Trompete in Bb</span>
+          </div>
+          <div class="instrument-card" onclick="selectInstrument(this)">
+            <div class="instrument-icon">
+              <!-- Clarinet -->
+              <svg viewBox="0 0 28 28"><line x1="14" y1="3" x2="14" y2="25"/><circle cx="14" cy="7" r="1.5"/><circle cx="14" cy="12" r="1.5"/><circle cx="14" cy="17" r="1.5"/><path d="M10 22c0 0 4 3 8 0"/></svg>
+            </div>
+            <span class="instrument-name">Klarinette in Bb</span>
+          </div>
+          <div class="instrument-card" onclick="selectInstrument(this)">
+            <div class="instrument-icon">
+              <!-- Flute -->
+              <svg viewBox="0 0 28 28"><line x1="3" y1="14" x2="25" y2="14"/><circle cx="8" cy="14" r="1.5"/><circle cx="13" cy="14" r="1.5"/><circle cx="18" cy="14" r="1.5"/><path d="M3 11c0 0 3-3 0 6"/></svg>
+            </div>
+            <span class="instrument-name">Floete</span>
+          </div>
+          <div class="instrument-card" onclick="selectInstrument(this)">
+            <div class="instrument-icon">
+              <!-- Trombone -->
+              <svg viewBox="0 0 28 28"><path d="M4 10h12v8H4"/><line x1="16" y1="10" x2="24" y2="10"/><line x1="16" y1="18" x2="24" y2="18"/><path d="M24 10c0 0 2 4 0 8"/></svg>
+            </div>
+            <span class="instrument-name">Posaune</span>
+          </div>
+          <div class="instrument-card" onclick="selectInstrument(this)">
+            <div class="instrument-icon">
+              <!-- Oboe -->
+              <svg viewBox="0 0 28 28"><line x1="14" y1="3" x2="14" y2="25"/><circle cx="14" cy="8" r="1.5"/><circle cx="14" cy="13" r="1.5"/><circle cx="14" cy="18" r="1.5"/><path d="M11 3c0 0 3 3 6 0"/></svg>
+            </div>
+            <span class="instrument-name">Oboe</span>
+          </div>
+        </div>
+
+        <button class="ob-cta" onclick="goToScreen(3)">
+          Weiter
+          <svg viewBox="0 0 24 24" style="stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- Screen 3: Erfahrung -->
+      <div class="ob-screen" id="ob-screen-3">
+        <div class="ob-heading">Wie lange spielst du schon?</div>
+        <div class="ob-subheading">Damit konnen wir die Schwierigkeit anpassen.</div>
+
+        <div class="experience-list">
+          <div class="experience-option" onclick="selectExperience(this)">
+            <div class="exp-radio"></div>
+            <div class="exp-text">
+              <div class="exp-label">Gerade angefangen</div>
+              <div class="exp-sublabel">Weniger als 6 Monate</div>
+            </div>
+          </div>
+          <div class="experience-option selected" onclick="selectExperience(this)">
+            <div class="exp-radio"></div>
+            <div class="exp-text">
+              <div class="exp-label">Anfanger</div>
+              <div class="exp-sublabel">6 Monate bis 2 Jahre</div>
+            </div>
+          </div>
+          <div class="experience-option" onclick="selectExperience(this)">
+            <div class="exp-radio"></div>
+            <div class="exp-text">
+              <div class="exp-label">Fortgeschritten</div>
+              <div class="exp-sublabel">2 bis 5 Jahre</div>
+            </div>
+          </div>
+          <div class="experience-option" onclick="selectExperience(this)">
+            <div class="exp-radio"></div>
+            <div class="exp-text">
+              <div class="exp-label">Erfahren</div>
+              <div class="exp-sublabel">5 Jahre oder mehr</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="ob-cta" onclick="goToScreen(4)">
+          Weiter
+          <svg viewBox="0 0 24 24" style="stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- Screen 4: Uebungsziel -->
+      <div class="ob-screen" id="ob-screen-4">
+        <div class="ob-heading">Wie willst du ueben?</div>
+        <div class="ob-subheading">Stell dein personliches Ziel ein.</div>
+
+        <div class="ob-goal-section">
+          <div class="ob-goal-label">Tage pro Woche</div>
+          <div class="ob-pill-group" id="ob-days-pills">
+            <button class="ob-pill" onclick="selectObPill(this, 'ob-days-pills')">3</button>
+            <button class="ob-pill" onclick="selectObPill(this, 'ob-days-pills')">4</button>
+            <button class="ob-pill active" onclick="selectObPill(this, 'ob-days-pills')">5</button>
+            <button class="ob-pill" onclick="selectObPill(this, 'ob-days-pills')">6</button>
+            <button class="ob-pill" onclick="selectObPill(this, 'ob-days-pills')">7</button>
+          </div>
+        </div>
+
+        <div class="ob-goal-section" style="margin-top:8px">
+          <div class="ob-goal-label">Minuten pro Session</div>
+          <div class="ob-pill-group" id="ob-dur-pills">
+            <button class="ob-pill" onclick="selectObPill(this, 'ob-dur-pills')">10</button>
+            <button class="ob-pill active" onclick="selectObPill(this, 'ob-dur-pills')">15</button>
+            <button class="ob-pill" onclick="selectObPill(this, 'ob-dur-pills')">20</button>
+            <button class="ob-pill" onclick="selectObPill(this, 'ob-dur-pills')">30</button>
+          </div>
+        </div>
+
+        <div class="ob-hint">Du kannst das jederzeit andern.</div>
+
+        <button class="ob-cta" onclick="goToScreen(5)">
+          Weiter
+          <svg viewBox="0 0 24 24" style="stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+
+      <!-- Screen 5: Mikrofon + Erster Ton -->
+      <div class="ob-screen" id="ob-screen-5">
+        <div class="ob-heading" style="align-self:flex-start">Lass uns horen!</div>
+
+        <div class="ob-mic-section">
+          <div class="ob-mic-text">ToneTrainer braucht Zugriff auf dein Mikrofon, um deine Intonation zu analysieren.</div>
+          <button class="ob-mic-btn">
+            <svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+            Mikrofon erlauben
+          </button>
+
+          <div class="ob-divider"></div>
+
+          <div class="ob-tone-section">
+            <div class="ob-tone-label">Spiel einen beliebigen Ton.</div>
+
+            <div class="ob-tone-result">
+              <div class="ob-note-display">
+                <div class="ob-note-big">B<sup>b</sup></div>
+                <div class="ob-hz">466.16 Hz</div>
+              </div>
+              <div class="ob-pitch-meter">
+                <div class="ob-pitch-track"></div>
+                <div class="ob-pitch-center"></div>
+                <div class="ob-pitch-dot"></div>
+              </div>
+              <div class="ob-cent-display">
+                <div class="ob-cent-num">+3</div>
+                <div class="ob-cent-unit">ct</div>
+              </div>
+            </div>
+
+            <div class="ob-success" style="margin-top:12px">
+              <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              Alles funktioniert!
+            </div>
+          </div>
+        </div>
+
+        <button class="ob-cta" onclick="closeOnboarding()">
+          <svg viewBox="0 0 24 24" style="stroke:white;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Erste Session starten
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Step dots -->
+    <div class="ob-dots">
+      <div class="ob-dot active" id="dot-1"></div>
+      <div class="ob-dot" id="dot-2"></div>
+      <div class="ob-dot" id="dot-3"></div>
+      <div class="ob-dot" id="dot-4"></div>
+      <div class="ob-dot" id="dot-5"></div>
+    </div>
+  </div>
+
+  <!-- ======================================= -->
+  <!-- RESET CONFIRM DIALOG                    -->
+  <!-- ======================================= -->
+
+  <div class="confirm-dialog" id="confirm-dialog">
+    <div class="confirm-backdrop" onclick="closeConfirm()"></div>
+    <div class="confirm-box">
+      <div class="confirm-title">Daten zuruecksetzen?</div>
+      <div class="confirm-desc">Alle Ubungsdaten, Fortschritte und Einstellungen werden dauerhaft geloscht. Dieser Vorgang kann nicht ruckgangig gemacht werden.</div>
+      <div class="confirm-actions">
+        <button class="confirm-cancel" onclick="closeConfirm()">Abbrechen</button>
+        <button class="confirm-delete" onclick="closeConfirm()">Zuruecksetzen</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================
+    // THEME
+    // =========================================
+
+    let currentThemeMode = 'auto';
+
+    function applyTheme(mode) {
+      const html = document.documentElement;
+      if (mode === 'auto') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        html.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      } else {
+        html.setAttribute('data-theme', mode);
+      }
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      currentThemeMode = next;
+      // Sync segment buttons
+      document.querySelectorAll('.theme-seg-btn').forEach(b => b.classList.remove('active'));
+      const match = document.querySelector(`.theme-seg-btn[data-theme-val="${next}"]`);
+      if (match) match.classList.add('active');
+    }
+
+    function setThemeMode(mode, btn) {
+      currentThemeMode = mode;
+      document.querySelectorAll('.theme-seg-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyTheme(mode);
+    }
+
+    // Init: apply system preference on load
+    applyTheme('auto');
+
+    // =========================================
+    // SETTINGS PANEL
+    // =========================================
+
+    function openSettings() {
+      document.getElementById('settings-backdrop').classList.add('open');
+      document.getElementById('settings-panel').classList.add('open');
+      document.getElementById('settings-panel').focus();
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-backdrop').classList.remove('open');
+      document.getElementById('settings-panel').classList.remove('open');
+    }
+
+    // =========================================
+    // TUNING STEPPER
+    // =========================================
+
+    let tuningHz = 442;
+
+    function changeTuning(delta) {
+      tuningHz = Math.min(450, Math.max(430, tuningHz + delta));
+      document.getElementById('tuning-display').textContent = tuningHz + ' Hz';
+    }
+
+    // =========================================
+    // PILL SELECTOR (settings)
+    // =========================================
+
+    function selectPill(btn) {
+      const group = btn.dataset.group;
+      document.querySelectorAll(`.pill[data-group="${group}"]`).forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // =========================================
+    // CONFIRM DIALOG
+    // =========================================
+
+    function openConfirm() {
+      document.getElementById('confirm-dialog').classList.add('open');
+    }
+
+    function closeConfirm() {
+      document.getElementById('confirm-dialog').classList.remove('open');
+    }
+
+    // =========================================
+    // ONBOARDING
+    // =========================================
+
+    let currentScreen = 1;
+    const TOTAL_SCREENS = 5;
+
+    function openOnboarding() {
+      currentScreen = 1;
+      showScreen(1);
+      document.getElementById('onboarding-overlay').classList.add('open');
+    }
+
+    function closeOnboarding() {
+      document.getElementById('onboarding-overlay').classList.remove('open');
+    }
+
+    function goToScreen(n) {
+      if (n < 1 || n > TOTAL_SCREENS) return;
+      currentScreen = n;
+      showScreen(n);
+    }
+
+    function showScreen(n) {
+      // Hide all screens
+      document.querySelectorAll('.ob-screen').forEach(s => s.classList.remove('active'));
+      // Show target
+      const target = document.getElementById('ob-screen-' + n);
+      if (target) target.classList.add('active');
+      // Update dots
+      for (let i = 1; i <= TOTAL_SCREENS; i++) {
+        const dot = document.getElementById('dot-' + i);
+        if (dot) {
+          dot.classList.toggle('active', i === n);
+        }
+      }
+    }
+
+    function selectInstrument(card) {
+      document.querySelectorAll('.instrument-card').forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+    }
+
+    function selectExperience(option) {
+      document.querySelectorAll('.experience-option').forEach(o => o.classList.remove('selected'));
+      option.classList.add('selected');
+    }
+
+    function selectObPill(btn, groupId) {
+      const group = document.getElementById(groupId);
+      group.querySelectorAll('.ob-pill').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // =========================================
+    // KEYBOARD SHORTCUTS
+    // =========================================
+
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        if (document.getElementById('confirm-dialog').classList.contains('open')) {
+          closeConfirm();
+        } else if (document.getElementById('onboarding-overlay').classList.contains('open')) {
+          closeOnboarding();
+        } else if (document.getElementById('settings-panel').classList.contains('open')) {
+          closeSettings();
+        }
+      }
+    });
+  </script>
+</body>
+</html>

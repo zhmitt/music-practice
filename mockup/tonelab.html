@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToneTrainer — Tone Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ========================================= */
+    /* THEME TOKENS                              */
+    /* ========================================= */
+
+    [data-theme="dark"] {
+      --bg: #08080c;
+      --bg-solid: #0e0e14;
+      --surface: rgba(255,255,255,0.03);
+      --surface-2: rgba(255,255,255,0.05);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.06);
+      --border-subtle: rgba(255,255,255,0.04);
+      --shadow-sm: none;
+      --shadow-md: none;
+      --text: #ededf0;
+      --text-2: rgba(255,255,255,0.45);
+      --text-3: rgba(255,255,255,0.2);
+      --accent: #6366f1;
+      --accent-2: #818cf8;
+      --accent-soft: rgba(99,102,241,0.1);
+      --accent-softer: rgba(99,102,241,0.06);
+      --green: #34d399;
+      --green-2: #34d399;
+      --green-soft: rgba(52,211,153,0.08);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251,191,36,0.08);
+      --red: #f87171;
+      --red-soft: rgba(248,113,113,0.08);
+      --track-gradient: linear-gradient(to bottom,
+        rgba(248,113,113,0.25) 0%, rgba(251,191,36,0.15) 20%,
+        rgba(52,211,153,0.25) 40%, rgba(52,211,153,0.25) 60%,
+        rgba(251,191,36,0.15) 80%, rgba(248,113,113,0.25) 100%);
+      --glow-accent: rgba(99,102,241,0.04);
+      --glow-green: rgba(52,211,153,0.03);
+      --dot-shadow: 0 0 14px rgba(52,211,153,0.5), 0 0 4px rgba(52,211,153,0.8);
+      --bar-opacity: 0.6;
+      --week-track: rgba(255,255,255,0.04);
+      --weak-track: rgba(255,255,255,0.04);
+      --stab-line: rgba(255,255,255,0.06);
+      color-scheme: dark;
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f5f7;
+      --bg-solid: #ffffff;
+      --surface: rgba(0,0,0,0.02);
+      --surface-2: rgba(0,0,0,0.04);
+      --surface-hover: rgba(0,0,0,0.06);
+      --border: rgba(0,0,0,0.06);
+      --border-subtle: rgba(0,0,0,0.04);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+      --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+      --text: #1a1a2e;
+      --text-2: rgba(0,0,0,0.45);
+      --text-3: rgba(0,0,0,0.25);
+      --accent: #6366f1;
+      --accent-2: #5558e8;
+      --accent-soft: rgba(99,102,241,0.08);
+      --accent-softer: rgba(99,102,241,0.04);
+      --green: #16a34a;
+      --green-2: #22c55e;
+      --green-soft: rgba(22,163,74,0.06);
+      --amber: #d97706;
+      --amber-soft: rgba(217,119,6,0.06);
+      --red: #dc2626;
+      --red-soft: rgba(220,38,38,0.06);
+      --track-gradient: linear-gradient(to bottom,
+        rgba(220,38,38,0.12) 0%, rgba(217,119,6,0.08) 20%,
+        rgba(22,163,74,0.15) 40%, rgba(22,163,74,0.15) 60%,
+        rgba(217,119,6,0.08) 80%, rgba(220,38,38,0.12) 100%);
+      --glow-accent: transparent;
+      --glow-green: transparent;
+      --dot-shadow: 0 2px 8px rgba(34,197,94,0.35);
+      --bar-opacity: 0.5;
+      --week-track: rgba(0,0,0,0.06);
+      --weak-track: rgba(0,0,0,0.06);
+      --stab-line: rgba(0,0,0,0.05);
+      color-scheme: light;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ========================================= */
+    /* LAYOUT                                    */
+    /* ========================================= */
+
+    .app {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      grid-template-rows: 52px 1fr;
+      height: 100vh;
+    }
+
+    /* ========================================= */
+    /* SIDEBAR                                   */
+    /* ========================================= */
+
+    .sidebar {
+      grid-row: 1 / -1;
+      background: var(--bg-solid);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      gap: 2px;
+      z-index: 10;
+      transition: background 0.3s;
+    }
+
+    .sidebar-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), #818cf8);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; flex-shrink: 0;
+    }
+
+    .sidebar-logo svg { width: 15px; height: 15px; fill: none; stroke: white; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+    .nav-item {
+      width: 40px; height: 40px; border-radius: 10px; border: none;
+      background: transparent; color: var(--text-3); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; position: relative;
+    }
+
+    .nav-item svg {
+      width: 18px; height: 18px; stroke: currentColor; fill: none;
+      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .nav-item:hover { color: var(--text-2); background: var(--surface); }
+    .nav-item.active { color: var(--accent); background: var(--accent-soft); }
+
+    .nav-item.active::before {
+      content: ''; position: absolute; left: -8px; top: 50%;
+      transform: translateY(-50%); width: 3px; height: 16px;
+      background: var(--accent); border-radius: 0 2px 2px 0;
+    }
+
+    .sidebar-spacer { flex: 1; }
+
+    .sidebar-stats {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; padding: 12px 0; border-top: 1px solid var(--border);
+      margin-top: 8px; width: 100%;
+    }
+
+    .sidebar-stat { text-align: center; line-height: 1; }
+    .sidebar-stat-num { font-size: 13px; font-weight: 700; }
+    .sidebar-stat-label { font-size: 8px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    /* ========================================= */
+    /* HEADER                                    */
+    /* ========================================= */
+
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; background: var(--bg-solid);
+      border-bottom: 1px solid var(--border); transition: background 0.3s;
+    }
+
+    .page-title { font-size: 14px; font-weight: 600; letter-spacing: -0.3px; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .date-label { font-size: 11px; color: var(--text-3); }
+
+    .instrument-chip {
+      font-size: 11px; font-weight: 500; color: var(--text-2);
+      padding: 5px 11px; border-radius: 7px; background: var(--surface-2);
+    }
+
+    .theme-toggle {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); }
+    .theme-toggle svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .theme-toggle .icon-sun { display: none; }
+    .theme-toggle .icon-moon { display: block; }
+    [data-theme="light"] .theme-toggle .icon-sun { display: block; }
+    [data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+    /* ========================================= */
+    /* MAIN / TONE LAB CHROME                    */
+    /* ========================================= */
+
+    .main {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ========================================= */
+    /* CARD                                      */
+    /* ========================================= */
+
+    .card {
+      background: var(--bg-solid); border: 1px solid var(--border);
+      border-radius: 16px; box-shadow: var(--shadow-sm);
+      position: relative; transition: background 0.3s, border-color 0.3s;
+    }
+
+    [data-theme="dark"] .card::after {
+      content: ''; position: absolute; top: 0; left: 20px; right: 20px;
+      height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    }
+
+    /* ========================================= */
+    /* TONE LAB TOP BAR (mode selector)          */
+    /* ========================================= */
+
+    .tonelab-topbar {
+      display: flex; align-items: center; gap: 0;
+      padding: 0 28px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-solid);
+      flex-shrink: 0;
+    }
+
+    .mode-tabs { display: flex; gap: 0; }
+
+    .mode-tab {
+      padding: 14px 18px; border: none; background: transparent;
+      font-family: inherit; font-size: 12px; font-weight: 500;
+      color: var(--text-3); cursor: pointer; position: relative;
+      transition: color 0.2s; letter-spacing: -0.1px;
+      white-space: nowrap;
+    }
+
+    .mode-tab:hover { color: var(--text-2); }
+
+    .mode-tab.active {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .mode-tab.active::after {
+      content: ''; position: absolute; bottom: 0; left: 18px; right: 18px;
+      height: 2px; background: var(--accent); border-radius: 2px 2px 0 0;
+    }
+
+    .mode-tab.disabled {
+      opacity: 0.35; cursor: default;
+    }
+
+    .mode-tab.disabled:hover { color: var(--text-3); }
+
+    .phase-badge {
+      display: inline-flex; align-items: center;
+      font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 4px;
+      background: var(--surface-2); color: var(--text-3);
+      margin-left: 6px; letter-spacing: 0.3px; text-transform: uppercase;
+    }
+
+    /* ========================================= */
+    /* TONE LAB BODY (two-panel)                 */
+    /* ========================================= */
+
+    .tonelab-body {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      overflow: hidden;
+    }
+
+    /* ========================================= */
+    /* LEFT PANEL                                */
+    /* ========================================= */
+
+    .lab-main {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; padding: 40px 48px;
+      background: var(--bg); overflow-y: auto;
+      gap: 0;
+    }
+
+    /* ========================================= */
+    /* RIGHT PANEL                               */
+    /* ========================================= */
+
+    .lab-panel {
+      border-left: 1px solid var(--border);
+      padding: 24px 22px;
+      display: flex; flex-direction: column; gap: 20px;
+      overflow-y: auto;
+      background: var(--bg-solid);
+    }
+
+    .panel-section { display: flex; flex-direction: column; gap: 10px; }
+
+    .panel-section-title {
+      font-size: 10px; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+
+    .panel-divider { height: 1px; background: var(--border); }
+
+    /* ========================================= */
+    /* LISTENING BARS                            */
+    /* ========================================= */
+
+    .listening {
+      display: flex; align-items: center; gap: 3px; height: 20px; margin-bottom: 20px;
+    }
+    .l-bar { width: 2.5px; border-radius: 1.5px; background: var(--accent); animation: lbar 1.2s ease-in-out infinite; }
+    @keyframes lbar { 0%,100% { height: 3px; opacity: 0.15; } 50% { height: var(--h,14px); opacity: var(--bar-opacity); } }
+
+    /* ========================================= */
+    /* NOTE DISPLAY (shared)                     */
+    /* ========================================= */
+
+    .note-big { font-size: 120px; font-weight: 900; letter-spacing: -5px; line-height: 0.85; }
+    .note-big sup { font-size: 36px; font-weight: 400; letter-spacing: 0; opacity: 0.25; }
+    .hz-label { font-size: 13px; color: var(--text-3); margin-top: 6px; text-align: center; letter-spacing: 0.5px; }
+
+    /* ========================================= */
+    /* PITCH METER (vertical)                    */
+    /* ========================================= */
+
+    .pitch-area { display: flex; align-items: center; gap: 40px; }
+
+    .pitch-meter { width: 32px; height: 260px; position: relative; }
+    .pitch-track {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      width: 5px; height: 100%; border-radius: 3px;
+      background: var(--track-gradient);
+    }
+    .pitch-center {
+      position: absolute; left: -4px; right: -4px; top: 50%;
+      height: 1px; background: var(--stab-line);
+    }
+    .pitch-dot {
+      position: absolute; left: 50%; top: 46%; transform: translate(-50%,-50%);
+      width: 13px; height: 13px; border-radius: 50%;
+      background: var(--green-2); box-shadow: var(--dot-shadow);
+      transition: top 0.12s ease-out;
+    }
+    .pitch-label-top, .pitch-label-bottom {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      font-size: 9px; color: var(--text-3);
+    }
+    .pitch-label-top { top: -16px; }
+    .pitch-label-bottom { bottom: -16px; }
+
+    .cent-display { text-align: center; margin-top: 6px; }
+    .cent-num { font-size: 32px; font-weight: 700; color: var(--green); letter-spacing: -1px; }
+    .cent-unit { font-size: 11px; color: var(--text-3); margin-left: 2px; }
+
+    /* ========================================= */
+    /* STABILITY GRAPH                           */
+    /* ========================================= */
+
+    .stability-graph { width: 100%; max-width: 480px; margin-top: 32px; }
+    .stab-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; justify-content: space-between; }
+    .stab-label span { font-variant-numeric: tabular-nums; }
+    .stab-canvas {
+      width: 100%; height: 56px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; position: relative; overflow: hidden;
+    }
+    .stab-center-line { position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--stab-line); }
+    .stab-path { position: absolute; inset: 0; }
+    .stab-path svg { width: 100%; height: 100%; }
+
+    /* ========================================= */
+    /* PANEL STAT ROWS                           */
+    /* ========================================= */
+
+    .panel-stat-row { display: flex; justify-content: space-between; align-items: baseline; }
+    .panel-stat-label { font-size: 11px; color: var(--text-3); }
+    .panel-stat-value { font-size: 16px; font-weight: 700; }
+    .panel-stat-value.sm { font-size: 13px; }
+
+    /* ========================================= */
+    /* TENDENCY LIST                             */
+    /* ========================================= */
+
+    .tendency-list { display: flex; flex-direction: column; gap: 6px; }
+
+    .tendency-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: 8px;
+      background: var(--surface); transition: background 0.15s;
+    }
+    .tendency-row:hover { background: var(--surface-2); }
+
+    .tendency-note { font-size: 12px; font-weight: 600; width: 30px; flex-shrink: 0; }
+
+    .tendency-bar-wrap {
+      flex: 1; height: 3px; background: var(--weak-track);
+      border-radius: 2px; position: relative;
+    }
+    .tendency-dot {
+      position: absolute; top: 50%; transform: translate(-50%, -50%);
+      width: 7px; height: 7px; border-radius: 50%;
+    }
+
+    .tendency-val { font-size: 11px; font-weight: 500; width: 42px; text-align: right; flex-shrink: 0; }
+
+    /* ========================================= */
+    /* DRONE MODE                                */
+    /* ========================================= */
+
+    .drone-display {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 6px; margin-bottom: 28px; text-align: center;
+    }
+
+    .drone-label {
+      font-size: 10px; color: var(--text-3); text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 2px;
+    }
+
+    .drone-note-line {
+      display: flex; align-items: baseline; gap: 10px;
+    }
+
+    .drone-note-big { font-size: 64px; font-weight: 900; letter-spacing: -3px; line-height: 1; }
+    .drone-note-big sup { font-size: 24px; font-weight: 400; opacity: 0.3; }
+    .drone-hz { font-size: 13px; color: var(--text-3); }
+
+    .drone-separator {
+      width: 32px; height: 1px; background: var(--border); margin: 4px 0;
+    }
+
+    .interval-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px;
+      background: var(--accent-soft); color: var(--accent-2);
+      font-size: 13px; font-weight: 600; letter-spacing: -0.2px;
+    }
+
+    .interval-dev { font-size: 11px; font-weight: 400; color: var(--text-3); margin-left: 2px; }
+
+    /* Schwebung (beating) visualization */
+    .schwebung-wrap { margin-top: 28px; width: 100%; max-width: 480px; text-align: center; }
+    .schwebung-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .schwebung-status { font-size: 10px; color: var(--green); font-weight: 500; text-transform: none; letter-spacing: 0; }
+
+    .schwebung-canvas {
+      width: 100%; height: 60px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; overflow: hidden; position: relative;
+    }
+    .schwebung-canvas svg { width: 100%; height: 100%; }
+
+    /* Drone settings in right panel */
+    .drone-setting-row { display: flex; flex-direction: column; gap: 5px; }
+    .drone-setting-label { font-size: 10px; color: var(--text-3); letter-spacing: 0.3px; }
+
+    .lab-select {
+      width: 100%; padding: 7px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface-2);
+      color: var(--text); font-family: inherit; font-size: 12px;
+      font-weight: 500; cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+      transition: border-color 0.2s;
+    }
+    .lab-select:focus { outline: none; border-color: var(--accent); }
+
+    .lab-slider-wrap { display: flex; align-items: center; gap: 8px; }
+    .lab-slider {
+      flex: 1; height: 4px; appearance: none; background: var(--surface-2);
+      border-radius: 2px; cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    .lab-slider::-webkit-slider-thumb {
+      appearance: none; width: 14px; height: 14px;
+      border-radius: 50%; background: var(--accent);
+      cursor: pointer; box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+    .lab-slider-val { font-size: 11px; color: var(--text-2); width: 32px; text-align: right; flex-shrink: 0; }
+
+    /* Interval sequence list */
+    .interval-list { display: flex; flex-direction: column; gap: 3px; }
+    .interval-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: 7px; font-size: 12px;
+    }
+    .interval-row.done { color: var(--text-2); }
+    .interval-row.active { background: var(--accent-softer); color: var(--text); font-weight: 500; }
+    .interval-row.pending { color: var(--text-3); }
+    .interval-check { width: 16px; font-size: 11px; flex-shrink: 0; }
+
+    /* ========================================= */
+    /* ZIELTON TRAINING MODE                     */
+    /* ========================================= */
+
+    .staff-area { width: 100%; max-width: 440px; position: relative; margin-bottom: 12px; }
+
+    /* 5-line staff */
+    .staff {
+      position: relative; width: 100%; height: 140px;
+      margin: 0 auto;
+    }
+
+    .staff-line {
+      position: absolute; left: 24px; right: 24px; height: 1px;
+    }
+    [data-theme="dark"] .staff-line { background: rgba(255,255,255,0.12); }
+    [data-theme="light"] .staff-line { background: rgba(0,0,0,0.12); }
+
+    /* ledger lines */
+    .staff-ledger {
+      position: absolute; width: 40px; height: 1px;
+    }
+    [data-theme="dark"] .staff-ledger { background: rgba(255,255,255,0.12); }
+    [data-theme="light"] .staff-ledger { background: rgba(0,0,0,0.12); }
+
+    .staff-note-dot {
+      position: absolute; width: 22px; height: 16px; border-radius: 50%;
+      background: var(--accent); transform: rotate(-15deg);
+    }
+
+    /* Treble clef SVG */
+    .staff-clef { position: absolute; left: 2px; top: 12px; }
+
+    /* Pitch indicator beside staff */
+    .staff-pitch-indicator {
+      position: absolute; right: -44px; top: 0; bottom: 0;
+      display: flex; align-items: center;
+    }
+
+    .mini-pitch-meter { width: 8px; height: 100%; position: relative; }
+    .mini-pitch-track {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      width: 4px; height: 100%; border-radius: 2px;
+      background: var(--track-gradient);
+    }
+    .mini-pitch-dot {
+      position: absolute; left: 50%; top: 44%; transform: translate(-50%,-50%);
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--green-2); box-shadow: var(--dot-shadow);
+      transition: top 0.12s ease-out;
+    }
+
+    /* Action buttons */
+    .zielton-actions { display: flex; gap: 10px; margin-top: 28px; }
+
+    .lab-btn {
+      padding: 9px 18px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--bg-solid); color: var(--text-2); font-family: inherit;
+      font-size: 12px; font-weight: 500; cursor: pointer;
+      transition: all 0.15s; box-shadow: var(--shadow-sm);
+      display: flex; align-items: center; gap: 7px;
+    }
+    .lab-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .lab-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .lab-btn-primary {
+      background: var(--accent); color: white; border-color: var(--accent);
+    }
+    .lab-btn-primary:hover { filter: brightness(1.1); box-shadow: 0 4px 24px rgba(99,102,241,0.3); color: white; }
+
+    /* Tone history */
+    .tone-history { display: flex; flex-direction: column; gap: 4px; }
+    .tone-history-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 6px; border-radius: 6px; font-size: 11px;
+    }
+    .tone-history-note { font-weight: 600; width: 28px; }
+    .tone-history-val { margin-left: auto; font-weight: 500; }
+
+    /* Hit counter */
+    .hit-counter-wrap { text-align: center; padding: 12px 0; }
+    .hit-counter-num { font-size: 42px; font-weight: 900; letter-spacing: -2px; line-height: 1; }
+    .hit-counter-denom { font-size: 18px; font-weight: 400; color: var(--text-3); }
+    .hit-counter-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+
+    /* ========================================= */
+    /* COMING SOON OVERLAY                       */
+    /* ========================================= */
+
+    .coming-soon-overlay {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; pointer-events: none;
+    }
+
+    .coming-soon-label {
+      font-size: 11px; font-weight: 600; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 1.5px;
+      padding: 6px 14px; border-radius: 6px;
+      background: var(--surface-2); border: 1px solid var(--border);
+    }
+
+    .mode-view { display: none; }
+    .mode-view.active { display: contents; }
+
+    /* ========================================= */
+    /* AMBIENT GLOW (dark only)                  */
+    /* ========================================= */
+
+    .glow { position: fixed; pointer-events: none; z-index: 0; }
+    .glow-1 { top: -200px; right: 20%; width: 500px; height: 500px; background: radial-gradient(circle, var(--glow-accent) 0%, transparent 70%); }
+    .glow-2 { bottom: -200px; left: 30%; width: 400px; height: 400px; background: radial-gradient(circle, var(--glow-green) 0%, transparent 70%); }
+  </style>
+</head>
+<body>
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <div class="app">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 18c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3zM21 16c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3z"/></svg>
+      </div>
+      <button class="nav-item" title="Üben">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </button>
+      <button class="nav-item active" title="Tone Lab">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+      </button>
+      <button class="nav-item" title="Rhythmus">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg>
+      </button>
+      <button class="nav-item" title="Fortschritt">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-stats">
+        <div class="sidebar-stat"><div class="sidebar-stat-num" style="color:var(--accent)">5</div><div class="sidebar-stat-label">Streak</div></div>
+        <div class="sidebar-stat"><div class="sidebar-stat-num" style="color:var(--green)">±8</div><div class="sidebar-stat-label">ct Avg</div></div>
+      </div>
+      <button class="nav-item" title="Einstellungen">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </nav>
+
+    <!-- HEADER -->
+    <header class="header">
+      <span class="page-title">Tone Lab</span>
+      <div class="header-right">
+        <span class="date-label">Fr, 28. Mär</span>
+        <span class="instrument-chip">Horn in Bb</span>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Theme wechseln">
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN -->
+    <main class="main">
+
+      <!-- MODE SELECTOR TAB BAR -->
+      <div class="tonelab-topbar">
+        <div class="mode-tabs">
+          <button class="mode-tab active" onclick="setMode('freies')" id="tab-freies">Freies Spielen</button>
+          <button class="mode-tab" onclick="setMode('drone')" id="tab-drone">Drone-Ubung</button>
+          <button class="mode-tab" onclick="setMode('zielton')" id="tab-zielton">Zielton-Training</button>
+          <button class="mode-tab disabled" id="tab-intervall">Intervall-Check<span class="phase-badge">Phase 2</span></button>
+        </div>
+      </div>
+
+      <!-- TWO-PANEL BODY -->
+      <div class="tonelab-body">
+
+        <!-- ============================================ -->
+        <!-- LEFT PANEL — content switches per mode      -->
+        <!-- ============================================ -->
+        <div class="lab-main" id="lab-main">
+
+          <!-- === MODE: FREIES SPIELEN === -->
+          <div class="mode-view active" id="view-freies">
+            <div class="listening">
+              <div class="l-bar" style="--h:8px;animation-delay:0s"></div>
+              <div class="l-bar" style="--h:18px;animation-delay:.08s"></div>
+              <div class="l-bar" style="--h:12px;animation-delay:.14s"></div>
+              <div class="l-bar" style="--h:26px;animation-delay:.18s"></div>
+              <div class="l-bar" style="--h:16px;animation-delay:.24s"></div>
+              <div class="l-bar" style="--h:30px;animation-delay:.3s"></div>
+              <div class="l-bar" style="--h:14px;animation-delay:.36s"></div>
+              <div class="l-bar" style="--h:22px;animation-delay:.42s"></div>
+              <div class="l-bar" style="--h:10px;animation-delay:.48s"></div>
+              <div class="l-bar" style="--h:20px;animation-delay:.54s"></div>
+            </div>
+            <div class="pitch-area">
+              <div>
+                <div class="note-big">B<sup>b</sup></div>
+                <div class="hz-label">466.16 Hz</div>
+              </div>
+              <div class="pitch-meter">
+                <div class="pitch-label-top">+50</div>
+                <div class="pitch-track"></div>
+                <div class="pitch-center"></div>
+                <div class="pitch-dot"></div>
+                <div class="pitch-label-bottom">-50</div>
+              </div>
+            </div>
+            <div class="cent-display">
+              <span class="cent-num">+3</span><span class="cent-unit">ct</span>
+            </div>
+            <div class="stability-graph">
+              <div class="stab-label">
+                <span>Stabilitat (60 s)</span>
+                <span style="color:var(--green)">stabil</span>
+              </div>
+              <div class="stab-canvas">
+                <div class="stab-center-line"></div>
+                <div class="stab-path">
+                  <svg viewBox="0 0 500 56" preserveAspectRatio="none">
+                    <path d="M0,28 Q25,26 50,28 T100,27 T150,29 T200,27 T250,28 T300,26 T350,28 T400,27 T450,28 T500,28"
+                      fill="none" stroke="var(--green-2)" stroke-width="1.5" opacity="0.6"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- === MODE: DRONE UBUNG === -->
+          <div class="mode-view" id="view-drone">
+            <div class="listening">
+              <div class="l-bar" style="--h:10px;animation-delay:0s"></div>
+              <div class="l-bar" style="--h:20px;animation-delay:.1s"></div>
+              <div class="l-bar" style="--h:14px;animation-delay:.2s"></div>
+              <div class="l-bar" style="--h:28px;animation-delay:.25s"></div>
+              <div class="l-bar" style="--h:18px;animation-delay:.32s"></div>
+              <div class="l-bar" style="--h:12px;animation-delay:.4s"></div>
+              <div class="l-bar" style="--h:24px;animation-delay:.48s"></div>
+              <div class="l-bar" style="--h:16px;animation-delay:.56s"></div>
+              <div class="l-bar" style="--h:9px;animation-delay:.62s"></div>
+              <div class="l-bar" style="--h:22px;animation-delay:.7s"></div>
+            </div>
+
+            <!-- Drone note -->
+            <div class="drone-display">
+              <div class="drone-label">Drone</div>
+              <div class="drone-note-line">
+                <div class="drone-note-big">F<sup>4</sup></div>
+                <div class="drone-hz">349.23 Hz</div>
+              </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="drone-separator"></div>
+
+            <!-- Your note -->
+            <div class="drone-display" style="margin-top:16px">
+              <div class="drone-label">Dein Ton</div>
+              <div class="drone-note-line">
+                <div class="drone-note-big">C<sup>5</sup></div>
+                <div class="drone-hz">523.74 Hz</div>
+              </div>
+              <div class="interval-badge">
+                Quinte
+                <span class="interval-dev">+6 ct</span>
+              </div>
+            </div>
+
+            <!-- Schwebung visualization -->
+            <div class="schwebung-wrap">
+              <div class="schwebung-label">
+                <span>Schwebung</span>
+                <span class="schwebung-status">fast rein</span>
+              </div>
+              <div class="schwebung-canvas">
+                <!-- Slow beating sine wave → low frequency = more in tune -->
+                <svg viewBox="0 0 500 60" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" style="stop-color:var(--accent);stop-opacity:0"/>
+                      <stop offset="10%" style="stop-color:var(--accent);stop-opacity:0.5"/>
+                      <stop offset="90%" style="stop-color:var(--accent);stop-opacity:0.5"/>
+                      <stop offset="100%" style="stop-color:var(--accent);stop-opacity:0"/>
+                    </linearGradient>
+                  </defs>
+                  <!-- Slow amplitude modulation wave (near-unison beating) -->
+                  <path d="M0,30
+                    C20,30 30,18 50,12 S80,4 100,10 S130,26 150,30
+                    S180,34 200,30 S230,20 250,14 S280,6 300,10
+                    S330,24 350,30 S380,36 400,30 S430,18 460,12
+                    S490,8 500,10"
+                    fill="none" stroke="url(#waveGrad)" stroke-width="2" opacity="0.8"/>
+                  <!-- Faint reference line -->
+                  <line x1="0" y1="30" x2="500" y2="30" stroke="var(--stab-line)" stroke-width="1"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- === MODE: ZIELTON TRAINING === -->
+          <div class="mode-view" id="view-zielton">
+            <div class="listening">
+              <div class="l-bar" style="--h:7px;animation-delay:0s"></div>
+              <div class="l-bar" style="--h:16px;animation-delay:.09s"></div>
+              <div class="l-bar" style="--h:22px;animation-delay:.16s"></div>
+              <div class="l-bar" style="--h:12px;animation-delay:.22s"></div>
+              <div class="l-bar" style="--h:28px;animation-delay:.28s"></div>
+              <div class="l-bar" style="--h:18px;animation-delay:.34s"></div>
+              <div class="l-bar" style="--h:10px;animation-delay:.41s"></div>
+              <div class="l-bar" style="--h:24px;animation-delay:.48s"></div>
+              <div class="l-bar" style="--h:14px;animation-delay:.55s"></div>
+              <div class="l-bar" style="--h:20px;animation-delay:.62s"></div>
+            </div>
+
+            <!-- Staff with note -->
+            <div class="staff-area">
+              <div class="staff" id="staff">
+                <!-- Treble clef (simplified SVG) -->
+                <svg class="staff-clef" width="20" height="116" viewBox="0 0 20 116">
+                  <path d="M10,108 C2,98 2,80 10,72 C16,66 18,56 16,46 C14,36 8,30 10,20 C12,12 18,8 18,2"
+                    fill="none" stroke="var(--text-3)" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle cx="10" cy="80" r="4" fill="var(--text-3)"/>
+                  <path d="M6,108 C6,112 14,114 14,110 C14,106 6,104 6,108" fill="var(--text-3)"/>
+                </svg>
+
+                <!-- 5 staff lines (spaced 20px apart, starting at y=18) -->
+                <div class="staff-line" style="top:18px"></div>
+                <div class="staff-line" style="top:38px"></div>
+                <div class="staff-line" style="top:58px"></div>
+                <div class="staff-line" style="top:78px"></div>
+                <div class="staff-line" style="top:98px"></div>
+
+                <!-- Target note: Bb4 sits in the 3rd space (between lines 3 and 4) -->
+                <!-- In treble clef: 3rd space = B/Bb, top is about y=46 (between lines 38 and 58) -->
+                <div class="staff-note-dot" style="left:180px; top:42px;"></div>
+                <!-- Flat accidental indicator (b) -->
+                <div style="position:absolute;left:165px;top:36px;font-size:18px;font-weight:700;color:var(--accent);line-height:1">b</div>
+
+                <!-- Vertical pitch indicator inline with note -->
+                <div class="staff-pitch-indicator" style="right:40px;">
+                  <div class="mini-pitch-meter" style="height:116px">
+                    <div class="mini-pitch-track"></div>
+                    <div class="mini-pitch-dot"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Note name below staff -->
+              <div style="text-align:center;margin-top:10px">
+                <span style="font-size:13px;font-weight:600;color:var(--text)">Bb4</span>
+                <span style="font-size:11px;color:var(--text-3);margin-left:8px">466 Hz</span>
+              </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="zielton-actions">
+              <button class="lab-btn">
+                <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                Anhoren
+              </button>
+              <button class="lab-btn lab-btn-primary">
+                <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                Nachster Ton
+              </button>
+            </div>
+          </div>
+
+          <!-- === MODE: INTERVALL CHECK (coming soon, shown disabled) === -->
+          <div class="mode-view" id="view-intervall" style="position:relative;width:100%;height:100%;display:none">
+            <div class="coming-soon-overlay">
+              <span class="coming-soon-label">Phase 2 — In Entwicklung</span>
+              <span style="font-size:12px;color:var(--text-3)">Kommt bald</span>
+            </div>
+          </div>
+
+        </div><!-- /lab-main -->
+
+        <!-- ============================================ -->
+        <!-- RIGHT PANEL — switches per mode             -->
+        <!-- ============================================ -->
+        <div class="lab-panel" id="lab-panel">
+
+          <!-- === PANEL: FREIES SPIELEN === -->
+          <div class="mode-view active" id="panel-freies">
+            <div class="panel-section">
+              <div class="panel-section-title">Session</div>
+              <div class="panel-stat-row">
+                <span class="panel-stat-label">Tone gespielt</span>
+                <span class="panel-stat-value">23</span>
+              </div>
+              <div class="panel-stat-row" style="margin-top:6px">
+                <span class="panel-stat-label">Genauigkeit</span>
+                <span class="panel-stat-value" style="color:var(--green)">87%</span>
+              </div>
+              <div class="panel-stat-row" style="margin-top:6px">
+                <span class="panel-stat-label">Zeit</span>
+                <span class="panel-stat-value sm" style="color:var(--text-2)">08:24</span>
+              </div>
+            </div>
+
+            <div class="panel-divider"></div>
+
+            <div class="panel-section">
+              <div class="panel-section-title">Tendenzen</div>
+              <div class="tendency-list">
+                <div class="tendency-row">
+                  <span class="tendency-note">F5</span>
+                  <div class="tendency-bar-wrap">
+                    <div class="tendency-dot" style="left:65%;background:var(--amber)"></div>
+                  </div>
+                  <span class="tendency-val" style="color:var(--amber)">+15 ct</span>
+                </div>
+                <div class="tendency-row">
+                  <span class="tendency-note">Bb4</span>
+                  <div class="tendency-bar-wrap">
+                    <div class="tendency-dot" style="left:52%;background:var(--green)"></div>
+                  </div>
+                  <span class="tendency-val" style="color:var(--green)">+2 ct</span>
+                </div>
+                <div class="tendency-row">
+                  <span class="tendency-note">Eb4</span>
+                  <div class="tendency-bar-wrap">
+                    <div class="tendency-dot" style="left:38%;background:var(--amber)"></div>
+                  </div>
+                  <span class="tendency-val" style="color:var(--amber)">-12 ct</span>
+                </div>
+                <div class="tendency-row">
+                  <span class="tendency-note">C5</span>
+                  <div class="tendency-bar-wrap">
+                    <div class="tendency-dot" style="left:54%;background:var(--green)"></div>
+                  </div>
+                  <span class="tendency-val" style="color:var(--green)">+4 ct</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- === PANEL: DRONE UBUNG === -->
+          <div class="mode-view" id="panel-drone">
+            <div class="panel-section">
+              <div class="panel-section-title">Drone-Einstellungen</div>
+
+              <div class="drone-setting-row">
+                <div class="drone-setting-label">Grundton</div>
+                <select class="lab-select">
+                  <option>F4</option>
+                  <option>G4</option>
+                  <option>A4</option>
+                  <option selected>Bb4</option>
+                  <option>C5</option>
+                  <option>D5</option>
+                  <option>Eb5</option>
+                  <option>F5</option>
+                </select>
+              </div>
+
+              <div class="drone-setting-row">
+                <div class="drone-setting-label">Lautstarke</div>
+                <div class="lab-slider-wrap">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" stroke-width="2" stroke-linecap="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="var(--text-3)" stroke="none"/></svg>
+                  <input type="range" class="lab-slider" min="0" max="100" value="70">
+                  <span class="lab-slider-val">70%</span>
+                </div>
+              </div>
+
+              <div class="drone-setting-row">
+                <div class="drone-setting-label">Klang</div>
+                <select class="lab-select">
+                  <option selected>Sinuston</option>
+                  <option>Orgel</option>
+                  <option>Streicher</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="panel-divider"></div>
+
+            <div class="panel-section">
+              <div class="panel-section-title">Intervall-Sequenz</div>
+              <div class="interval-list">
+                <div class="interval-row done">
+                  <span class="interval-check" style="color:var(--green)">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </span>
+                  Quinte
+                </div>
+                <div class="interval-row active">
+                  <span class="interval-check" style="opacity:0.4">
+                    <svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5" fill="var(--accent)"/></svg>
+                  </span>
+                  Quarte
+                </div>
+                <div class="interval-row pending">
+                  <span class="interval-check"></span>
+                  Terz
+                </div>
+                <div class="interval-row pending">
+                  <span class="interval-check"></span>
+                  Oktave
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- === PANEL: ZIELTON TRAINING === -->
+          <div class="mode-view" id="panel-zielton">
+            <div class="panel-section">
+              <div class="panel-section-title">Fortschritt</div>
+              <div class="hit-counter-wrap">
+                <div>
+                  <span class="hit-counter-num" style="color:var(--accent)">8</span>
+                  <span class="hit-counter-denom">/12</span>
+                </div>
+                <div class="hit-counter-label">Getroffen</div>
+              </div>
+              <div class="panel-stat-row" style="margin-top:8px">
+                <span class="panel-stat-label">Ø Abweichung</span>
+                <span class="panel-stat-value sm" style="color:var(--green)">±7 ct</span>
+              </div>
+            </div>
+
+            <div class="panel-divider"></div>
+
+            <div class="panel-section">
+              <div class="panel-section-title">Zuletzt gespielt</div>
+              <div class="tone-history">
+                <div class="tone-history-row" style="background:var(--green-soft)">
+                  <span class="tone-history-note">Bb4</span>
+                  <span style="font-size:10px;color:var(--text-3)">aktuell</span>
+                  <span class="tone-history-val" style="color:var(--green)">+3 ct</span>
+                </div>
+                <div class="tone-history-row">
+                  <span class="tone-history-note">G4</span>
+                  <span style="font-size:10px;color:var(--text-3)"></span>
+                  <span class="tone-history-val" style="color:var(--green)">-2 ct</span>
+                </div>
+                <div class="tone-history-row">
+                  <span class="tone-history-note">F5</span>
+                  <span style="font-size:10px;color:var(--text-3)"></span>
+                  <span class="tone-history-val" style="color:var(--amber)">+16 ct</span>
+                </div>
+                <div class="tone-history-row">
+                  <span class="tone-history-note">C5</span>
+                  <span style="font-size:10px;color:var(--text-3)"></span>
+                  <span class="tone-history-val" style="color:var(--green)">+5 ct</span>
+                </div>
+                <div class="tone-history-row">
+                  <span class="tone-history-note">D4</span>
+                  <span style="font-size:10px;color:var(--text-3)"></span>
+                  <span class="tone-history-val" style="color:var(--red)">-18 ct</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /lab-panel -->
+
+      </div><!-- /tonelab-body -->
+
+    </main>
+  </div><!-- /app -->
+
+  <script>
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+
+    // Auto-detect system preference
+    if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+
+    // Mode switching
+    const MODES = ['freies', 'drone', 'zielton'];
+
+    function setMode(mode) {
+      // Update tabs
+      MODES.forEach(m => {
+        const tab = document.getElementById('tab-' + m);
+        if (tab) tab.classList.toggle('active', m === mode);
+      });
+
+      // Update main views
+      MODES.forEach(m => {
+        const view = document.getElementById('view-' + m);
+        if (view) {
+          view.classList.toggle('active', m === mode);
+          view.style.display = '';
+        }
+      });
+
+      // Update panel views
+      MODES.forEach(m => {
+        const panel = document.getElementById('panel-' + m);
+        if (panel) panel.classList.toggle('active', m === mode);
+      });
+    }
+
+    // Volume slider live update
+    document.querySelectorAll('.lab-slider').forEach(slider => {
+      const val = slider.parentElement.querySelector('.lab-slider-val');
+      if (val) {
+        slider.addEventListener('input', () => {
+          val.textContent = slider.value + '%';
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToneTrainer — Rhythmus Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ========================================= */
+    /* THEME TOKENS                              */
+    /* ========================================= */
+
+    [data-theme="dark"] {
+      --bg: #08080c;
+      --bg-solid: #0e0e14;
+      --surface: rgba(255,255,255,0.03);
+      --surface-2: rgba(255,255,255,0.05);
+      --surface-hover: rgba(255,255,255,0.07);
+      --border: rgba(255,255,255,0.06);
+      --border-subtle: rgba(255,255,255,0.04);
+      --shadow-sm: none;
+      --shadow-md: none;
+      --text: #ededf0;
+      --text-2: rgba(255,255,255,0.45);
+      --text-3: rgba(255,255,255,0.2);
+      --accent: #6366f1;
+      --accent-2: #818cf8;
+      --accent-soft: rgba(99,102,241,0.1);
+      --accent-softer: rgba(99,102,241,0.06);
+      --green: #34d399;
+      --green-2: #34d399;
+      --green-soft: rgba(52,211,153,0.08);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251,191,36,0.08);
+      --red: #f87171;
+      --red-soft: rgba(248,113,113,0.08);
+      --track-gradient: linear-gradient(to bottom,
+        rgba(248,113,113,0.25) 0%, rgba(251,191,36,0.15) 20%,
+        rgba(52,211,153,0.25) 40%, rgba(52,211,153,0.25) 60%,
+        rgba(251,191,36,0.15) 80%, rgba(248,113,113,0.25) 100%);
+      --glow-accent: rgba(99,102,241,0.04);
+      --glow-green: rgba(52,211,153,0.03);
+      --dot-shadow: 0 0 14px rgba(52,211,153,0.5), 0 0 4px rgba(52,211,153,0.8);
+      --bar-opacity: 0.6;
+      --week-track: rgba(255,255,255,0.04);
+      --weak-track: rgba(255,255,255,0.04);
+      --stab-line: rgba(255,255,255,0.06);
+      color-scheme: dark;
+    }
+
+    [data-theme="light"] {
+      --bg: #f5f5f7;
+      --bg-solid: #ffffff;
+      --surface: rgba(0,0,0,0.02);
+      --surface-2: rgba(0,0,0,0.04);
+      --surface-hover: rgba(0,0,0,0.06);
+      --border: rgba(0,0,0,0.06);
+      --border-subtle: rgba(0,0,0,0.04);
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04), 0 1px 4px rgba(0,0,0,0.02);
+      --shadow-md: 0 2px 8px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+      --text: #1a1a2e;
+      --text-2: rgba(0,0,0,0.45);
+      --text-3: rgba(0,0,0,0.25);
+      --accent: #6366f1;
+      --accent-2: #5558e8;
+      --accent-soft: rgba(99,102,241,0.08);
+      --accent-softer: rgba(99,102,241,0.04);
+      --green: #16a34a;
+      --green-2: #22c55e;
+      --green-soft: rgba(22,163,74,0.06);
+      --amber: #d97706;
+      --amber-soft: rgba(217,119,6,0.06);
+      --red: #dc2626;
+      --red-soft: rgba(220,38,38,0.06);
+      --track-gradient: linear-gradient(to bottom,
+        rgba(220,38,38,0.12) 0%, rgba(217,119,6,0.08) 20%,
+        rgba(22,163,74,0.15) 40%, rgba(22,163,74,0.15) 60%,
+        rgba(217,119,6,0.08) 80%, rgba(220,38,38,0.12) 100%);
+      --glow-accent: transparent;
+      --glow-green: transparent;
+      --dot-shadow: 0 2px 8px rgba(34,197,94,0.35);
+      --bar-opacity: 0.5;
+      --week-track: rgba(0,0,0,0.06);
+      --weak-track: rgba(0,0,0,0.06);
+      --stab-line: rgba(0,0,0,0.05);
+      color-scheme: light;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    /* ========================================= */
+    /* LAYOUT                                    */
+    /* ========================================= */
+
+    .app {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      grid-template-rows: 52px 1fr;
+      height: 100vh;
+    }
+
+    /* ========================================= */
+    /* SIDEBAR                                   */
+    /* ========================================= */
+
+    .sidebar {
+      grid-row: 1 / -1;
+      background: var(--bg-solid);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px 0;
+      gap: 2px;
+      z-index: 10;
+      transition: background 0.3s;
+    }
+
+    .sidebar-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--accent), #818cf8);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px; flex-shrink: 0;
+    }
+
+    .sidebar-logo svg { width: 15px; height: 15px; fill: none; stroke: white; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    .nav-item {
+      width: 40px; height: 40px; border-radius: 10px; border: none;
+      background: transparent; color: var(--text-3); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s; position: relative;
+    }
+
+    .nav-item svg {
+      width: 18px; height: 18px; stroke: currentColor; fill: none;
+      stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .nav-item:hover { color: var(--text-2); background: var(--surface); }
+    .nav-item.active { color: var(--accent); background: var(--accent-soft); }
+
+    .nav-item.active::before {
+      content: ''; position: absolute; left: -8px; top: 50%;
+      transform: translateY(-50%); width: 3px; height: 16px;
+      background: var(--accent); border-radius: 0 2px 2px 0;
+    }
+
+    .sidebar-spacer { flex: 1; }
+
+    .sidebar-stats {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; padding: 12px 0; border-top: 1px solid var(--border);
+      margin-top: 8px; width: 100%;
+    }
+
+    .sidebar-stat { text-align: center; line-height: 1; }
+    .sidebar-stat-num { font-size: 13px; font-weight: 700; }
+    .sidebar-stat-label { font-size: 8px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+    /* ========================================= */
+    /* HEADER                                    */
+    /* ========================================= */
+
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 28px; background: var(--bg-solid);
+      border-bottom: 1px solid var(--border); transition: background 0.3s;
+    }
+
+    .page-title { font-size: 14px; font-weight: 600; letter-spacing: -0.3px; }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .date-label { font-size: 11px; color: var(--text-3); }
+
+    .instrument-chip {
+      font-size: 11px; font-weight: 500; color: var(--text-2);
+      padding: 5px 11px; border-radius: 7px; background: var(--surface-2);
+    }
+
+    .theme-toggle {
+      width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--text-2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+    }
+    .theme-toggle:hover { background: var(--surface-hover); color: var(--text); }
+    .theme-toggle svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .theme-toggle .icon-sun { display: none; }
+    .theme-toggle .icon-moon { display: block; }
+    [data-theme="light"] .theme-toggle .icon-sun { display: block; }
+    [data-theme="light"] .theme-toggle .icon-moon { display: none; }
+
+    /* ========================================= */
+    /* CARD BASE                                 */
+    /* ========================================= */
+
+    .card {
+      background: var(--bg-solid); border: 1px solid var(--border);
+      border-radius: 16px; box-shadow: var(--shadow-sm);
+      position: relative; transition: background 0.3s, border-color 0.3s;
+    }
+
+    [data-theme="dark"] .card::after {
+      content: ''; position: absolute; top: 0; left: 20px; right: 20px;
+      height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    }
+
+    /* ========================================= */
+    /* AMBIENT GLOW (dark only)                  */
+    /* ========================================= */
+
+    .glow { position: fixed; pointer-events: none; z-index: 0; }
+    .glow-1 { top: -200px; right: 20%; width: 500px; height: 500px; background: radial-gradient(circle, var(--glow-accent) 0%, transparent 70%); }
+    .glow-2 { bottom: -200px; left: 30%; width: 400px; height: 400px; background: radial-gradient(circle, var(--glow-green) 0%, transparent 70%); }
+
+    /* ========================================= */
+    /* RHYTHM STUDIO LAYOUT                      */
+    /* ========================================= */
+
+    .rhythm-main {
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      height: 100%;
+    }
+
+    .rhythm-left {
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 24px 20px 24px 28px;
+      gap: 12px;
+    }
+
+    .rhythm-right {
+      border-left: 1px solid var(--border);
+      background: var(--bg);
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: background 0.3s;
+    }
+
+    /* ========================================= */
+    /* MODE SELECTOR                             */
+    /* ========================================= */
+
+    .mode-selector {
+      display: flex;
+      gap: 4px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      padding: 4px;
+      width: fit-content;
+    }
+
+    .mode-btn {
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+      letter-spacing: -0.2px;
+    }
+
+    .mode-btn:hover { color: var(--text); background: var(--surface-hover); }
+
+    .mode-btn.active {
+      background: var(--bg-solid);
+      color: var(--text);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+
+    /* ========================================= */
+    /* PANEL SECTION LABELS                      */
+    /* ========================================= */
+
+    .section-label {
+      font-size: 10px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    /* ========================================= */
+    /* PANEL OPTION ROW                          */
+    /* ========================================= */
+
+    .option-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .option-chip {
+      padding: 6px 13px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: -0.1px;
+    }
+
+    .option-chip:hover { background: var(--surface-hover); color: var(--text); }
+
+    .option-chip.active {
+      background: var(--accent-soft);
+      color: var(--accent-2);
+      border-color: rgba(99,102,241,0.2);
+      font-weight: 600;
+    }
+
+    /* ========================================= */
+    /* RIGHT PANEL SLIDER                        */
+    /* ========================================= */
+
+    .panel-slider-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .panel-slider-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--week-track);
+      outline: none;
+      cursor: pointer;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg-solid);
+      box-shadow: 0 0 0 1px var(--accent);
+      transition: transform 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+    /* ========================================= */
+    /* PANEL DIVIDER                             */
+    /* ========================================= */
+
+    .panel-divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 -20px;
+    }
+
+    /* ========================================= */
+    /* SECTION: MODE VIEWS                       */
+    /* ========================================= */
+
+    .mode-view { display: none; flex-direction: column; gap: 12px; }
+    .mode-view.active { display: flex; }
+
+    .mode-panel { display: none; flex-direction: column; gap: 16px; }
+    .mode-panel.active { display: flex; }
+
+    /* ========================================= */
+    /* METRONOME MODE                            */
+    /* ========================================= */
+
+    .metro-card {
+      padding: 36px 28px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    .bpm-display {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .bpm-num {
+      font-size: 96px;
+      font-weight: 900;
+      letter-spacing: -5px;
+      color: var(--text);
+    }
+
+    .bpm-unit {
+      font-size: 18px;
+      font-weight: 400;
+      color: var(--text-3);
+      padding-bottom: 18px;
+      letter-spacing: 0.5px;
+    }
+
+    .bpm-controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .bpm-btn {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 18px;
+      font-weight: 300;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .bpm-btn:hover { background: var(--surface-hover); color: var(--text); border-color: rgba(99,102,241,0.25); }
+    .bpm-btn:active { transform: scale(0.94); }
+
+    .bpm-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
+
+    .bpm-slider-wrap {
+      width: 100%;
+      max-width: 320px;
+      padding: 0 4px;
+    }
+
+    /* ========================================= */
+    /* BEAT VISUALIZER                           */
+    /* ========================================= */
+
+    .beat-visualizer {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 32px;
+      margin-top: 4px;
+    }
+
+    .beat-dot {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-3);
+      transition: all 0.08s;
+      flex-shrink: 0;
+    }
+
+    .beat-dot.done {
+      border-color: rgba(52,211,153,0.3);
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .beat-dot.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-2);
+      box-shadow: 0 0 18px rgba(99,102,241,0.35), 0 0 6px rgba(99,102,241,0.5);
+      transform: scale(1.12);
+    }
+
+    .beat-dot.beat-1 {
+      width: 54px; height: 54px;
+      font-size: 14px;
+    }
+
+    .beat-dot.beat-1.active {
+      border-color: var(--amber);
+      background: var(--amber-soft);
+      color: var(--amber);
+      box-shadow: 0 0 20px rgba(251,191,36,0.4), 0 0 8px rgba(251,191,36,0.6);
+    }
+
+    .beat-dot.beat-1.done {
+      border-color: rgba(251,191,36,0.25);
+      background: var(--amber-soft);
+      color: var(--amber);
+    }
+
+    .beat-connector {
+      width: 12px; height: 1px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
+    /* ========================================= */
+    /* START BUTTON                              */
+    /* ========================================= */
+
+    .start-btn {
+      width: 100%; padding: 14px;
+      border: none; border-radius: 12px;
+      background: var(--accent); color: white;
+      font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; letter-spacing: -0.2px;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+
+    .start-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 24px rgba(99,102,241,0.3); transform: translateY(-1px); }
+    .start-btn:active { transform: translateY(0); filter: brightness(0.95); }
+    .start-btn svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+
+    .start-btn.running {
+      background: var(--red-soft);
+      color: var(--red);
+      border: 1px solid rgba(248,113,113,0.25);
+    }
+    .start-btn.running:hover { filter: brightness(1.1); box-shadow: 0 4px 20px rgba(248,113,113,0.2); }
+
+    /* ========================================= */
+    /* PATTERN MODE                              */
+    /* ========================================= */
+
+    .pattern-card {
+      padding: 28px;
+    }
+
+    .pattern-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .pattern-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+
+    .view-toggle {
+      display: flex;
+      gap: 2px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 2px;
+    }
+
+    .view-toggle-btn {
+      padding: 5px 12px;
+      border-radius: 6px;
+      border: none;
+      background: transparent;
+      color: var(--text-3);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .view-toggle-btn.active {
+      background: var(--bg-solid);
+      color: var(--text);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+
+    /* Staff notation area */
+    .staff-area {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px 20px 16px;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .staff-svg-wrap {
+      width: 100%;
+      overflow: visible;
+    }
+
+    /* Block view */
+    .block-area {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 12px;
+      display: none;
+    }
+
+    .block-area.active { display: block; }
+    .staff-area.hidden { display: none; }
+
+    .rhythm-blocks {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .r-block {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .r-block-bar {
+      height: 44px;
+      border-radius: 6px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      transition: all 0.15s;
+      position: relative;
+    }
+
+    .r-block-bar.quarter { width: 40px; background: var(--accent-soft); border-color: rgba(99,102,241,0.2); }
+    .r-block-bar.dotted-quarter { width: 52px; background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.25); }
+    .r-block-bar.rest { width: 40px; background: var(--surface-2); border-style: dashed; }
+    .r-block-bar.eighth { width: 22px; background: var(--green-soft); border-color: rgba(52,211,153,0.2); }
+
+    .r-block-label {
+      font-size: 9px;
+      color: var(--text-3);
+      font-weight: 500;
+      letter-spacing: 0.3px;
+      text-align: center;
+    }
+
+    .r-block-dot {
+      position: absolute;
+      top: 6px; right: -4px;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      border: 1px solid var(--bg-solid);
+    }
+
+    /* Beat dots row */
+    .pattern-beat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      margin-bottom: 20px;
+    }
+
+    .pattern-beat {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 600; color: var(--text-3);
+      transition: all 0.08s;
+    }
+
+    .pattern-beat.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-2);
+      box-shadow: 0 0 12px rgba(99,102,241,0.3);
+      transform: scale(1.1);
+    }
+
+    .pattern-beat.done {
+      border-color: rgba(52,211,153,0.3);
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    /* Pattern action buttons */
+    .pattern-actions {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .action-btn {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      transition: all 0.15s;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .action-btn:hover { background: var(--surface-hover); color: var(--text); }
+    .action-btn svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Results area */
+    .results-area {
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .results-title {
+      font-size: 10px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .beat-result-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      font-size: 12px;
+    }
+
+    .beat-result-label { color: var(--text-2); }
+
+    .beat-result-check {
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .check-icon { color: var(--green); font-size: 12px; }
+    .check-icon.miss { color: var(--amber); }
+
+    .timing-val {
+      font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      width: 52px;
+      text-align: right;
+    }
+
+    .timing-val.ok { color: var(--green); }
+    .timing-val.warn { color: var(--amber); }
+
+    /* ========================================= */
+    /* SUBDIVISION TRAINER                       */
+    /* ========================================= */
+
+    .subdiv-card {
+      padding: 28px;
+    }
+
+    .subdiv-instruction {
+      font-size: 12px;
+      color: var(--text-2);
+      line-height: 1.55;
+      margin-bottom: 24px;
+      padding: 12px 14px;
+      background: var(--accent-softer);
+      border: 1px solid rgba(99,102,241,0.12);
+      border-radius: 10px;
+    }
+
+    .subdiv-beats {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 28px;
+    }
+
+    .subdiv-beat-group {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .subdiv-main-dot {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; color: var(--text-2);
+      position: relative;
+      z-index: 1;
+      transition: all 0.08s;
+    }
+
+    .subdiv-main-dot.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-2);
+      box-shadow: 0 0 20px rgba(99,102,241,0.4);
+      transform: scale(1.1);
+    }
+
+    .subdiv-sub-dot {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      background: var(--surface-2);
+      margin: 0 10px;
+      transition: all 0.08s;
+      flex-shrink: 0;
+    }
+
+    .subdiv-sub-dot.active {
+      border-color: var(--green);
+      background: var(--green-soft);
+      box-shadow: 0 0 8px rgba(52,211,153,0.35);
+      transform: scale(1.2);
+    }
+
+    .subdiv-sub-dot.hit {
+      border-color: rgba(52,211,153,0.4);
+      background: var(--green-soft);
+    }
+
+    /* Deviation chart */
+    .deviation-chart {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .deviation-title {
+      font-size: 10px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 14px;
+    }
+
+    .deviation-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .deviation-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dev-label {
+      font-size: 10px;
+      color: var(--text-3);
+      width: 36px;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dev-track {
+      flex: 1;
+      height: 4px;
+      background: var(--week-track);
+      border-radius: 2px;
+      position: relative;
+    }
+
+    .dev-center {
+      position: absolute;
+      left: 50%; top: -3px;
+      width: 1px; height: 10px;
+      background: var(--stab-line);
+      transform: translateX(-50%);
+    }
+
+    .dev-dot {
+      position: absolute;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      transition: left 0.3s ease;
+    }
+
+    .dev-dot.ok { background: var(--green); box-shadow: 0 0 5px rgba(52,211,153,0.4); }
+    .dev-dot.warn { background: var(--amber); box-shadow: 0 0 5px rgba(251,191,36,0.4); }
+
+    .dev-val {
+      font-size: 10px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      width: 38px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .dev-val.ok { color: var(--green); }
+    .dev-val.warn { color: var(--amber); }
+
+    /* ========================================= */
+    /* SCORE / STATS ROW                         */
+    /* ========================================= */
+
+    .score-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .score-pill {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      text-align: center;
+    }
+
+    .score-pill-num {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      line-height: 1;
+      margin-bottom: 3px;
+    }
+
+    .score-pill-label {
+      font-size: 9px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    /* ========================================= */
+    /* BOTTOM BUTTONS ROW                        */
+    /* ========================================= */
+
+    .bottom-btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 4px;
+    }
+
+    .btn-secondary {
+      flex: 1;
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn-secondary:hover { background: var(--surface-hover); color: var(--text); }
+
+    .btn-primary {
+      flex: 1;
+      padding: 11px 16px;
+      border-radius: 10px;
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover { filter: brightness(1.1); box-shadow: 0 3px 16px rgba(99,102,241,0.3); }
+
+    /* ========================================= */
+    /* RIGHT PANEL SPECIFICS                     */
+    /* ========================================= */
+
+    .panel-section {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .round-counter {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .round-label { font-size: 11px; color: var(--text-3); }
+
+    .round-dots {
+      display: flex;
+      gap: 5px;
+    }
+
+    .round-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--week-track);
+    }
+
+    .round-dot.done { background: var(--accent); }
+    .round-dot.current { background: var(--accent); box-shadow: 0 0 6px rgba(99,102,241,0.5); animation: pulse-dot 1.2s ease-in-out infinite; }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.15); }
+    }
+
+    /* Score value in panel */
+    .panel-score-big {
+      text-align: center;
+      padding: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .panel-score-num {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -1.5px;
+      line-height: 1;
+    }
+
+    .panel-score-sub {
+      font-size: 10px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+
+    .panel-score-range {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 6px;
+    }
+
+    /* Level selector */
+    .level-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .level-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: 1px solid transparent;
+    }
+
+    .level-item:hover { background: var(--surface-hover); }
+
+    .level-item.active {
+      background: var(--accent-softer);
+      border-color: rgba(99,102,241,0.15);
+    }
+
+    .level-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--text-3);
+      flex-shrink: 0;
+    }
+
+    .level-item.active .level-dot { background: var(--accent-2); }
+
+    .level-name { font-size: 12px; font-weight: 500; color: var(--text-2); flex: 1; letter-spacing: -0.2px; }
+    .level-item.active .level-name { color: var(--text); }
+    .level-num { font-size: 10px; color: var(--text-3); }
+
+    /* Tap tempo button */
+    .tap-btn {
+      width: 100%;
+      padding: 11px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      transition: all 0.15s;
+      letter-spacing: -0.2px;
+    }
+
+    .tap-btn:hover { background: var(--surface-hover); color: var(--text); border-color: rgba(99,102,241,0.25); }
+    .tap-btn:active { background: var(--accent-soft); border-color: rgba(99,102,241,0.3); transform: scale(0.98); }
+    .tap-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+    /* Sound selector */
+    .sound-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .sound-chip {
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-2);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .sound-chip:hover { background: var(--surface-hover); color: var(--text); }
+
+    .sound-chip.active {
+      background: var(--accent-soft);
+      color: var(--accent-2);
+      border-color: rgba(99,102,241,0.2);
+      font-weight: 600;
+    }
+
+    /* Gleichmäßigkeit badge */
+    .gleich-badge {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      padding: 10px 14px;
+      background: var(--green-soft);
+      border: 1px solid rgba(52,211,153,0.15);
+      border-radius: 10px;
+    }
+
+    .gleich-num {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      color: var(--green);
+    }
+
+    .gleich-label { font-size: 11px; color: var(--text-2); }
+
+    /* BPM indicator in panel */
+    .bpm-panel-display {
+      display: flex;
+      align-items: baseline;
+      gap: 5px;
+    }
+
+    .bpm-panel-num {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--accent-2);
+    }
+
+    .bpm-panel-unit {
+      font-size: 12px;
+      color: var(--text-3);
+    }
+
+    /* Lautstärke row */
+    .volume-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .volume-icon {
+      color: var(--text-3);
+      flex-shrink: 0;
+    }
+
+    .volume-icon svg {
+      width: 14px; height: 14px;
+      stroke: currentColor; fill: none;
+      stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    /* ========================================= */
+    /* BEAT ANIMATION STATES                     */
+    /* ========================================= */
+
+    @keyframes beat-pulse {
+      0% { transform: scale(1); }
+      30% { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    .beat-flash {
+      animation: beat-pulse 0.12s ease-out;
+    }
+
+    /* ========================================= */
+    /* SCROLLBAR STYLE                           */
+    /* ========================================= */
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+  </style>
+</head>
+<body>
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
+
+  <div class="app">
+    <!-- SIDEBAR -->
+    <nav class="sidebar">
+      <div class="sidebar-logo">
+        <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 18c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3zM21 16c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3z"/></svg>
+      </div>
+      <button class="nav-item" title="Üben">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </button>
+      <button class="nav-item" title="Tone Lab">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+      </button>
+      <button class="nav-item active" title="Rhythmus">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><line x1="9" y1="5" x2="9" y2="19"/><line x1="15" y1="5" x2="15" y2="19"/></svg>
+      </button>
+      <button class="nav-item" title="Fortschritt">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      </button>
+      <div class="sidebar-spacer"></div>
+      <div class="sidebar-stats">
+        <div class="sidebar-stat"><div class="sidebar-stat-num" style="color:var(--accent)">5</div><div class="sidebar-stat-label">Streak</div></div>
+        <div class="sidebar-stat"><div class="sidebar-stat-num" style="color:var(--green)">±8</div><div class="sidebar-stat-label">ct Avg</div></div>
+      </div>
+      <button class="nav-item" title="Einstellungen">
+        <svg viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </nav>
+
+    <!-- HEADER -->
+    <header class="header">
+      <span class="page-title">Rhythmus Studio</span>
+      <div class="header-right">
+        <span class="date-label">Fr, 28. Mär</span>
+        <span class="instrument-chip">Horn in Bb</span>
+        <button class="theme-toggle" onclick="toggleTheme()" title="Theme wechseln">
+          <svg class="icon-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- RHYTHM STUDIO MAIN -->
+    <div class="rhythm-main">
+
+      <!-- LEFT PANEL -->
+      <div class="rhythm-left">
+
+        <!-- Mode selector -->
+        <div class="mode-selector">
+          <button class="mode-btn active" onclick="switchMode('metro', this)">Metronom</button>
+          <button class="mode-btn" onclick="switchMode('pattern', this)">Pattern nachspielen</button>
+          <button class="mode-btn" onclick="switchMode('subdiv', this)">Subdivision Trainer</button>
+        </div>
+
+        <!-- ==================== METRONOME MODE ==================== -->
+        <div class="mode-view active" id="view-metro">
+          <div class="card metro-card">
+            <div class="bpm-display">
+              <span class="bpm-num" id="bpm-num">92</span>
+              <span class="bpm-unit">BPM</span>
+            </div>
+
+            <div class="bpm-controls">
+              <button class="bpm-btn" onclick="changeBPM(-5)" title="-5 BPM">
+                <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <div class="bpm-slider-wrap">
+                <input type="range" id="bpm-slider" min="40" max="220" value="92"
+                  oninput="document.getElementById('bpm-num').textContent = this.value; document.getElementById('bpm-panel-num').textContent = this.value;">
+              </div>
+              <button class="bpm-btn" onclick="changeBPM(5)" title="+5 BPM">
+                <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+
+            <!-- Beat visualizer -->
+            <div class="beat-visualizer" id="beat-viz">
+              <div class="beat-dot beat-1 active" id="beat-1">1</div>
+              <div class="beat-connector"></div>
+              <div class="beat-dot" id="beat-2">2</div>
+              <div class="beat-connector"></div>
+              <div class="beat-dot" id="beat-3">3</div>
+              <div class="beat-connector"></div>
+              <div class="beat-dot" id="beat-4">4</div>
+            </div>
+
+            <div class="bpm-slider-wrap" style="max-width:400px;width:100%;margin-bottom:28px;padding:0">
+              <button class="start-btn" id="metro-start-btn" onclick="toggleMetro()">
+                <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Starten
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== PATTERN MODE ==================== -->
+        <div class="mode-view" id="view-pattern">
+          <div class="card pattern-card">
+            <div class="pattern-header">
+              <div>
+                <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Runde 2 / 4</div>
+                <div class="pattern-title">Pattern #3 — Achtelgruppen</div>
+              </div>
+              <div class="view-toggle">
+                <button class="view-toggle-btn active" id="tog-notation" onclick="setPatternView('notation')">Notation</button>
+                <button class="view-toggle-btn" id="tog-blocks" onclick="setPatternView('blocks')">Blöcke</button>
+              </div>
+            </div>
+
+            <!-- Staff notation -->
+            <div class="staff-area" id="staff-notation">
+              <svg class="staff-svg-wrap" viewBox="0 0 560 90" xmlns="http://www.w3.org/2000/svg">
+                <!-- Time signature -->
+                <text x="14" y="38" fill="var(--text-2)" font-family="serif" font-size="28" font-weight="700">4</text>
+                <text x="14" y="66" fill="var(--text-2)" font-family="serif" font-size="28" font-weight="700">4</text>
+
+                <!-- Staff lines -->
+                <line x1="8" y1="22" x2="552" y2="22" stroke="var(--border)" stroke-width="1"/>
+                <line x1="8" y1="33" x2="552" y2="33" stroke="var(--border)" stroke-width="1"/>
+                <line x1="8" y1="44" x2="552" y2="44" stroke="var(--border)" stroke-width="1"/>
+                <line x1="8" y1="55" x2="552" y2="55" stroke="var(--border)" stroke-width="1"/>
+                <line x1="8" y1="66" x2="552" y2="66" stroke="var(--border)" stroke-width="1"/>
+
+                <!-- Barline start -->
+                <line x1="8" y1="22" x2="8" y2="66" stroke="var(--text-3)" stroke-width="1.5"/>
+
+                <!-- Beat 1: Quarter note on C (space between lines 3-4 = y44 area) -->
+                <ellipse cx="90" cy="49" rx="8" ry="6" fill="var(--accent-2)" transform="rotate(-15 90 49)"/>
+                <line x1="98" y1="48" x2="98" y2="18" stroke="var(--accent-2)" stroke-width="1.8"/>
+                <!-- Beat 1 label -->
+                <text x="86" y="80" fill="var(--text-3)" font-family="Inter,sans-serif" font-size="9" text-anchor="middle">1</text>
+
+                <!-- Beat 2: Quarter note -->
+                <ellipse cx="180" cy="49" rx="8" ry="6" fill="var(--accent-2)" transform="rotate(-15 180 49)"/>
+                <line x1="188" y1="48" x2="188" y2="18" stroke="var(--accent-2)" stroke-width="1.8"/>
+                <text x="176" y="80" fill="var(--text-3)" font-family="Inter,sans-serif" font-size="9" text-anchor="middle">2</text>
+
+                <!-- Beat 3: Rest (half-rest shape) -->
+                <rect x="258" y="38" width="20" height="8" rx="1" fill="none" stroke="var(--text-3)" stroke-width="1.5" stroke-dasharray="3,2"/>
+                <text x="268" y="80" fill="var(--text-3)" font-family="Inter,sans-serif" font-size="9" text-anchor="middle">3</text>
+
+                <!-- Beat 4: Dotted quarter -->
+                <ellipse cx="360" cy="49" rx="8" ry="6" fill="var(--accent-2)" transform="rotate(-15 360 49)"/>
+                <line x1="368" y1="48" x2="368" y2="18" stroke="var(--accent-2)" stroke-width="1.8"/>
+                <!-- dot -->
+                <circle cx="376" cy="46" r="2.5" fill="var(--accent-2)"/>
+                <text x="362" y="80" fill="var(--text-3)" font-family="Inter,sans-serif" font-size="9" text-anchor="middle">4</text>
+
+                <!-- Barline end -->
+                <line x1="552" y1="22" x2="552" y2="66" stroke="var(--text-3)" stroke-width="1.5"/>
+                <line x1="546" y1="22" x2="546" y2="66" stroke="var(--text-3)" stroke-width="3"/>
+              </svg>
+            </div>
+
+            <!-- Block view -->
+            <div class="block-area" id="block-view">
+              <div class="rhythm-blocks">
+                <div class="r-block">
+                  <div class="r-block-bar quarter"></div>
+                  <div class="r-block-label">Viertel</div>
+                </div>
+                <div class="r-block">
+                  <div class="r-block-bar quarter"></div>
+                  <div class="r-block-label">Viertel</div>
+                </div>
+                <div class="r-block">
+                  <div class="r-block-bar rest"></div>
+                  <div class="r-block-label">Pause</div>
+                </div>
+                <div class="r-block">
+                  <div class="r-block-bar dotted-quarter"><div class="r-block-dot"></div></div>
+                  <div class="r-block-label">punkt. Viertel</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Beat dots -->
+            <div class="pattern-beat-row">
+              <div class="pattern-beat done" id="pb-1">1</div>
+              <div class="pattern-beat done" id="pb-2">2</div>
+              <div class="pattern-beat active" id="pb-3">3</div>
+              <div class="pattern-beat" id="pb-4">4</div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="pattern-actions">
+              <button class="action-btn">
+                <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                Anhören
+              </button>
+              <button class="action-btn">
+                <svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+                Mit Zählen
+              </button>
+            </div>
+
+            <!-- Results -->
+            <div class="results-area">
+              <div class="results-title">Letzte Wiederholung</div>
+              <div class="beat-result-row">
+                <span class="beat-result-label">Schlag 1</span>
+                <div class="beat-result-check">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span class="timing-val ok">+8 ms</span>
+                </div>
+              </div>
+              <div class="beat-result-row">
+                <span class="beat-result-label">Schlag 2</span>
+                <div class="beat-result-check">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span class="timing-val ok">-3 ms</span>
+                </div>
+              </div>
+              <div class="beat-result-row">
+                <span class="beat-result-label">Schlag 3</span>
+                <div class="beat-result-check">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span class="timing-val warn">+24 ms</span>
+                </div>
+              </div>
+              <div class="beat-result-row">
+                <span class="beat-result-label">Schlag 4</span>
+                <div class="beat-result-check">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <span class="timing-val ok">+5 ms</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom buttons -->
+            <div class="bottom-btn-row" style="margin-top:20px">
+              <button class="btn-secondary">Nochmal</button>
+              <button class="btn-primary">Weiter</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ==================== SUBDIVISION TRAINER ==================== -->
+        <div class="mode-view" id="view-subdiv">
+          <div class="card subdiv-card">
+            <div class="subdiv-instruction">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent-2)" stroke-width="2" stroke-linecap="round" style="display:inline;margin-right:6px;vertical-align:text-bottom"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Du hörst nur die Hauptschläge. Spiel die Unterteilungen mit gleichmaßigem Abstand dazwischen.
+            </div>
+
+            <!-- Main beats + subdivision dots -->
+            <div class="subdiv-beats" id="subdiv-viz">
+              <!-- Beat 1 + sub -->
+              <div class="subdiv-beat-group">
+                <div class="subdiv-main-dot active" id="sd-1">1</div>
+                <div class="subdiv-sub-dot hit" id="sd-sub-1"></div>
+              </div>
+              <!-- Beat 2 + sub -->
+              <div class="subdiv-beat-group">
+                <div class="subdiv-main-dot" id="sd-2">2</div>
+                <div class="subdiv-sub-dot" id="sd-sub-2"></div>
+              </div>
+              <!-- Beat 3 + sub -->
+              <div class="subdiv-beat-group">
+                <div class="subdiv-main-dot" id="sd-3">3</div>
+                <div class="subdiv-sub-dot" id="sd-sub-3"></div>
+              </div>
+              <!-- Beat 4 (no trailing sub) -->
+              <div class="subdiv-main-dot" id="sd-4">4</div>
+            </div>
+
+            <!-- Deviation chart -->
+            <div class="deviation-chart">
+              <div class="deviation-title">Timing-Abweichung</div>
+              <div class="deviation-rows">
+                <div class="deviation-row">
+                  <div class="dev-label">Und 1</div>
+                  <div class="dev-track">
+                    <div class="dev-center"></div>
+                    <div class="dev-dot ok" style="left:55%"></div>
+                  </div>
+                  <div class="dev-val ok">+8ms</div>
+                </div>
+                <div class="deviation-row">
+                  <div class="dev-label">Und 2</div>
+                  <div class="dev-track">
+                    <div class="dev-center"></div>
+                    <div class="dev-dot ok" style="left:47%"></div>
+                  </div>
+                  <div class="dev-val ok">-5ms</div>
+                </div>
+                <div class="deviation-row">
+                  <div class="dev-label">Und 3</div>
+                  <div class="dev-track">
+                    <div class="dev-center"></div>
+                    <div class="dev-dot warn" style="left:68%"></div>
+                  </div>
+                  <div class="dev-val warn">+28ms</div>
+                </div>
+                <div class="deviation-row">
+                  <div class="dev-label">Und 4</div>
+                  <div class="dev-track">
+                    <div class="dev-center"></div>
+                    <div class="dev-dot ok" style="left:52%"></div>
+                  </div>
+                  <div class="dev-val ok">+4ms</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Score row -->
+            <div class="score-row">
+              <div class="score-pill">
+                <div class="score-pill-num" style="color:var(--green)">±12</div>
+                <div class="score-pill-label">ms Avg</div>
+              </div>
+              <div class="score-pill">
+                <div class="score-pill-num" style="color:var(--amber)">3</div>
+                <div class="score-pill-label">Ausreißer</div>
+              </div>
+              <div class="score-pill">
+                <div class="score-pill-num" style="color:var(--accent-2)">87%</div>
+                <div class="score-pill-label">Genauigkeit</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /rhythm-left -->
+
+      <!-- RIGHT PANEL -->
+      <div class="rhythm-right">
+
+        <!-- ==================== METRONOME PANEL ==================== -->
+        <div class="mode-panel active" id="panel-metro">
+
+          <div class="panel-section">
+            <div class="section-label">Tempo</div>
+            <div class="bpm-panel-display">
+              <span class="bpm-panel-num" id="bpm-panel-num">92</span>
+              <span class="bpm-panel-unit">BPM</span>
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section">
+            <div class="section-label">Taktart</div>
+            <div class="option-group">
+              <button class="option-chip">2/4</button>
+              <button class="option-chip">3/4</button>
+              <button class="option-chip active">4/4</button>
+              <button class="option-chip">6/8</button>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-label">Betonung</div>
+            <div class="option-group">
+              <button class="option-chip active">Standard</button>
+              <button class="option-chip">Nur Eins</button>
+              <button class="option-chip">Ohne</button>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-label">Subdivision</div>
+            <div class="option-group">
+              <button class="option-chip">Keine</button>
+              <button class="option-chip active">Achtel</button>
+              <button class="option-chip">Triolen</button>
+              <button class="option-chip">Sechzehntel</button>
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section">
+            <div class="section-label">Tap Tempo</div>
+            <button class="tap-btn" onclick="tapTempo()">
+              <svg viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><polyline points="12 6 12 12 16 14"/></svg>
+              Antippen
+            </button>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section">
+            <div class="section-label">Metronom-Sound</div>
+            <div class="sound-selector">
+              <button class="sound-chip active">Klick</button>
+              <button class="sound-chip">Holzblock</button>
+              <button class="sound-chip">Rimshot</button>
+              <button class="sound-chip">Leise</button>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-label">Lautstärke</div>
+            <div class="panel-slider-wrap">
+              <div class="volume-row">
+                <div class="volume-icon">
+                  <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                </div>
+                <input type="range" min="0" max="100" value="70">
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /panel-metro -->
+
+        <!-- ==================== PATTERN PANEL ==================== -->
+        <div class="mode-panel" id="panel-pattern">
+
+          <div class="panel-section">
+            <div class="section-label">Level</div>
+            <div class="level-list">
+              <div class="level-item">
+                <div class="level-dot"></div>
+                <div class="level-name">Anfänger</div>
+                <div class="level-num">1</div>
+              </div>
+              <div class="level-item active">
+                <div class="level-dot"></div>
+                <div class="level-name">Fortgeschritten</div>
+                <div class="level-num">2</div>
+              </div>
+              <div class="level-item">
+                <div class="level-dot"></div>
+                <div class="level-name">Profi</div>
+                <div class="level-num">3</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section">
+            <div class="section-label">Fortschritt</div>
+            <div class="round-counter">
+              <div class="round-label">Runde 2 / 4</div>
+              <div class="round-dots">
+                <div class="round-dot done"></div>
+                <div class="round-dot current"></div>
+                <div class="round-dot"></div>
+                <div class="round-dot"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="panel-score-big">
+              <div class="panel-score-num" style="color:var(--amber)">78%</div>
+              <div class="panel-score-sub">Timing-Score</div>
+              <div class="panel-score-range">Ziel: &gt; 90%</div>
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section">
+            <div class="section-label">Metronom-Sound</div>
+            <div class="sound-selector">
+              <button class="sound-chip active">Klick</button>
+              <button class="sound-chip">Holzblock</button>
+              <button class="sound-chip">Rimshot</button>
+              <button class="sound-chip">Leise</button>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-label">Lautstärke</div>
+            <div class="volume-row">
+              <div class="volume-icon">
+                <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </div>
+              <input type="range" min="0" max="100" value="70">
+            </div>
+          </div>
+
+        </div><!-- /panel-pattern -->
+
+        <!-- ==================== SUBDIV PANEL ==================== -->
+        <div class="mode-panel" id="panel-subdiv">
+
+          <div class="panel-section">
+            <div class="section-label">Subdivision</div>
+            <div class="option-group" style="flex-direction:column;gap:5px">
+              <button class="option-chip active" style="text-align:left">Achtel (1-und-2-und)</button>
+              <button class="option-chip" style="text-align:left">Triolen (1-und-a-2)</button>
+              <button class="option-chip" style="text-align:left">Sechzehntel (1-e-und-a)</button>
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section">
+            <div class="section-label">Gleichmaßigkeit</div>
+            <div class="gleich-badge">
+              <span class="gleich-num">±15</span>
+              <span class="gleich-label">ms Toleranz</span>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-label">Tempo</div>
+            <div class="panel-slider-wrap">
+              <div class="panel-slider-header">
+                <span style="font-size:11px;color:var(--text-3)">BPM</span>
+                <span style="font-size:13px;font-weight:700;color:var(--text-2)">92</span>
+              </div>
+              <input type="range" min="40" max="160" value="92">
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section">
+            <div class="section-label">Metronom-Sound</div>
+            <div class="sound-selector">
+              <button class="sound-chip active">Klick</button>
+              <button class="sound-chip">Holzblock</button>
+              <button class="sound-chip">Rimshot</button>
+              <button class="sound-chip">Leise</button>
+            </div>
+          </div>
+
+          <div class="panel-section">
+            <div class="section-label">Lautstärke</div>
+            <div class="volume-row">
+              <div class="volume-icon">
+                <svg viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              </div>
+              <input type="range" min="0" max="100" value="70">
+            </div>
+          </div>
+
+          <div class="panel-divider"></div>
+
+          <div class="panel-section">
+            <button class="start-btn" style="font-size:13px">
+              <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" fill="white"/></svg>
+              Training starten
+            </button>
+          </div>
+
+        </div><!-- /panel-subdiv -->
+
+      </div><!-- /rhythm-right -->
+
+    </div><!-- /rhythm-main -->
+
+  </div><!-- /app -->
+
+  <script>
+    /* ============================================ */
+    /* THEME TOGGLE                                 */
+    /* ============================================ */
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      html.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
+    }
+
+    if (window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+
+    /* ============================================ */
+    /* MODE SWITCHING                               */
+    /* ============================================ */
+    function switchMode(mode, btn) {
+      // Update mode buttons
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Show correct view
+      document.querySelectorAll('.mode-view').forEach(v => v.classList.remove('active'));
+      document.getElementById('view-' + mode).classList.add('active');
+
+      // Show correct panel
+      document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + mode).classList.add('active');
+
+      // Stop metronome if switching away
+      if (mode !== 'metro' && metroRunning) toggleMetro();
+    }
+
+    /* ============================================ */
+    /* OPTION CHIP TOGGLE (single-select)           */
+    /* ============================================ */
+    document.querySelectorAll('.option-group').forEach(group => {
+      group.querySelectorAll('.option-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          group.querySelectorAll('.option-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        });
+      });
+    });
+
+    /* ============================================ */
+    /* SOUND CHIP TOGGLE                            */
+    /* ============================================ */
+    document.querySelectorAll('.sound-selector').forEach(sel => {
+      sel.querySelectorAll('.sound-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          sel.querySelectorAll('.sound-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+        });
+      });
+    });
+
+    /* ============================================ */
+    /* BPM CONTROLS                                 */
+    /* ============================================ */
+    function changeBPM(delta) {
+      const slider = document.getElementById('bpm-slider');
+      const newVal = Math.min(220, Math.max(40, parseInt(slider.value) + delta));
+      slider.value = newVal;
+      document.getElementById('bpm-num').textContent = newVal;
+      document.getElementById('bpm-panel-num').textContent = newVal;
+      if (metroRunning) restartMetro();
+    }
+
+    /* ============================================ */
+    /* METRONOME ENGINE                             */
+    /* ============================================ */
+    let metroRunning = false;
+    let metroInterval = null;
+    let currentBeat = 0;
+    const beatCount = 4;
+
+    function getBeatDots() {
+      return [
+        document.getElementById('beat-1'),
+        document.getElementById('beat-2'),
+        document.getElementById('beat-3'),
+        document.getElementById('beat-4'),
+      ];
+    }
+
+    function updateBeatVisual(beat) {
+      const dots = getBeatDots();
+      dots.forEach((dot, idx) => {
+        dot.classList.remove('active', 'done');
+        if (idx < beat) dot.classList.add('done');
+        if (idx === beat) {
+          dot.classList.add('active');
+          dot.classList.add('beat-flash');
+          setTimeout(() => dot.classList.remove('beat-flash'), 150);
+        }
+      });
+    }
+
+    function tickMetro() {
+      updateBeatVisual(currentBeat);
+      currentBeat = (currentBeat + 1) % beatCount;
+    }
+
+    function startMetro() {
+      const bpm = parseInt(document.getElementById('bpm-slider').value);
+      const interval = Math.round(60000 / bpm);
+      currentBeat = 0;
+      tickMetro();
+      metroInterval = setInterval(tickMetro, interval);
+    }
+
+    function stopMetro() {
+      clearInterval(metroInterval);
+      metroInterval = null;
+      // Reset visuals
+      const dots = getBeatDots();
+      dots.forEach(dot => dot.classList.remove('active', 'done'));
+      dots[0].classList.add('active');
+    }
+
+    function restartMetro() {
+      clearInterval(metroInterval);
+      const bpm = parseInt(document.getElementById('bpm-slider').value);
+      const interval = Math.round(60000 / bpm);
+      metroInterval = setInterval(tickMetro, interval);
+    }
+
+    function toggleMetro() {
+      const btn = document.getElementById('metro-start-btn');
+      metroRunning = !metroRunning;
+      if (metroRunning) {
+        startMetro();
+        btn.classList.add('running');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Stoppen';
+      } else {
+        stopMetro();
+        btn.classList.remove('running');
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3"/></svg> Starten';
+      }
+    }
+
+    /* ============================================ */
+    /* PATTERN VIEW TOGGLE                          */
+    /* ============================================ */
+    function setPatternView(view) {
+      document.getElementById('tog-notation').classList.toggle('active', view === 'notation');
+      document.getElementById('tog-blocks').classList.toggle('active', view === 'blocks');
+      document.getElementById('staff-notation').classList.toggle('hidden', view !== 'notation');
+      document.getElementById('block-view').classList.toggle('active', view === 'blocks');
+    }
+
+    /* ============================================ */
+    /* TAP TEMPO                                    */
+    /* ============================================ */
+    const tapTimes = [];
+    function tapTempo() {
+      const now = performance.now();
+      tapTimes.push(now);
+      if (tapTimes.length > 8) tapTimes.shift();
+      if (tapTimes.length >= 2) {
+        const gaps = [];
+        for (let i = 1; i < tapTimes.length; i++) gaps.push(tapTimes[i] - tapTimes[i-1]);
+        const avgGap = gaps.reduce((a,b) => a+b, 0) / gaps.length;
+        const bpm = Math.round(60000 / avgGap);
+        const clamped = Math.min(220, Math.max(40, bpm));
+        document.getElementById('bpm-slider').value = clamped;
+        document.getElementById('bpm-num').textContent = clamped;
+        document.getElementById('bpm-panel-num').textContent = clamped;
+        if (metroRunning) restartMetro();
+      }
+    }
+  </script>
+</body>
+</html>
