@@ -136,14 +136,47 @@ For **Python**:
 - Create `requirements.txt` structure
 - Update .gitignore for python
 
-### 6. Setup Working Memory
+### 6. Install LSP Plugin (based on Tech Stack)
+
+LSP plugins give Claude real-time diagnostics (type errors, missing imports) after every edit. Install the matching plugin based on the tech stack chosen in Step 3.
+
+**Ask**: "Should I install the LSP plugin for your language? This gives Claude real-time error detection after every edit."
+
+If yes, run the appropriate command:
+
+| Tech Stack | Plugin Command | Required Binary |
+|------------|---------------|-----------------|
+| Node/TypeScript | `/plugin install typescript-lsp@claude-plugins-official` | `typescript-language-server` (install via `npm install -g typescript-language-server typescript`) |
+| Python | `/plugin install pyright-lsp@claude-plugins-official` | `pyright-langserver` (install via `pip install pyright` or `npm install -g pyright`) |
+| Go | `/plugin install gopls-lsp@claude-plugins-official` | `gopls` (install via `go install golang.org/x/tools/gopls@latest`) |
+| Rust | `/plugin install rust-analyzer-lsp@claude-plugins-official` | `rust-analyzer` |
+| Java | `/plugin install jdtls-lsp@claude-plugins-official` | `jdtls` |
+| Kotlin | `/plugin install kotlin-lsp@claude-plugins-official` | `kotlin-language-server` |
+| Swift | `/plugin install swift-lsp@claude-plugins-official` | `sourcekit-lsp` |
+| PHP | `/plugin install php-lsp@claude-plugins-official` | `intelephense` (install via `npm install -g intelephense`) |
+| C/C++ | `/plugin install clangd-lsp@claude-plugins-official` | `clangd` |
+| C# | `/plugin install csharp-lsp@claude-plugins-official` | `csharp-ls` |
+| Lua | `/plugin install lua-lsp@claude-plugins-official` | `lua-language-server` |
+
+**Installation steps:**
+
+1. Check if the required binary is available: `which <binary-name>`
+2. If not installed, show the install command and ask user to install it
+3. Run the plugin install command via bash: `claude plugin install <plugin>@claude-plugins-official --scope project`
+4. Verify installation: check `/plugin` Errors tab for issues
+
+**If "Custom" or "Agnostic" tech stack**: Show the full table above and let the user pick, or skip if they prefer.
+
+**Note**: LSP plugins are installed at **project scope** (`.claude/settings.json`) so all collaborators benefit.
+
+### 7. Setup Working Memory
 
 Create `.specify/memory/` structure:
 - `status.md` - Project status tracking
 - `decisions/` - Architecture decisions
 - `README.md` - Working memory guide
 
-### 7. Initialize Git
+### 8. Initialize Git
 
 If not already initialized:
 ```bash
