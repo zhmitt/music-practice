@@ -1,14 +1,3 @@
----
-description: Alias command for post-implementation workflow.
----
+# Legacy Wrapper: `/post-impl`
 
-# /post-impl - Alias
-
-This command is an alias for:
-
-```bash
-/post-implementation
-```
-
-Use it when you want the shorter command name.
-
+Use `/opsx/verify` as the canonical flow.

@@ -1,0 +1,37 @@
+{
+  "experimental": {
+    "enableAgents": true
+  },
+  "agents": {
+    "overrides": {
+      "opsx-implementer": {
+        "enabled": true,
+        "runConfig": {
+          "maxTurns": 20,
+          "maxTimeMinutes": 20
+        }
+      },
+      "opsx-reviewer": {
+        "enabled": true,
+        "runConfig": {
+          "maxTurns": 16,
+          "maxTimeMinutes": 15
+        }
+      },
+      "opsx-verifier": {
+        "enabled": true,
+        "runConfig": {
+          "maxTurns": 16,
+          "maxTimeMinutes": 15
+        }
+      },
+      "opsx-session-closer": {
+        "enabled": true,
+        "runConfig": {
+          "maxTurns": 10,
+          "maxTimeMinutes": 10
+        }
+      }
+    }
+  }
+}

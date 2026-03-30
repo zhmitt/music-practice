@@ -1,0 +1,23 @@
+project:
+  name: ToneTrainer
+  summary: Desktop-first music practice companion for brass players with guided sessions, pitch and rhythm feedback, and long-term progress tracking.
+
+workflow:
+  canonical_sources:
+    - AGENTS.md
+    - openspec/
+    - workflow/
+  principles:
+    - Non-trivial work is spec-first.
+    - Product intent, prototype UI, and implemented behavior must stay distinguishable.
+    - Practice feedback should stay supportive and instructional rather than punitive.
+    - Claude, Gemini, and Codex adapters are accelerators only.
+
+context:
+  current_repo_shape:
+    - static mockups in mockup/
+    - product definition in docs/product-spec.md
+    - legacy feature specs in .specify/specs/
+    - no committed production runtime stack yet
+  next_major_decision:
+    - activate the first implementation change that chooses the concrete runtime stack and shell architecture

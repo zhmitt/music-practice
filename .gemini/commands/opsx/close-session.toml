@@ -1,0 +1,9 @@
+description = "Close the current session with deterministic handover."
+
+prompt = """
+Prefer using @opsx-session-closer to assemble the handover summary when the session covered a lot of detail.
+
+Use workflow/scripts/session-close.sh --summary "<summary>" after reading canonical state.
+
+The handover must be written into workflow/state/, not kept only in Gemini-local context.
+"""

@@ -1,0 +1,9 @@
+description = "Inspect canonical workflow status."
+
+prompt = """
+Use AGENTS.md, openspec/, workflow/state/, workflow/scripts/phase-status.sh, and workflow/scripts/tasks-sync.sh --dry-run to summarize status.
+
+If deep inspection would clutter the main context, delegate the bounded investigation to @opsx-reviewer and summarize the result back at orchestration level.
+
+Do not invent tool-local status.
+"""

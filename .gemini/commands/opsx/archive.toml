@@ -1,0 +1,8 @@
+description = "Archive a fully verified OpenSpec change."
+
+prompt = """
+Archive only after the canonical completion gate passes.
+
+Prefer openspec archive <change-id> when available, then refresh workflow/state/task-registry.md.
+"""
+

@@ -1,0 +1,9 @@
+description = "Verify that an active change has enough evidence to be considered complete."
+
+prompt = """
+Read the active change and workflow/state/.
+
+Prefer delegating the evidence audit to @opsx-verifier for a scoped verification pass.
+
+Ensure verification.md exists, workflow evidence is present, and run workflow/scripts/post-impl-check.sh before treating the change as complete.
+"""

@@ -1,0 +1,10 @@
+description = "Implement work from an active OpenSpec change using canonical workflow artifacts."
+
+prompt = """
+Read AGENTS.md, the active OpenSpec change, and workflow/state/task-registry.md first.
+
+Keep the main agent in an orchestration role.
+For bounded implementation work, prefer delegating to @opsx-implementer so coding details stay in an isolated subagent context.
+
+Implement from tasks.md, keep canonical artifacts current, and refresh deterministic state through workflow/scripts/tasks-sync.sh.
+"""

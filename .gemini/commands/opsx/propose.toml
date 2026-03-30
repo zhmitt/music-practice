@@ -1,0 +1,9 @@
+description = "Create or refine an OpenSpec change before non-trivial implementation."
+
+prompt = """
+Read AGENTS.md and openspec/config.yaml first.
+
+Create or refine an active change in openspec/changes/<change-id>/ and keep the canonical workflow in openspec/ and workflow/.
+Do not move process truth into Gemini-only files.
+"""
+
