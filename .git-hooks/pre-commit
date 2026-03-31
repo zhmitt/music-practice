@@ -45,7 +45,7 @@ while IFS= read -r file; do
   [[ -z "$file" ]] && continue
 
   if [[ "$file" =~ $code_regex ]]; then
-    file_hits="$(git diff --cached --unified=0 -- "$file" | { rg '^\+.*\b(TODO|FIXME|XXX)\b' -n || true; })"
+    file_hits="$(git diff --cached --unified=0 -- "$file" | { grep -nE '^\+.*\b(TODO|FIXME|XXX)\b' || true; })"
     if [[ -n "$file_hits" ]]; then
       todo_hits="${todo_hits}\n${file}\n${file_hits}\n"
     fi
