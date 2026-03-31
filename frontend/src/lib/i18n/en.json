@@ -1,0 +1,47 @@
+{
+  "nav.dashboard": "Practice",
+  "nav.tonelab": "Tone Lab",
+  "nav.rhythm": "Rhythm",
+  "nav.progress": "Progress",
+  "nav.settings": "Settings",
+
+  "header.instrument.horn_bb": "Horn in Bb",
+  "header.instrument.horn_f": "Horn in F",
+  "header.instrument.double_horn": "Double Horn",
+  "header.instrument.trumpet_bb": "Trumpet in Bb",
+  "header.instrument.clarinet_bb": "Clarinet in Bb",
+  "header.instrument.flute": "Flute",
+  "header.instrument.trombone": "Trombone",
+  "header.instrument.oboe": "Oboe",
+
+  "sidebar.streak": "Streak",
+  "sidebar.ct_avg": "ct Avg",
+
+  "dashboard.today_session": "Today's Session",
+  "dashboard.start_session": "Start Session",
+  "dashboard.customize": "Customize",
+  "dashboard.last_session": "Last Session",
+  "dashboard.weak_spots": "Weak Spots",
+  "dashboard.this_week": "This Week",
+  "dashboard.days_streak": "Day Streak",
+
+  "session.pause": "Pause",
+  "session.resume": "Resume",
+  "session.repeat": "Repeat",
+  "session.next": "Next",
+  "session.done": "Done",
+  "session.one_more": "One More Exercise",
+  "session.finished": "Session Complete!",
+  "session.task": "Task",
+  "session.tones": "Tones",
+  "session.listen": "Listen",
+  "session.accuracy": "Accuracy",
+  "session.stability": "Stability",
+
+  "placeholder.coming_soon": "Coming Soon",
+  "placeholder.view_content": "Content will appear here",
+
+  "theme.auto": "Auto",
+  "theme.dark": "Dark",
+  "theme.light": "Light"
+}

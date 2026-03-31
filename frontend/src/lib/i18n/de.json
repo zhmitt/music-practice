@@ -1,0 +1,47 @@
+{
+  "nav.dashboard": "Üben",
+  "nav.tonelab": "Tone Lab",
+  "nav.rhythm": "Rhythmus",
+  "nav.progress": "Fortschritt",
+  "nav.settings": "Einstellungen",
+
+  "header.instrument.horn_bb": "Horn in Bb",
+  "header.instrument.horn_f": "Horn in F",
+  "header.instrument.double_horn": "Doppelhorn",
+  "header.instrument.trumpet_bb": "Trompete in Bb",
+  "header.instrument.clarinet_bb": "Klarinette in Bb",
+  "header.instrument.flute": "Flöte",
+  "header.instrument.trombone": "Posaune",
+  "header.instrument.oboe": "Oboe",
+
+  "sidebar.streak": "Streak",
+  "sidebar.ct_avg": "ct Avg",
+
+  "dashboard.today_session": "Heutige Session",
+  "dashboard.start_session": "Session starten",
+  "dashboard.customize": "Anpassen",
+  "dashboard.last_session": "Letzte Session",
+  "dashboard.weak_spots": "Schwachstellen",
+  "dashboard.this_week": "Diese Woche",
+  "dashboard.days_streak": "Tage in Folge",
+
+  "session.pause": "Pause",
+  "session.resume": "Weiter",
+  "session.repeat": "Nochmal",
+  "session.next": "Weiter",
+  "session.done": "Fertig",
+  "session.one_more": "Noch eine Übung",
+  "session.finished": "Session fertig!",
+  "session.task": "Aufgabe",
+  "session.tones": "Töne",
+  "session.listen": "Anhören",
+  "session.accuracy": "Genauigkeit",
+  "session.stability": "Stabilität",
+
+  "placeholder.coming_soon": "Kommt bald",
+  "placeholder.view_content": "Inhalte werden hier erscheinen",
+
+  "theme.auto": "Auto",
+  "theme.dark": "Dark",
+  "theme.light": "Light"
+}
