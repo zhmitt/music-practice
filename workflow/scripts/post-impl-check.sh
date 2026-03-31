@@ -49,7 +49,7 @@ if [[ "$staged_mode" == true ]]; then
     {
       echo "Post-implementation staging check failed."
       echo "Code files are staged, but no canonical workflow evidence was staged."
-      echo "Stage updates in openspec/, workflow/state/, or docs/ before committing."
+      echo "Run: workflow/scripts/post-impl-prepare.sh --summary \"...\""
     } >&2
     exit 1
   fi
@@ -127,6 +127,9 @@ if [[ ${#missing[@]} -gt 0 ]]; then
     for item in "${missing[@]}"; do
       echo "- ${item}"
     done
+    echo ""
+    echo "Next:"
+    echo "Run workflow/scripts/post-impl-prepare.sh --summary \"...\" to scaffold or update the canonical evidence."
   } >&2
   exit 1
 fi

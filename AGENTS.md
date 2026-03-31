@@ -63,6 +63,7 @@ workflow/scripts/phase-status.sh
 
 ```bash
 workflow/scripts/tasks-sync.sh
+workflow/scripts/post-impl-prepare.sh --summary "..."
 ```
 
 ### Before Commit

@@ -5,5 +5,5 @@ Read the active change and workflow/state/.
 
 Prefer delegating the evidence audit to @opsx-verifier for a scoped verification pass.
 
-Ensure verification.md exists, workflow evidence is present, and run workflow/scripts/post-impl-check.sh before treating the change as complete.
+Run workflow/scripts/post-impl-prepare.sh --summary "<what changed>" to create or refresh the canonical verification/report skeletons, then refine them and run workflow/scripts/post-impl-check.sh before treating the change as complete.
 """

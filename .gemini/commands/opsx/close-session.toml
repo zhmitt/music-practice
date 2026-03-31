@@ -6,4 +6,5 @@ Prefer using @opsx-session-closer to assemble the handover summary when the sess
 Use workflow/scripts/session-close.sh --summary "<summary>" after reading canonical state.
 
 The handover must be written into workflow/state/, not kept only in Gemini-local context.
+This remains a deliberate manual step; do not auto-run it with a placeholder summary.
 """

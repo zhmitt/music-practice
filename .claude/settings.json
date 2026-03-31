@@ -31,6 +31,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get(\"tool_input\", {}).get(\"file_path\", \"\"))' | { read -r file_path; if printf '%s' \"$file_path\" | grep -Eq '\\.(ts|tsx|js|jsx|py|rs|svelte|java|sh|swift)$' && ! printf '%s' \"$file_path\" | grep -Eq '^(openspec/|workflow/|docs/|\\.claude/|\\.gemini/|\\.codex/)'; then \"$CLAUDE_PROJECT_DIR\"/workflow/scripts/post-impl-prepare.sh --touch >/dev/null 2>&1 || true; fi; }"
+          },
+          {
+            "type": "command",
             "command": "python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get(\"tool_input\", {}).get(\"file_path\", \"\"))' | { read -r file_path; if printf '%s' \"$file_path\" | grep -Eq '^openspec/changes/[^/]+/tasks\\.md$'; then \"$CLAUDE_PROJECT_DIR\"/workflow/scripts/tasks-sync.sh >/dev/null; fi; }"
           },
           {

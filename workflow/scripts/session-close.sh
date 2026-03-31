@@ -26,6 +26,12 @@ if [[ -z "$summary" ]]; then
   exit 1
 fi
 
+trimmed_summary="$(printf '%s' "$summary" | awk '{$1=$1; print}')"
+if [[ ${#trimmed_summary} -lt 20 ]]; then
+  echo "Summary is too short. Give a concise handover with what changed and what is next." >&2
+  exit 1
+fi
+
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
@@ -40,7 +46,7 @@ done < <(find openspec/changes -mindepth 1 -maxdepth 1 -type d ! -name archive |
 {
   echo
   echo "## ${timestamp}"
-  echo "- Summary: ${summary}"
+  echo "- Summary: ${trimmed_summary}"
   if [[ ${#active_changes[@]} -eq 0 ]]; then
     echo "- Change: none"
     echo "- State: no_change"
@@ -63,7 +69,7 @@ done < <(find openspec/changes -mindepth 1 -maxdepth 1 -type d ! -name archive |
   echo
   echo "## Last Summary"
   echo
-  echo "${summary}"
+  echo "${trimmed_summary}"
   echo
   echo "## Active Changes"
   echo
