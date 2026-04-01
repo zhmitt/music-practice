@@ -180,6 +180,18 @@
   "rhythm.sub_trainer.missed": "Verpasst",
   "rhythm.sub_trainer.hint": "Du hörst nur die Hauptschläge. Spiele die Unterteilungen dazu.",
 
+  "session.exercise_targeted": "Gezielte Übung",
+  "session.exercise_flexibility": "Flexibilität",
+
+  "suggestion.first_session": "Deine erste Session -- viel Erfolg!",
+  "suggestion.weak_spots": "{notes} brauchen Aufmerksamkeit. Heute üben wir gezielt.",
+  "suggestion.streak_variety": "{days} Tage in Folge -- heute mal was Abwechslung!",
+  "suggestion.high_accuracy": "{pct}% Genauigkeit zuletzt -- Zeit für eine Herausforderung.",
+  "suggestion.back_to_basics": "Fokus auf Grundlagen, um die Intonation zu stabilisieren.",
+  "suggestion.balanced": "Ausgewogene Session mit Langtönen und Tonleiter.",
+  "suggestion.standard": "Heute wie immer: Einblasen und Tonleiter.",
+  "dashboard.suggestion": "Vorschlag",
+
   "placeholder.coming_soon": "Kommt bald",
   "placeholder.view_content": "Inhalte werden hier erscheinen",
 
