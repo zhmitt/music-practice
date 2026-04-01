@@ -3,6 +3,8 @@
   import { t } from '$lib/i18n';
   import PitchMeter from './PitchMeter.svelte';
   import StabilityGraph from './StabilityGraph.svelte';
+  import StaffNotation from './StaffNotation.svelte';
+  import { playSequence } from '$lib/audio/playNote';
   import {
     sessionPlan, exerciseIndex, toneIndex, tonePhase, sessionPhase,
     toneResults, centsSamples, currentCents, currentNote, currentFrequency,
@@ -52,6 +54,18 @@
     done += tIdx;
     return done / totalTones;
   });
+
+  let isListening = $state(false);
+
+  async function listenToExercise() {
+    if (!exercise || isListening) return;
+    isListening = true;
+    try {
+      await playSequence(exercise.tones.map(t => ({ note: t.note, octave: t.octave })));
+    } finally {
+      isListening = false;
+    }
+  }
 
   // Hold progress (0-1) for the current tone
   let holdProgress = $derived.by(() => {
@@ -121,6 +135,13 @@
           </div>
 
         {:else}
+          <!-- Staff notation for scale exercises -->
+          {#if exercise && exercise.type === 'scale'}
+            <div class="staff-area">
+              <StaffNotation tones={exercise.tones} currentIndex={$toneIndex} />
+            </div>
+          {/if}
+
           <!-- Active exercise -->
           <div class="pitch-area">
             <div class="pitch-info">
@@ -190,9 +211,13 @@
             {/if}
           </div>
 
-          <!-- Listen button (placeholder) -->
-          <button class="listen-btn" disabled>
-            <svg viewBox="0 0 24 24" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+          <!-- Listen button -->
+          <button class="listen-btn" class:playing={isListening} disabled={isListening} onclick={listenToExercise}>
+            {#if isListening}
+              <svg viewBox="0 0 24 24" width="16" height="16"><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></svg>
+            {:else}
+              <svg viewBox="0 0 24 24" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+            {/if}
             {$t('session.listen')}
           </button>
 
@@ -307,6 +332,13 @@
     overflow-y: auto;
   }
 
+  /* ── Staff notation ── */
+  .staff-area {
+    width: 100%; max-width: 500px; margin-bottom: 8px;
+    padding: 8px 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  }
+
   /* ── Pitch area ── */
   .pitch-area {
     display: flex; align-items: center; gap: 40px;
@@ -379,9 +411,12 @@
   .listen-btn {
     display: flex; align-items: center; gap: 6px;
     padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text-3); font-family: inherit;
-    font-size: 12px; cursor: not-allowed; opacity: 0.5;
+    background: var(--surface); color: var(--text-2); font-family: inherit;
+    font-size: 12px; cursor: pointer; transition: all 0.15s;
   }
+  .listen-btn:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
+  .listen-btn.playing { color: var(--accent); border-color: var(--accent); }
+  .listen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
   /* ── Tone list ── */
   .tone-section { display: flex; flex-direction: column; gap: 8px; }
