@@ -1,11 +1,13 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
-  import { locale, type Locale } from '$lib/i18n/index';
+  import { locale, type Locale, setLocale } from '$lib/i18n/index';
   import { settingsOpen } from '$lib/stores/navigation';
   import { themeMode, type ThemeMode } from '$lib/stores/theme';
   import { getUserProfile, type Instrument, type ExperienceLevel } from '$lib/stores/onboarding';
+  import { getKV, setKV, clearAllData } from '$lib/db';
   import SharePanel from './SharePanel.svelte';
   import AssignmentCreator from './AssignmentCreator.svelte';
+  import { onMount } from 'svelte';
 
   // Load current profile
   let profile = getUserProfile();
@@ -17,13 +19,15 @@
   let showResetConfirm = $state(false);
   let savedFlash = $state(false);
 
-  // Load tuning from localStorage
-  try {
-    const savedTuning = localStorage.getItem('tt-tuning');
-    if (savedTuning) tuning = parseInt(savedTuning, 10);
-    const savedDisplay = localStorage.getItem('tt-display-mode');
-    if (savedDisplay === 'concert' || savedDisplay === 'notated') displayMode = savedDisplay;
-  } catch { /* ignore */ }
+  // Load tuning and display-mode from the kv store on mount
+  onMount(async () => {
+    try {
+      const savedTuning = await getKV('tt-tuning');
+      if (savedTuning) tuning = parseInt(savedTuning, 10);
+      const savedDisplay = await getKV('tt-display-mode');
+      if (savedDisplay === 'concert' || savedDisplay === 'notated') displayMode = savedDisplay;
+    } catch { /* ignore */ }
+  });
 
   const instruments: Array<{ key: Instrument; labelKey: string }> = [
     { key: 'horn_bb', labelKey: 'ob.instrument.horn_bb' },
@@ -39,7 +43,7 @@
   const dayOptions = [3, 4, 5, 6, 7];
   const minuteOptions = [10, 15, 20, 30, 45];
 
-  function save() {
+  async function save() {
     // Persist profile
     const updated = {
       instrument,
@@ -48,9 +52,9 @@
       minutesPerSession,
     };
     try {
-      localStorage.setItem('tt-user-profile', JSON.stringify(updated));
-      localStorage.setItem('tt-tuning', String(tuning));
-      localStorage.setItem('tt-display-mode', displayMode);
+      await setKV('tt-user-profile', JSON.stringify(updated));
+      await setKV('tt-tuning', String(tuning));
+      await setKV('tt-display-mode', displayMode);
     } catch { /* ignore */ }
 
     // Update tuning in audio engine (if running via Tauri)
@@ -68,22 +72,13 @@
     } catch { /* ignore in browser */ }
   }
 
-  function setLocale(l: Locale) {
-    locale.set(l);
-    try { localStorage.setItem('tt-locale', l); } catch { /* ignore */ }
-  }
-
   function setTheme(m: ThemeMode) {
     themeMode.set(m);
   }
 
-  function resetData() {
+  async function resetData() {
     try {
-      localStorage.removeItem('tt-session-history');
-      localStorage.removeItem('tt-user-profile');
-      localStorage.removeItem('tt-onboarding-completed');
-      localStorage.removeItem('tt-tuning');
-      localStorage.removeItem('tt-display-mode');
+      await clearAllData();
     } catch { /* ignore */ }
     showResetConfirm = false;
     location.reload();
@@ -340,5 +335,9 @@
     15% { opacity: 1; transform: translateX(-50%) translateY(0); }
     85% { opacity: 1; }
     100% { opacity: 0; }
+  }
+
+  @media (max-width: 480px) {
+    .settings-panel { width: 100vw; }
   }
 </style>

@@ -10,13 +10,33 @@
   import Settings from '$lib/components/Settings.svelte';
   import { initTheme } from '$lib/stores/theme';
   import { sessionActive, sessionPaused } from '$lib/stores/navigation';
-  import { onboardingVisible, checkOnboardingCompleted } from '$lib/stores/onboarding';
+  import { onboardingVisible, checkOnboardingCompleted, loadProfile } from '$lib/stores/onboarding';
   import { sessionPhase, stopSession, togglePause, skipTone, nextExercise, repeatExercise } from '$lib/stores/session';
+  import { initDb } from '$lib/db';
+  import { loadHistory } from '$lib/stores/history';
+  import { loadStudentName } from '$lib/stores/sharing';
+  import { loadAssignments } from '$lib/stores/assignments';
+  import { loadImportedPieces } from '$lib/stores/imports';
+  import { loadLocale } from '$lib/i18n';
 
   let { children } = $props();
 
-  onMount(() => {
-    initTheme();
+  onMount(async () => {
+    await initDb();
+
+    // Load all persisted data from SQLite (or localStorage fallback)
+    await Promise.all([
+      loadProfile(),
+      loadHistory(),
+      loadStudentName(),
+      loadAssignments(),
+      loadImportedPieces(),
+      loadLocale(),
+    ]);
+
+    // initTheme reads from the kv store and sets up the subscriber
+    await initTheme();
+
     if (!checkOnboardingCompleted()) {
       onboardingVisible.set(true);
     }
@@ -103,5 +123,13 @@
   .main {
     overflow-y: auto;
     padding: 24px 28px;
+  }
+
+  @media (max-width: 768px) {
+    .main { padding: 16px; }
+  }
+
+  @media (max-width: 480px) {
+    .main { padding: 12px 10px; }
   }
 </style>

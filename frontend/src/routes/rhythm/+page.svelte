@@ -352,4 +352,13 @@
     .metro-sidebar { order: -1; }
     .mode-tabs { overflow-x: auto; }
   }
+
+  @media (max-width: 480px) {
+    .metro-main { padding: 20px 16px; gap: 16px; }
+    .metro-sidebar { padding: 14px; }
+    .bpm-value { font-size: 44px; }
+    .bpm-slider { width: 200px; }
+    .beat-dot { width: 38px; height: 38px; font-size: 14px; }
+    .play-btn { width: 48px; height: 48px; }
+  }
 </style>

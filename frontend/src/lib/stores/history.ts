@@ -1,8 +1,13 @@
 /**
- * Session history persistence (localStorage).
- * Stores completed session records and provides derived stats
- * for dashboard (streak, week progress) and progress view.
+ * Session history persistence.
+ *
+ * The in-memory array `_history` is the source of truth for all synchronous
+ * getter functions.  On app startup `loadHistory()` populates it from SQLite
+ * (or the localStorage fallback).  Each `saveSession()` call appends to the
+ * in-memory array and immediately persists to the database.
  */
+
+import { getAllSessions, insertSession } from '$lib/db';
 
 export interface ToneRecord {
   note: string;       // "Bb4"
@@ -22,26 +27,78 @@ export interface SessionRecord {
   avgCents: number;        // average |cent deviation|
 }
 
-const STORAGE_KEY = 'tt-session-history';
+// ── In-memory store ──
+
+let _history: SessionRecord[] = [];
+
+// ── Async persistence layer ──
+
+/**
+ * Load all sessions from SQLite (or localStorage fallback) into memory.
+ * Call once during app initialisation.
+ */
+export async function loadHistory(): Promise<void> {
+  try {
+    const rows = await getAllSessions();
+    _history = rows.map((r) => {
+      let tones: ToneRecord[] = [];
+      try {
+        const parsed = typeof r.tones === 'string' ? JSON.parse(r.tones) : r.tones;
+        tones = Array.isArray(parsed) ? parsed : [];
+      } catch { /* corrupt JSON — treat as empty */ }
+
+      return {
+        id: r.id,
+        date: r.date,
+        durationSeconds: r.durationSeconds,
+        exerciseType: r.exerciseType,
+        // exerciseName is not stored in the DB; derive a default
+        exerciseName: r.exerciseType,
+        tones,
+        accuracy: r.accuracy,
+        avgCents: tones.length > 0
+          ? tones.reduce((s, t) => s + Math.abs(t.avgCents), 0) / tones.length
+          : 0,
+      };
+    });
+  } catch {
+    // If persistence is unavailable keep whatever was in memory
+  }
+}
 
 // ── CRUD ──
 
+/**
+ * Read the full session history from the in-memory cache.
+ *
+ * @returns Array of all session records, oldest first.
+ */
 export function getHistory(): SessionRecord[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch { /* ignore */ }
-  return [];
+  return _history;
 }
 
-export function saveSession(record: SessionRecord) {
-  const history = getHistory();
-  history.push(record);
-  // Keep last 500 sessions max
-  const trimmed = history.length > 500 ? history.slice(-500) : history;
+/**
+ * Append a session record to the in-memory store and persist it.
+ *
+ * @param record - Completed session to save.
+ */
+export async function saveSession(record: SessionRecord): Promise<void> {
+  _history.push(record);
+  // Keep last 500 sessions max in memory
+  if (_history.length > 500) {
+    _history = _history.slice(-500);
+  }
+
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed));
-  } catch { /* ignore */ }
+    await insertSession({
+      id: record.id,
+      date: record.date,
+      exerciseType: record.exerciseType,
+      durationSeconds: record.durationSeconds,
+      accuracy: record.accuracy,
+      tones: JSON.stringify(record.tones),
+    });
+  } catch { /* persistence failure is non-fatal */ }
 }
 
 // ── Derived stats ──

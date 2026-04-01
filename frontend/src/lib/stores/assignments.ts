@@ -1,27 +1,50 @@
+/**
+ * Assignment store — persists the list of imported/created assignments.
+ *
+ * The Svelte store is the synchronous source of truth for reactive UI.
+ * `loadAssignments()` populates it from the kv store on startup.
+ * Internal mutations persist back via `_persist()`.
+ */
+
 import { writable, get } from 'svelte/store';
 import type { Assignment, AssignmentRecord } from '$lib/types/assignment';
+import { getKV, setKV } from '$lib/db';
 
 const STORAGE_KEY = 'tt-assignments';
 
-function load(): AssignmentRecord[] {
+export const assignments = writable<AssignmentRecord[]>([]);
+
+// ── Persistence helpers ──
+
+async function _persist(records: AssignmentRecord[]): Promise<void> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return [];
+    await setKV(STORAGE_KEY, JSON.stringify(records));
+  } catch { /* non-fatal */ }
 }
 
-function save(records: AssignmentRecord[]) {
+// ── Initialisation ──
+
+/**
+ * Load assignments from the kv store and populate the in-memory store.
+ * Call once during app initialisation.
+ */
+export async function loadAssignments(): Promise<void> {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
-  } catch {}
+    const raw = await getKV(STORAGE_KEY);
+    if (raw) assignments.set(JSON.parse(raw) as AssignmentRecord[]);
+  } catch { /* non-fatal */ }
 }
 
-export const assignments = writable<AssignmentRecord[]>(load());
+// ── Mutation API ──
 
-export function importAssignment(assignment: Assignment) {
+/**
+ * Import an assignment from an external source.
+ * Silently ignores duplicates.
+ *
+ * @param assignment - The assignment to import.
+ */
+export function importAssignment(assignment: Assignment): void {
   assignments.update(list => {
-    // Don't import duplicates
     if (list.some(r => r.assignment.id === assignment.id)) return list;
     const record: AssignmentRecord = {
       assignment,
@@ -30,12 +53,17 @@ export function importAssignment(assignment: Assignment) {
       completedAt: null,
     };
     const updated = [...list, record];
-    save(updated);
+    _persist(updated);
     return updated;
   });
 }
 
-export function markAssignmentCompleted(assignmentId: string) {
+/**
+ * Mark an assignment as completed.
+ *
+ * @param assignmentId - The assignment to mark complete.
+ */
+export function markAssignmentCompleted(assignmentId: string): void {
   assignments.update(list => {
     const updated = list.map(r => {
       if (r.assignment.id === assignmentId && !r.completed) {
@@ -43,15 +71,20 @@ export function markAssignmentCompleted(assignmentId: string) {
       }
       return r;
     });
-    save(updated);
+    _persist(updated);
     return updated;
   });
 }
 
-export function removeAssignment(assignmentId: string) {
+/**
+ * Remove an assignment by id.
+ *
+ * @param assignmentId - The assignment id to remove.
+ */
+export function removeAssignment(assignmentId: string): void {
   assignments.update(list => {
     const updated = list.filter(r => r.assignment.id !== assignmentId);
-    save(updated);
+    _persist(updated);
     return updated;
   });
 }
@@ -89,8 +122,8 @@ export function createAssignment(
   };
 }
 
-/** Export assignment as downloadable JSON file. */
-export function exportAssignment(assignment: Assignment) {
+/** Export assignment as a downloadable JSON file. */
+export function exportAssignment(assignment: Assignment): void {
   const blob = new Blob([JSON.stringify(assignment, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

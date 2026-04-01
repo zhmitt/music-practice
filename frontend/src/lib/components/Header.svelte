@@ -44,4 +44,11 @@
     font-size: 11px; font-weight: 500; color: var(--text-2);
     padding: 5px 11px; border-radius: 7px; background: var(--surface-2);
   }
+
+  @media (max-width: 480px) {
+    .header { padding: 0 14px; }
+    .page-title { font-size: 13px; }
+    .date-label { display: none; }
+    .instrument-chip { font-size: 10px; padding: 4px 8px; }
+  }
 </style>

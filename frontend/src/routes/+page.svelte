@@ -3,6 +3,7 @@
   import { getUserProfile } from '$lib/stores/onboarding';
   import { generateSmartSuggestion, type SessionSuggestion } from '$lib/exercises/smartSuggestion';
   import { startSession } from '$lib/stores/session';
+  import { settingsOpen } from '$lib/stores/navigation';
   import { getStreak, getWeekDays, getWeekProgress, getWeekMinutes, getRecentSessions, getNoteTendencies } from '$lib/stores/history';
   import ImportPanel from '$lib/components/ImportPanel.svelte';
   import AssignmentPanel from '$lib/components/AssignmentPanel.svelte';
@@ -64,7 +65,7 @@
       {$t('dashboard.start_session')}
     </button>
     <div class="session-customize">
-      <button class="customize-link">{$t('dashboard.customize')}</button>
+      <button class="customize-link" onclick={() => settingsOpen.set(true)}>{$t('dashboard.customize')}</button>
     </div>
 
     <!-- Last session -->
@@ -212,5 +213,18 @@
     .session-card { grid-column: 1; grid-row: auto; }
     .streak-card { grid-column: 1; grid-row: auto; }
     .week-card { grid-column: 1; grid-row: auto; }
+  }
+
+  @media (max-width: 768px) {
+    .session-card { padding: 20px; }
+    .session-title { font-size: 18px; }
+    .start-btn { padding: 11px; }
+  }
+
+  @media (max-width: 480px) {
+    .session-card { padding: 16px; }
+    .streak-card { padding: 16px; }
+    .week-card { padding: 16px; }
+    .streak-num { font-size: 36px; }
   }
 </style>
