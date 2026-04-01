@@ -9,7 +9,8 @@
     currentNote, currentOctave, currentCents, currentFrequency,
     isDetecting, audioLevel,
     historySamples, centsSamples, tendencies, stats,
-    startToneLab, stopToneLab,
+    droneNote, droneOctave, droneActive,
+    startToneLab, stopToneLab, switchMode, setDroneNote,
   } from '$lib/stores/tonelab';
 
   function fmtCents(c: number): string {
@@ -31,9 +32,25 @@
 
   const modes = [
     { key: 'free_play' as const, enabled: true },
-    { key: 'drone' as const, enabled: false },
+    { key: 'drone' as const, enabled: true },
     { key: 'target' as const, enabled: false },
     { key: 'interval' as const, enabled: false },
+  ];
+
+  /** Available drone notes (concert pitch, comfortable register). */
+  const droneNotes: Array<{ note: string; octave: number; label: string }> = [
+    { note: 'Bb', octave: 2, label: 'Bb2' },
+    { note: 'C',  octave: 3, label: 'C3' },
+    { note: 'D',  octave: 3, label: 'D3' },
+    { note: 'Eb', octave: 3, label: 'Eb3' },
+    { note: 'F',  octave: 3, label: 'F3' },
+    { note: 'G',  octave: 3, label: 'G3' },
+    { note: 'A',  octave: 3, label: 'A3' },
+    { note: 'Bb', octave: 3, label: 'Bb3' },
+    { note: 'C',  octave: 4, label: 'C4' },
+    { note: 'D',  octave: 4, label: 'D4' },
+    { note: 'Eb', octave: 4, label: 'Eb4' },
+    { note: 'F',  octave: 4, label: 'F4' },
   ];
 </script>
 
@@ -100,7 +117,7 @@
       {/if}
     </div>
 
-    <!-- Right: Mode selector -->
+    <!-- Right: Mode selector + drone controls -->
     <div class="tonelab-sidebar">
       <div class="mode-label">{$t('tonelab.mode')}</div>
       <div class="mode-list">
@@ -109,7 +126,7 @@
             class="mode-btn"
             class:active={$tonelabMode === mode.key}
             disabled={!mode.enabled}
-            onclick={() => mode.enabled && tonelabMode.set(mode.key)}
+            onclick={() => mode.enabled && switchMode(mode.key)}
           >
             <span class="mode-name">{$t(`tonelab.mode.${mode.key}`)}</span>
             {#if !mode.enabled}
@@ -118,6 +135,27 @@
           </button>
         {/each}
       </div>
+
+      {#if $tonelabMode === 'drone'}
+        <div class="drone-panel">
+          <div class="mode-label">{$t('tonelab.drone.note')}</div>
+          {#if $droneActive}
+            <div class="drone-status">{$t('tonelab.drone.playing')}</div>
+          {/if}
+          <div class="drone-grid">
+            {#each droneNotes as dn}
+              <button
+                class="drone-note-btn"
+                class:active={$droneNote === dn.note && $droneOctave === dn.octave}
+                onclick={() => setDroneNote(dn.note, dn.octave)}
+              >
+                {dn.label}
+              </button>
+            {/each}
+          </div>
+          <p class="drone-hint">{$t('tonelab.drone.hint')}</p>
+        </div>
+      {/if}
     </div>
   </div>
 
@@ -257,6 +295,45 @@
   .mode-badge {
     font-size: 9px; padding: 2px 6px; border-radius: 4px;
     background: var(--surface-2); color: var(--text-3);
+  }
+
+  /* ── Drone panel ── */
+  .drone-panel {
+    display: flex; flex-direction: column; gap: 10px;
+    margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border);
+  }
+
+  .drone-status {
+    font-size: 11px; color: var(--green); font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .drone-status::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--green); display: inline-block;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .drone-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  }
+
+  .drone-note-btn {
+    padding: 6px 4px; border-radius: 6px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-2); font-family: inherit;
+    font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.12s;
+  }
+  .drone-note-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .drone-note-btn.active {
+    background: var(--accent-soft); color: var(--text); border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .drone-hint {
+    font-size: 11px; color: var(--text-3); line-height: 1.4; margin: 0;
   }
 
   /* ── Stats row ── */

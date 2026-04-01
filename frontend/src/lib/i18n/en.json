@@ -66,6 +66,9 @@
   "tonelab.stats.avg_cents": "Avg Deviation",
   "tonelab.tendency": "Tendencies",
   "tonelab.no_signal": "Play a note...",
+  "tonelab.drone.note": "Drone Note",
+  "tonelab.drone.playing": "Drone active",
+  "tonelab.drone.hint": "Play along with the drone and tune to it.",
 
   "progress.overview": "Overview",
   "progress.period.7": "7 Days",

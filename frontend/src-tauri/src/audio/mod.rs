@@ -1,4 +1,5 @@
 pub mod capture;
+pub mod drone;
 pub mod instrument;
 pub mod level;
 pub mod onset;
@@ -11,12 +12,16 @@ use std::thread;
 use std::time::Duration;
 
 use capture::AudioCapture;
+use drone::DroneSynth;
 use instrument::InstrumentProfile;
 use level::compute_level;
 use onset::OnsetDetector;
 use pitch::PitchDetector;
 use stability::StabilityTracker;
 use types::{AudioDeviceInfo, AudioError, AudioLevel, DisplayMode, PitchResult};
+
+/// Thread-safe wrapper around DroneSynth (separate from engine to avoid lock contention).
+pub type SharedDrone = Arc<Mutex<DroneSynth>>;
 
 /// Central audio engine managing capture, processing, and state.
 pub struct AudioEngine {
@@ -166,6 +171,11 @@ impl AudioEngine {
 /// Create a shared engine instance.
 pub fn create_engine() -> SharedEngine {
     Arc::new(Mutex::new(AudioEngine::new()))
+}
+
+/// Create a shared drone synth instance.
+pub fn create_drone() -> SharedDrone {
+    Arc::new(Mutex::new(DroneSynth::new()))
 }
 
 /// Start a background processing loop for the engine.

@@ -1,8 +1,9 @@
 mod audio;
 
+use audio::drone::note_to_frequency;
 use audio::instrument::InstrumentProfile;
 use audio::types::{AudioDeviceInfo, AudioLevel, DisplayMode, PitchResult};
-use audio::SharedEngine;
+use audio::{SharedDrone, SharedEngine};
 use tauri::State;
 
 // ── Tauri Commands ──────────────────────────────────────────────
@@ -74,16 +75,60 @@ fn is_audio_running(engine: State<SharedEngine>) -> Result<bool, String> {
     Ok(eng.is_running())
 }
 
+// ── Drone Commands ──────────────────────────────────────────────
+
+#[tauri::command]
+fn start_drone(
+    drone: State<SharedDrone>,
+    note: String,
+    octave: i8,
+    reference_a4: f64,
+) -> Result<(), String> {
+    let freq = note_to_frequency(&note, octave, reference_a4)
+        .ok_or_else(|| format!("Unknown note: {}", note))?;
+    let mut d = drone.lock().map_err(|e| e.to_string())?;
+    d.start(freq)
+}
+
+#[tauri::command]
+fn stop_drone(drone: State<SharedDrone>) -> Result<(), String> {
+    let mut d = drone.lock().map_err(|e| e.to_string())?;
+    d.stop();
+    Ok(())
+}
+
+#[tauri::command]
+fn set_drone_note(
+    drone: State<SharedDrone>,
+    note: String,
+    octave: i8,
+    reference_a4: f64,
+) -> Result<(), String> {
+    let freq = note_to_frequency(&note, octave, reference_a4)
+        .ok_or_else(|| format!("Unknown note: {}", note))?;
+    let d = drone.lock().map_err(|e| e.to_string())?;
+    d.set_frequency(freq);
+    Ok(())
+}
+
+#[tauri::command]
+fn is_drone_playing(drone: State<SharedDrone>) -> Result<bool, String> {
+    let d = drone.lock().map_err(|e| e.to_string())?;
+    Ok(d.is_playing())
+}
+
 // ── App Entry Point ─────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let engine = audio::create_engine();
     let engine_for_loop = engine.clone();
+    let drone = audio::create_drone();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::new().build())
         .manage(engine)
+        .manage(drone)
         .invoke_handler(tauri::generate_handler![
             start_audio,
             stop_audio,
@@ -94,6 +139,10 @@ pub fn run() {
             set_instrument_profile,
             set_display_mode,
             is_audio_running,
+            start_drone,
+            stop_drone,
+            set_drone_note,
+            is_drone_playing,
         ])
         .setup(move |app| {
             if cfg!(debug_assertions) {
