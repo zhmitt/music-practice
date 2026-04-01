@@ -18,7 +18,7 @@ export interface ToneResult {
 /** Exercise definition. */
 export interface ExerciseDef {
   id: string;
-  type: 'long_tones' | 'scale';
+  type: 'long_tones' | 'scale' | 'custom';
   nameKey: string;
   descriptionKey: string;
   tones: ToneTarget[];

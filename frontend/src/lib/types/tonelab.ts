@@ -1,5 +1,5 @@
 /** Tone Lab operating modes. */
-export type ToneLabMode = 'free_play' | 'drone' | 'target' | 'interval';
+export type ToneLabMode = 'free_play' | 'drone' | 'target' | 'interval' | 'ear';
 
 /** A single pitch sample captured at ~20Hz. */
 export interface PitchSample {
