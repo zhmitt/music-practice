@@ -4,6 +4,7 @@
   import { generateSmartSuggestion, type SessionSuggestion } from '$lib/exercises/smartSuggestion';
   import { startSession } from '$lib/stores/session';
   import { getStreak, getWeekDays, getWeekProgress, getWeekMinutes, getRecentSessions, getNoteTendencies } from '$lib/stores/history';
+  import ImportPanel from '$lib/components/ImportPanel.svelte';
 
   const profile = getUserProfile();
   const suggestion: SessionSuggestion | null = profile ? generateSmartSuggestion(profile) : null;
@@ -90,6 +91,10 @@
         </div>
       </div>
     {/if}
+
+    <div class="import-section">
+      <ImportPanel />
+    </div>
   </div>
 
   <div class="card streak-card">
@@ -156,6 +161,9 @@
 
   /* ── Weak spots ── */
   .weak-spots { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  /* ── Import section ── */
+  .import-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
   .ws-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
   .ws-list { display: flex; flex-wrap: wrap; gap: 6px; }
   .ws-chip {

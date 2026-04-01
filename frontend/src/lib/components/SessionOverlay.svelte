@@ -135,8 +135,8 @@
           </div>
 
         {:else}
-          <!-- Staff notation for scale exercises -->
-          {#if exercise && exercise.type === 'scale'}
+          <!-- Staff notation for scale and custom exercises -->
+          {#if exercise && (exercise.type === 'scale' || exercise.type === 'custom')}
             <div class="staff-area">
               <StaffNotation tones={exercise.tones} currentIndex={$toneIndex} />
             </div>

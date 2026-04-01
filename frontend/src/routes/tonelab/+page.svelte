@@ -6,6 +6,8 @@
   import PitchHistory from '$lib/components/PitchHistory.svelte';
   import TargetMode from '$lib/components/TargetMode.svelte';
   import IntervalMode from '$lib/components/IntervalMode.svelte';
+  import EarTraining from '$lib/components/EarTraining.svelte';
+  import { stopEarTraining } from '$lib/stores/earTraining';
   import {
     tonelabActive, tonelabMode,
     currentNote, currentOctave, currentCents, currentFrequency,
@@ -35,9 +37,10 @@
   });
 
   async function handleSwitchMode(mode: typeof $tonelabMode) {
-    // Always safe to call — both stop functions are no-ops when already idle
+    // Always safe to call — all stop functions are no-ops when already idle
     stopTargetTraining();
     stopIntervalTraining();
+    stopEarTraining();
     await switchMode(mode);
   }
 
@@ -46,6 +49,7 @@
     { key: 'drone' as const, enabled: true },
     { key: 'target' as const, enabled: true },
     { key: 'interval' as const, enabled: true },
+    { key: 'ear' as const, enabled: true },
   ];
 
   /** Available drone notes (concert pitch, comfortable register). */
@@ -174,6 +178,10 @@
 
       {#if $tonelabMode === 'interval'}
         <IntervalMode />
+      {/if}
+
+      {#if $tonelabMode === 'ear'}
+        <EarTraining />
       {/if}
     </div>
   </div>
