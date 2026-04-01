@@ -1,15 +1,25 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
   import { getUserProfile } from '$lib/stores/onboarding';
-  import { generateSessionPlan } from '$lib/exercises/sessionPlan';
+  import { generateSmartSuggestion, type SessionSuggestion } from '$lib/exercises/smartSuggestion';
   import { startSession } from '$lib/stores/session';
   import { getStreak, getWeekDays, getWeekProgress, getWeekMinutes, getRecentSessions, getNoteTendencies } from '$lib/stores/history';
 
+  const profile = getUserProfile();
+  const suggestion: SessionSuggestion | null = profile ? generateSmartSuggestion(profile) : null;
+
   function handleStartSession() {
-    const profile = getUserProfile();
-    if (!profile) return;
-    const plan = generateSessionPlan(profile);
-    startSession(plan);
+    if (!suggestion) return;
+    startSession(suggestion.plan);
+  }
+
+  /** Simple template interpolation for suggestion reason. */
+  function formatReason(key: string, params: Record<string, string>): string {
+    let text = $t(key);
+    for (const [k, v] of Object.entries(params)) {
+      text = text.replace(`{${k}}`, v);
+    }
+    return text;
   }
 
   function fmtCents(c: number): string {
@@ -17,7 +27,6 @@
     return rounded >= 0 ? `+${rounded}` : `${rounded}`;
   }
 
-  const profile = getUserProfile();
   const sessionMinutes = profile?.minutesPerSession ?? 15;
   const targetDays = profile?.daysPerWeek ?? 5;
 
@@ -41,6 +50,12 @@
       </div>
       <div class="session-duration">{sessionMinutes}<span>min</span></div>
     </div>
+
+    {#if suggestion}
+      <div class="suggestion-row">
+        <span class="suggestion-text">{formatReason(suggestion.reasonKey, suggestion.reasonParams)}</span>
+      </div>
+    {/if}
 
     <button class="start-btn" onclick={handleStartSession}>
       <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -113,6 +128,12 @@
   .session-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
   .session-duration { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--accent); }
   .session-duration span { font-size: 13px; font-weight: 400; color: var(--text-3); margin-left: 2px; }
+
+  .suggestion-row {
+    padding: 10px 14px; border-radius: 8px; margin-bottom: 16px;
+    background: var(--accent-soft); border-left: 3px solid var(--accent);
+  }
+  .suggestion-text { font-size: 12px; color: var(--text-2); line-height: 1.5; }
 
   .start-btn {
     width: 100%; padding: 13px; border: none; border-radius: 12px;

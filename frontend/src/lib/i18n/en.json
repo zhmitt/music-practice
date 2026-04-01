@@ -180,6 +180,18 @@
   "rhythm.sub_trainer.missed": "Missed",
   "rhythm.sub_trainer.hint": "You only hear the main beats. Play the subdivisions along.",
 
+  "session.exercise_targeted": "Targeted Practice",
+  "session.exercise_flexibility": "Flexibility",
+
+  "suggestion.first_session": "Your first session -- good luck!",
+  "suggestion.weak_spots": "{notes} need attention. Today we'll focus on those.",
+  "suggestion.streak_variety": "{days} day streak -- let's add some variety!",
+  "suggestion.high_accuracy": "{pct}% accuracy lately -- time for a challenge.",
+  "suggestion.back_to_basics": "Focus on basics to stabilize intonation.",
+  "suggestion.balanced": "Balanced session with long tones and scale.",
+  "suggestion.standard": "Today as usual: warm-up and scale.",
+  "dashboard.suggestion": "Suggestion",
+
   "placeholder.coming_soon": "Coming Soon",
   "placeholder.view_content": "Content will appear here",
 
