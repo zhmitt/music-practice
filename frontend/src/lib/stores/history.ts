@@ -178,3 +178,87 @@ export function getAvgAccuracy(lastNDays = 30): number {
   if (sessions.length === 0) return 0;
   return sessions.reduce((s, r) => s + r.accuracy, 0) / sessions.length;
 }
+
+/**
+ * Get daily aggregates for charting.
+ *
+ * @param lastNDays - Number of days to include, or null for all time.
+ * @returns Array of daily aggregate objects sorted chronologically.
+ */
+export function getDailyAggregates(lastNDays: number | null): Array<{
+  date: string;
+  sessions: number;
+  minutes: number;
+  accuracy: number;
+}> {
+  const history = getHistory();
+  if (history.length === 0) return [];
+
+  const cutoff = lastNDays !== null ? daysAgo(lastNDays) : '0000-00-00';
+  const filtered = history.filter(s => s.date >= cutoff);
+
+  // Group by date
+  const map = new Map<string, { sessions: number; totalSeconds: number; accSum: number }>();
+  for (const s of filtered) {
+    const existing = map.get(s.date);
+    if (existing) {
+      existing.sessions++;
+      existing.totalSeconds += s.durationSeconds;
+      existing.accSum += s.accuracy;
+    } else {
+      map.set(s.date, { sessions: 1, totalSeconds: s.durationSeconds, accSum: s.accuracy });
+    }
+  }
+
+  const result: Array<{ date: string; sessions: number; minutes: number; accuracy: number }> = [];
+
+  if (lastNDays !== null) {
+    // Fill all days in range (no gaps)
+    for (let i = lastNDays - 1; i >= 0; i--) {
+      const d = daysAgo(i);
+      const agg = map.get(d);
+      result.push({
+        date: d,
+        sessions: agg?.sessions ?? 0,
+        minutes: agg ? Math.round(agg.totalSeconds / 60) : 0,
+        accuracy: agg ? agg.accSum / agg.sessions : 0,
+      });
+    }
+  } else {
+    // All time — only dates with data, sorted ascending
+    const sorted = [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    for (const [date, agg] of sorted) {
+      result.push({
+        date,
+        sessions: agg.sessions,
+        minutes: Math.round(agg.totalSeconds / 60),
+        accuracy: agg.accSum / agg.sessions,
+      });
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Total sessions count in the given period.
+ *
+ * @param lastNDays - Number of days to look back, or null for all time.
+ * @returns Session count.
+ */
+export function getSessionCount(lastNDays: number | null): number {
+  const cutoff = lastNDays !== null ? daysAgo(lastNDays) : '0000-00-00';
+  return getHistory().filter(s => s.date >= cutoff).length;
+}
+
+/**
+ * Total practice time in the given period.
+ *
+ * @param lastNDays - Number of days to look back, or null for all time.
+ * @returns Total minutes practiced.
+ */
+export function getTotalMinutes(lastNDays: number | null): number {
+  const cutoff = lastNDays !== null ? daysAgo(lastNDays) : '0000-00-00';
+  const sessions = getHistory().filter(s => s.date >= cutoff);
+  return Math.round(sessions.reduce((s, r) => s + r.durationSeconds, 0) / 60);
+}
