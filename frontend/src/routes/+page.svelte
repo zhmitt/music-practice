@@ -1,6 +1,19 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
-  import { sessionActive } from '$lib/stores/navigation';
+  import { getUserProfile } from '$lib/stores/onboarding';
+  import { generateSessionPlan } from '$lib/exercises/sessionPlan';
+  import { startSession } from '$lib/stores/session';
+
+  function handleStartSession() {
+    const profile = getUserProfile();
+    if (!profile) return; // shouldn't happen after onboarding
+    const plan = generateSessionPlan(profile);
+    startSession(plan);
+  }
+
+  // Get session minutes from profile for display
+  const profile = getUserProfile();
+  const sessionMinutes = profile?.minutesPerSession ?? 15;
 </script>
 
 <div class="dashboard">
@@ -10,10 +23,10 @@
         <div class="session-label">{$t('dashboard.today_session')}</div>
         <div class="session-title">{$t('dashboard.today_session')}</div>
       </div>
-      <div class="session-duration">15<span>min</span></div>
+      <div class="session-duration">{sessionMinutes}<span>min</span></div>
     </div>
 
-    <button class="start-btn" onclick={() => sessionActive.set(true)}>
+    <button class="start-btn" onclick={handleStartSession}>
       <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
       {$t('dashboard.start_session')}
     </button>

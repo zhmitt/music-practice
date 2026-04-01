@@ -10,6 +10,7 @@
   import { initTheme } from '$lib/stores/theme';
   import { sessionActive, sessionPaused } from '$lib/stores/navigation';
   import { onboardingVisible, checkOnboardingCompleted } from '$lib/stores/onboarding';
+  import { sessionPhase, stopSession, togglePause, skipTone, nextExercise, repeatExercise } from '$lib/stores/session';
 
   let { children } = $props();
 
@@ -30,27 +31,33 @@
     unsub();
 
     if (isSession) {
+      let phase = 'running';
+      const unsub2 = sessionPhase.subscribe(v => { phase = v; });
+      unsub2();
+
       switch (e.key) {
         case ' ':
           e.preventDefault();
-          sessionPaused.update(v => !v);
+          togglePause();
           break;
         case 'ArrowRight':
           e.preventDefault();
-          // Next tone — placeholder for session logic
-          break;
-        case 'ArrowLeft':
-          e.preventDefault();
-          // Previous tone — placeholder for session logic
+          if (phase === 'between_exercises') {
+            nextExercise();
+          } else {
+            skipTone();
+          }
           break;
         case 'Escape':
           e.preventDefault();
-          sessionActive.set(false);
+          stopSession();
           break;
         case 'r':
         case 'R':
           e.preventDefault();
-          // Repeat exercise — placeholder for session logic
+          if (phase === 'between_exercises') {
+            repeatExercise();
+          }
           break;
       }
     } else {
