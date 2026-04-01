@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onDestroy } from 'svelte';
   import { t } from '$lib/i18n';
+  import PatternMode from '$lib/components/PatternMode.svelte';
   import {
     bpm, timeSignature, accentMode, subdivision, clickSound, volume,
     isPlaying, currentBeat,
@@ -21,7 +22,7 @@
 
   const modes = [
     { key: 'metronome' as const, enabled: true },
-    { key: 'patterns' as const, enabled: false },
+    { key: 'patterns' as const, enabled: true },
     { key: 'subdivision' as const, enabled: false },
     { key: 'dictation' as const, enabled: false },
   ];
@@ -72,7 +73,9 @@
     </div>
   </div>
 
-  {#if activeMode === 'metronome'}
+  {#if activeMode === 'patterns'}
+    <PatternMode />
+  {:else if activeMode === 'metronome'}
     <div class="metro-content">
       <!-- Left: Main metronome area -->
       <div class="metro-main">
