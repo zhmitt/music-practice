@@ -6,13 +6,18 @@
   import Header from '$lib/components/Header.svelte';
   import BottomBar from '$lib/components/BottomBar.svelte';
   import SessionOverlay from '$lib/components/SessionOverlay.svelte';
+  import Onboarding from '$lib/components/Onboarding.svelte';
   import { initTheme } from '$lib/stores/theme';
   import { sessionActive, sessionPaused } from '$lib/stores/navigation';
+  import { onboardingVisible, checkOnboardingCompleted } from '$lib/stores/onboarding';
 
   let { children } = $props();
 
   onMount(() => {
     initTheme();
+    if (!checkOnboardingCompleted()) {
+      onboardingVisible.set(true);
+    }
   });
 
   function handleKeydown(e: KeyboardEvent) {
@@ -69,6 +74,7 @@
 
 <BottomBar />
 <SessionOverlay />
+<Onboarding />
 
 <style>
   .app {

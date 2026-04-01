@@ -43,5 +43,47 @@
 
   "theme.auto": "Auto",
   "theme.dark": "Dark",
-  "theme.light": "Light"
+  "theme.light": "Light",
+
+  "ob.headline": "ToneTrainer",
+  "ob.subtitle": "Your practice companion for wind instruments.",
+  "ob.start": "Let's go",
+  "ob.next": "Next",
+  "ob.back": "Back",
+
+  "ob.instrument.title": "What do you play?",
+  "ob.instrument.subtitle": "We'll tailor exercises to your instrument.",
+  "ob.instrument.horn_bb": "French Horn in Bb",
+  "ob.instrument.horn_f": "French Horn in F",
+  "ob.instrument.double_horn": "Double Horn",
+  "ob.instrument.trumpet_bb": "Trumpet in Bb",
+  "ob.instrument.clarinet_bb": "Clarinet in Bb",
+  "ob.instrument.flute": "Flute",
+  "ob.instrument.trombone": "Trombone",
+  "ob.instrument.oboe": "Oboe",
+
+  "ob.experience.title": "How long have you been playing?",
+  "ob.experience.subtitle": "This helps us adjust the difficulty.",
+  "ob.experience.beginner_new": "Just started",
+  "ob.experience.beginner_new_sub": "Less than 6 months",
+  "ob.experience.beginner": "Beginner",
+  "ob.experience.beginner_sub": "6 months to 2 years",
+  "ob.experience.intermediate": "Intermediate",
+  "ob.experience.intermediate_sub": "2 to 5 years",
+  "ob.experience.experienced": "Experienced",
+  "ob.experience.experienced_sub": "5+ years",
+
+  "ob.goals.title": "How do you want to practice?",
+  "ob.goals.subtitle": "Set your personal goal.",
+  "ob.goals.days_label": "Days per week",
+  "ob.goals.minutes_label": "Minutes per session",
+  "ob.goals.hint": "You can change this anytime.",
+
+  "ob.mic.title": "Let's hear you!",
+  "ob.mic.text": "ToneTrainer needs microphone access to analyze your intonation.",
+  "ob.mic.allow": "Allow Microphone",
+  "ob.mic.denied": "Microphone access was denied. Please enable it in system settings.",
+  "ob.mic.play_note": "Play any note.",
+  "ob.mic.success": "Everything works!",
+  "ob.mic.start_session": "Start First Session"
 }

@@ -43,5 +43,47 @@
 
   "theme.auto": "Auto",
   "theme.dark": "Dark",
-  "theme.light": "Light"
+  "theme.light": "Light",
+
+  "ob.headline": "ToneTrainer",
+  "ob.subtitle": "Dein Übungsbegleiter für Blasinstrumente.",
+  "ob.start": "Los geht's",
+  "ob.next": "Weiter",
+  "ob.back": "Zurück",
+
+  "ob.instrument.title": "Was spielst du?",
+  "ob.instrument.subtitle": "Wir passen die Übungen für dein Instrument an.",
+  "ob.instrument.horn_bb": "Waldhorn in Bb",
+  "ob.instrument.horn_f": "Waldhorn in F",
+  "ob.instrument.double_horn": "Doppelhorn",
+  "ob.instrument.trumpet_bb": "Trompete in Bb",
+  "ob.instrument.clarinet_bb": "Klarinette in Bb",
+  "ob.instrument.flute": "Flöte",
+  "ob.instrument.trombone": "Posaune",
+  "ob.instrument.oboe": "Oboe",
+
+  "ob.experience.title": "Wie lange spielst du schon?",
+  "ob.experience.subtitle": "Damit können wir die Schwierigkeit anpassen.",
+  "ob.experience.beginner_new": "Gerade angefangen",
+  "ob.experience.beginner_new_sub": "Weniger als 6 Monate",
+  "ob.experience.beginner": "Anfänger",
+  "ob.experience.beginner_sub": "6 Monate bis 2 Jahre",
+  "ob.experience.intermediate": "Fortgeschritten",
+  "ob.experience.intermediate_sub": "2 bis 5 Jahre",
+  "ob.experience.experienced": "Erfahren",
+  "ob.experience.experienced_sub": "5 Jahre oder mehr",
+
+  "ob.goals.title": "Wie willst du üben?",
+  "ob.goals.subtitle": "Stell dein persönliches Ziel ein.",
+  "ob.goals.days_label": "Tage pro Woche",
+  "ob.goals.minutes_label": "Minuten pro Session",
+  "ob.goals.hint": "Du kannst das jederzeit ändern.",
+
+  "ob.mic.title": "Lass uns hören!",
+  "ob.mic.text": "ToneTrainer braucht Zugriff auf dein Mikrofon, um deine Intonation zu analysieren.",
+  "ob.mic.allow": "Mikrofon erlauben",
+  "ob.mic.denied": "Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Systemeinstellungen.",
+  "ob.mic.play_note": "Spiel einen beliebigen Ton.",
+  "ob.mic.success": "Alles funktioniert!",
+  "ob.mic.start_session": "Erste Session starten"
 }
