@@ -4,6 +4,8 @@
   import PitchMeter from '$lib/components/PitchMeter.svelte';
   import StabilityGraph from '$lib/components/StabilityGraph.svelte';
   import PitchHistory from '$lib/components/PitchHistory.svelte';
+  import TargetMode from '$lib/components/TargetMode.svelte';
+  import IntervalMode from '$lib/components/IntervalMode.svelte';
   import {
     tonelabActive, tonelabMode,
     currentNote, currentOctave, currentCents, currentFrequency,
@@ -12,6 +14,8 @@
     droneNote, droneOctave, droneActive,
     startToneLab, stopToneLab, switchMode, setDroneNote,
   } from '$lib/stores/tonelab';
+  import { stopTargetTraining } from '$lib/stores/targetTraining';
+  import { stopIntervalTraining } from '$lib/stores/intervalTraining';
 
   function fmtCents(c: number): string {
     const rounded = Math.round(c);
@@ -30,11 +34,18 @@
     if ($tonelabActive) stopToneLab();
   });
 
+  async function handleSwitchMode(mode: typeof $tonelabMode) {
+    // Always safe to call — both stop functions are no-ops when already idle
+    stopTargetTraining();
+    stopIntervalTraining();
+    await switchMode(mode);
+  }
+
   const modes = [
     { key: 'free_play' as const, enabled: true },
     { key: 'drone' as const, enabled: true },
-    { key: 'target' as const, enabled: false },
-    { key: 'interval' as const, enabled: false },
+    { key: 'target' as const, enabled: true },
+    { key: 'interval' as const, enabled: true },
   ];
 
   /** Available drone notes (concert pitch, comfortable register). */
@@ -126,7 +137,7 @@
             class="mode-btn"
             class:active={$tonelabMode === mode.key}
             disabled={!mode.enabled}
-            onclick={() => mode.enabled && switchMode(mode.key)}
+            onclick={() => mode.enabled && handleSwitchMode(mode.key)}
           >
             <span class="mode-name">{$t(`tonelab.mode.${mode.key}`)}</span>
             {#if !mode.enabled}
@@ -155,6 +166,14 @@
           </div>
           <p class="drone-hint">{$t('tonelab.drone.hint')}</p>
         </div>
+      {/if}
+
+      {#if $tonelabMode === 'target'}
+        <TargetMode />
+      {/if}
+
+      {#if $tonelabMode === 'interval'}
+        <IntervalMode />
       {/if}
     </div>
   </div>
