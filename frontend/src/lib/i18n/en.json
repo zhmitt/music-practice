@@ -39,6 +39,8 @@
   "session.stability": "Stability",
   "session.skip": "Skip",
   "session.exercise_long_tones": "Long Tones",
+  "session.exercise_scale": "Scale",
+  "session.play_scale": "Play each note steadily",
   "session.warm_up": "Warm-up",
   "session.hold_tone": "Hold steady for",
   "session.seconds": "seconds",

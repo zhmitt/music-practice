@@ -1,34 +1,14 @@
-import type { Instrument, ExperienceLevel } from '$lib/stores/onboarding';
+import type { ExperienceLevel } from '$lib/stores/onboarding';
+import type { Instrument } from '$lib/stores/onboarding';
 import type { ExerciseDef, ToneTarget } from '$lib/types/session';
+import { getSequenceKey } from './instrumentUtils';
 
 /** Tone sequences per instrument family (descending partials, comfortable register). */
 const SEQUENCES: Record<string, Array<[string, number]>> = {
-  // Bb transposing: written pitch (sounds a whole step lower)
   bb: [['Bb', 4], ['F', 4], ['C', 4], ['G', 3], ['Eb', 3]],
-  // F transposing: written pitch (sounds a fifth lower)
   f:  [['F', 4], ['C', 4], ['G', 3], ['D', 3], ['Bb', 2]],
-  // Concert pitch instruments
   concert: [['Bb', 3], ['F', 3], ['C', 4], ['G', 3], ['D', 3]],
 };
-
-function getSequenceKey(instrument: Instrument): string {
-  switch (instrument) {
-    case 'horn_bb':
-    case 'trumpet_bb':
-    case 'clarinet_bb':
-      return 'bb';
-    case 'horn_f':
-      return 'f';
-    case 'double_horn':
-      return 'bb'; // default to Bb side
-    case 'flute':
-    case 'oboe':
-    case 'trombone':
-      return 'concert';
-    default:
-      return 'bb';
-  }
-}
 
 function getDuration(experience: ExperienceLevel): number {
   switch (experience) {

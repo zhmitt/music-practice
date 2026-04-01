@@ -39,6 +39,8 @@
   "session.stability": "Stabilität",
   "session.skip": "Überspringen",
   "session.exercise_long_tones": "Lange Töne",
+  "session.exercise_scale": "Tonleiter",
+  "session.play_scale": "Spiele jeden Ton gleichmässig",
   "session.warm_up": "Einblasen",
   "session.hold_tone": "Halte stabil für",
   "session.seconds": "Sekunden",
