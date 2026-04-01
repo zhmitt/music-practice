@@ -1,6 +1,7 @@
 import { writable, get } from 'svelte/store';
 import { sessionActive, sessionPaused } from './navigation';
 import type { SessionPlan, ExerciseDef, ToneTarget, ToneResult, TonePhase, SessionPhase } from '$lib/types/session';
+import { saveSession, today, type SessionRecord, type ToneRecord } from './history';
 
 // ── Reactive state (writable stores for Svelte 4/5 compatibility) ──
 
@@ -107,6 +108,9 @@ export async function startSession(plan: SessionPlan) {
 }
 
 export async function stopSession() {
+  // Persist session results before cleanup
+  persistSessionResults();
+
   clearIntervals();
 
   if (audioStarted) {
@@ -120,6 +124,35 @@ export async function stopSession() {
   sessionActive.set(false);
   sessionPaused.set(false);
   sessionPhase.set('completed');
+}
+
+function persistSessionResults() {
+  const results = get(toneResults);
+  const exercise = getCurrentExercise();
+  if (!exercise || results.length === 0) return;
+
+  const tones: ToneRecord[] = results.map(r => ({
+    note: `${r.target.note}${r.target.octave}`,
+    avgCents: r.avgCents,
+    stability: r.stability,
+    passed: r.passed,
+  }));
+
+  const passed = results.filter(r => r.passed).length;
+  const totalCents = results.reduce((s, r) => s + Math.abs(r.avgCents), 0);
+
+  const record: SessionRecord = {
+    id: new Date().toISOString(),
+    date: today(),
+    durationSeconds: get(elapsedSeconds),
+    exerciseType: exercise.type,
+    exerciseName: exercise.nameKey,
+    tones,
+    accuracy: results.length > 0 ? passed / results.length : 0,
+    avgCents: results.length > 0 ? totalCents / results.length : 0,
+  };
+
+  saveSession(record);
 }
 
 export function togglePause() {

@@ -65,6 +65,20 @@
   "tonelab.tendency": "Tendencies",
   "tonelab.no_signal": "Play a note...",
 
+  "progress.overview": "Overview",
+  "progress.period.7": "7 Days",
+  "progress.period.30": "30 Days",
+  "progress.sessions": "Sessions",
+  "progress.practice_time": "Practice Time",
+  "progress.avg_accuracy": "Avg Accuracy",
+  "progress.streak": "Streak",
+  "progress.weak_spots": "Problem Notes",
+  "progress.weak_spots_empty": "Play some sessions to see tendencies.",
+  "progress.diary": "Practice Diary",
+  "progress.diary_empty": "No sessions yet. Start your first session!",
+  "progress.minutes_short": "min",
+  "progress.days": "days",
+
   "placeholder.coming_soon": "Coming Soon",
   "placeholder.view_content": "Content will appear here",
 
