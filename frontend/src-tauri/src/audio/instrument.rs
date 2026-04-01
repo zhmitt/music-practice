@@ -44,6 +44,81 @@ impl InstrumentProfile {
         }
     }
 
+    /// Double Horn (Bb/F). Uses Bb side range as default.
+    /// Combines both horn ranges. Transposition: +2 (Bb side default).
+    pub fn double_horn() -> Self {
+        Self {
+            name: "Double Horn".to_string(),
+            transposition_semitones: 2,
+            min_hz: 58.0,   // Bb1 (F horn low range)
+            max_hz: 1397.0, // F6
+            typical_partials: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        }
+    }
+
+    /// Trumpet in Bb.
+    /// Written range: F#3–C6, Concert range: E3–Bb5.
+    /// Transposition: +2 semitones (concert → notated).
+    pub fn trumpet_bb() -> Self {
+        Self {
+            name: "Trumpet in Bb".to_string(),
+            transposition_semitones: 2,
+            min_hz: 165.0,  // E3 concert (~164.8 Hz)
+            max_hz: 932.0,  // Bb5 concert (~932.3 Hz)
+            typical_partials: vec![1.0, 2.0, 3.0, 4.0, 5.0],
+        }
+    }
+
+    /// Clarinet in Bb.
+    /// Written range: E3–C7, Concert range: D3–Bb6.
+    /// Transposition: +2 semitones (concert → notated).
+    pub fn clarinet_bb() -> Self {
+        Self {
+            name: "Clarinet in Bb".to_string(),
+            transposition_semitones: 2,
+            min_hz: 147.0,  // D3 concert (~146.8 Hz)
+            max_hz: 1865.0, // Bb6 concert (~1864.7 Hz)
+            // Clarinet overblows at the twelfth (odd harmonics dominate)
+            typical_partials: vec![1.0, 3.0, 5.0, 7.0],
+        }
+    }
+
+    /// Flute (C instrument, concert pitch).
+    /// Range: C4–C7.
+    pub fn flute() -> Self {
+        Self {
+            name: "Flute".to_string(),
+            transposition_semitones: 0,
+            min_hz: 262.0,  // C4 (~261.6 Hz)
+            max_hz: 2093.0, // C7 (~2093.0 Hz)
+            typical_partials: vec![1.0, 2.0, 3.0],
+        }
+    }
+
+    /// Oboe (C instrument, concert pitch).
+    /// Range: Bb3–A6.
+    pub fn oboe() -> Self {
+        Self {
+            name: "Oboe".to_string(),
+            transposition_semitones: 0,
+            min_hz: 233.0,  // Bb3 (~233.1 Hz)
+            max_hz: 1760.0, // A6 (~1760.0 Hz)
+            typical_partials: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        }
+    }
+
+    /// Trombone (C instrument, concert pitch).
+    /// Range: E2–Bb4 (tenor), extends to F5 for advanced.
+    pub fn trombone() -> Self {
+        Self {
+            name: "Trombone".to_string(),
+            transposition_semitones: 0,
+            min_hz: 82.0,   // E2 (~82.4 Hz)
+            max_hz: 698.0,  // F5 (~698.5 Hz)
+            typical_partials: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
+        }
+    }
+
     /// Default profile for unknown / concert-pitch instruments.
     pub fn default_profile() -> Self {
         Self {
@@ -145,5 +220,55 @@ mod tests {
         let (name, octave) = transpose_note("F", 4, 7);
         assert_eq!(name, "C");
         assert_eq!(octave, 5);
+    }
+
+    #[test]
+    fn test_trumpet_bb_range() {
+        let p = InstrumentProfile::trumpet_bb();
+        assert_eq!(p.transposition_semitones, 2);
+        assert!(p.in_range(440.0));   // A4 — well within range
+        assert!(!p.in_range(80.0));   // E2 — too low for trumpet
+        assert!(!p.in_range(2000.0)); // too high
+    }
+
+    #[test]
+    fn test_clarinet_bb_odd_partials() {
+        let p = InstrumentProfile::clarinet_bb();
+        assert_eq!(p.transposition_semitones, 2);
+        // Clarinet has odd partials (1, 3, 5, 7)
+        assert_eq!(p.typical_partials, vec![1.0, 3.0, 5.0, 7.0]);
+    }
+
+    #[test]
+    fn test_flute_concert_pitch() {
+        let p = InstrumentProfile::flute();
+        assert_eq!(p.transposition_semitones, 0);
+        assert!(p.in_range(440.0));   // A4
+        assert!(!p.in_range(100.0));  // below flute range
+    }
+
+    #[test]
+    fn test_trombone_low_range() {
+        let p = InstrumentProfile::trombone();
+        assert_eq!(p.transposition_semitones, 0);
+        assert!(p.in_range(100.0));   // low brass range
+        assert!(!p.in_range(50.0));   // below E2
+    }
+
+    #[test]
+    fn test_oboe_range() {
+        let p = InstrumentProfile::oboe();
+        assert_eq!(p.transposition_semitones, 0);
+        assert!(p.in_range(440.0));   // A4
+        assert!(!p.in_range(100.0));  // below oboe range
+    }
+
+    #[test]
+    fn test_double_horn_wide_range() {
+        let p = InstrumentProfile::double_horn();
+        assert_eq!(p.transposition_semitones, 2);
+        // Double horn should have the widest range (F side low + Bb side high)
+        assert!(p.in_range(60.0));    // low F horn range
+        assert!(p.in_range(1000.0));  // high range
     }
 }

@@ -52,6 +52,12 @@ fn set_instrument_profile(engine: State<SharedEngine>, profile_name: String) -> 
     let profile = match profile_name.as_str() {
         "horn_bb" => InstrumentProfile::horn_bb(),
         "horn_f" => InstrumentProfile::horn_f(),
+        "double_horn" => InstrumentProfile::double_horn(),
+        "trumpet_bb" => InstrumentProfile::trumpet_bb(),
+        "clarinet_bb" => InstrumentProfile::clarinet_bb(),
+        "flute" => InstrumentProfile::flute(),
+        "oboe" => InstrumentProfile::oboe(),
+        "trombone" => InstrumentProfile::trombone(),
         _ => InstrumentProfile::default_profile(),
     };
     eng.set_instrument_profile(profile);
