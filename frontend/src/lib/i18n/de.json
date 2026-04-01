@@ -50,6 +50,21 @@
   "session.avg_cents": "Avg",
   "session.step": "Schritt",
 
+  "tonelab.start": "Starten",
+  "tonelab.stop": "Stoppen",
+  "tonelab.mode": "Modus",
+  "tonelab.mode.free_play": "Freies Spielen",
+  "tonelab.mode.drone": "Drone-Übung",
+  "tonelab.mode.target": "Zielton-Training",
+  "tonelab.mode.interval": "Intervall-Check",
+  "tonelab.mode.phase2": "Phase 2",
+  "tonelab.history": "Verlauf",
+  "tonelab.stats.tones": "Töne",
+  "tonelab.stats.accuracy": "Genauigkeit",
+  "tonelab.stats.avg_cents": "Avg Abweichung",
+  "tonelab.tendency": "Tendenzen",
+  "tonelab.no_signal": "Spiele einen Ton...",
+
   "placeholder.coming_soon": "Kommt bald",
   "placeholder.view_content": "Inhalte werden hier erscheinen",
 
