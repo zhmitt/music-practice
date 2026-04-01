@@ -4,7 +4,8 @@
   import { settingsOpen } from '$lib/stores/navigation';
   import { themeMode, type ThemeMode } from '$lib/stores/theme';
   import { getUserProfile, type Instrument, type ExperienceLevel } from '$lib/stores/onboarding';
-  import { getHistory } from '$lib/stores/history';
+  import SharePanel from './SharePanel.svelte';
+  import AssignmentCreator from './AssignmentCreator.svelte';
 
   // Load current profile
   let profile = getUserProfile();
@@ -74,21 +75,6 @@
 
   function setTheme(m: ThemeMode) {
     themeMode.set(m);
-  }
-
-  function exportData() {
-    const data = {
-      profile: getUserProfile(),
-      history: getHistory(),
-      exportedAt: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tonetrainer-export-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   function resetData() {
@@ -197,14 +183,14 @@
         </div>
       </section>
 
+      <!-- Teacher: Assignments -->
+      <section class="setting-section">
+        <AssignmentCreator />
+      </section>
+
       <!-- Data -->
       <section class="setting-section">
-        <div class="section-label">{$t('settings.data')}</div>
-        <button class="action-btn" onclick={exportData}>
-          <svg viewBox="0 0 24 24" width="14" height="14"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-          {$t('settings.export')}
-        </button>
-        <p class="action-desc">{$t('settings.export_desc')}</p>
+        <SharePanel />
 
         {#if !showResetConfirm}
           <button class="action-btn danger" onclick={() => showResetConfirm = true}>

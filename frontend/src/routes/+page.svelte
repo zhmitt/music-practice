@@ -5,6 +5,7 @@
   import { startSession } from '$lib/stores/session';
   import { getStreak, getWeekDays, getWeekProgress, getWeekMinutes, getRecentSessions, getNoteTendencies } from '$lib/stores/history';
   import ImportPanel from '$lib/components/ImportPanel.svelte';
+  import AssignmentPanel from '$lib/components/AssignmentPanel.svelte';
 
   const profile = getUserProfile();
   const suggestion: SessionSuggestion | null = profile ? generateSmartSuggestion(profile) : null;
@@ -92,6 +93,10 @@
       </div>
     {/if}
 
+    <div class="assignment-section">
+      <AssignmentPanel />
+    </div>
+
     <div class="import-section">
       <ImportPanel />
     </div>
@@ -161,6 +166,9 @@
 
   /* ── Weak spots ── */
   .weak-spots { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+  /* ── Assignment section ── */
+  .assignment-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
 
   /* ── Import section ── */
   .import-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
