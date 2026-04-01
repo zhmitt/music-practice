@@ -400,4 +400,13 @@
     .tonelab-content { grid-template-columns: 1fr; }
     .tonelab-sidebar { order: -1; }
   }
+
+  @media (max-width: 480px) {
+    .tonelab-main { padding: 16px; }
+    .tonelab-sidebar { padding: 14px; }
+    .note-big { font-size: 56px; }
+    .stats-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .stat-card { padding: 12px 8px; }
+    .stat-value { font-size: 18px; }
+  }
 </style>

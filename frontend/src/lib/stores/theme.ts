@@ -1,4 +1,13 @@
+/**
+ * Theme management.
+ *
+ * The `themeMode` store drives immediate UI changes.  On first load,
+ * `initTheme()` reads the saved preference from the kv store (SQLite in
+ * Tauri, localStorage in browser) before subscribing to future changes.
+ */
+
 import { writable } from 'svelte/store';
+import { getKV, setKV } from '$lib/db';
 
 export type ThemeMode = 'auto' | 'dark' | 'light';
 
@@ -26,30 +35,33 @@ function onSystemChange(e: MediaQueryListEvent) {
   unsub();
 }
 
-export function initTheme() {
+/**
+ * Initialise the theme system.
+ *
+ * Reads the saved preference from the kv store, then subscribes to the
+ * store so every future change is persisted automatically.
+ */
+export async function initTheme(): Promise<void> {
   mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
   mediaQuery.addEventListener('change', onSystemChange);
 
-  // Load saved preference
+  // Load saved preference from kv store (async)
   try {
-    const saved = localStorage.getItem('tt-theme') as ThemeMode | null;
+    const saved = await getKV('tt-theme') as ThemeMode | null;
     if (saved && ['auto', 'dark', 'light'].includes(saved)) {
       themeMode.set(saved);
     }
-  } catch {
-    // localStorage not available (e.g. SSR)
-  }
+  } catch { /* ignore */ }
 
   themeMode.subscribe((mode) => {
     applyTheme(mode);
-    try {
-      localStorage.setItem('tt-theme', mode);
-    } catch {
-      // ignore
-    }
+    setKV('tt-theme', mode).catch(() => { /* non-fatal */ });
   });
 }
 
+/**
+ * Cycle through auto → dark → light → auto.
+ */
 export function cycleTheme() {
   themeMode.update((current) => {
     const order: ThemeMode[] = ['auto', 'dark', 'light'];

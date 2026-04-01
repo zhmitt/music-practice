@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import type { PitchSample, NoteTendency, ToneLabStats, ToneLabMode } from '$lib/types/tonelab';
+import { getKV } from '$lib/db';
 
 // ── Reactive state ──
 
@@ -93,8 +94,8 @@ async function startDrone() {
     const { invoke } = await import('@tauri-apps/api/core');
     const note = get(droneNote);
     const octave = get(droneOctave);
-    // Read tuning from localStorage (same key as settings)
-    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('tt_tuning') : null;
+    // Read tuning from the kv store (normalised key)
+    const stored = await getKV('tt-tuning');
     const referenceA4 = stored ? parseFloat(stored) : 442;
     await invoke('start_drone', { note, octave, referenceA4 });
     droneActive.set(true);
@@ -121,7 +122,7 @@ export async function setDroneNote(note: string, octave: number) {
   if (get(droneActive)) {
     try {
       const { invoke } = await import('@tauri-apps/api/core');
-      const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('tt_tuning') : null;
+      const stored = await getKV('tt-tuning');
       const referenceA4 = stored ? parseFloat(stored) : 442;
       await invoke('set_drone_note', { note, octave, referenceA4 });
     } catch { /* ignore */ }

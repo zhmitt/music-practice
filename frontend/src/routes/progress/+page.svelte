@@ -431,4 +431,12 @@
     .trends-row   { grid-template-columns: 1fr; }
     .progress-grid { grid-template-columns: 1fr; }
   }
+
+  @media (max-width: 480px) {
+    .overview-card { padding: 14px 10px; }
+    .ov-value { font-size: 22px; }
+    .progress-section { padding: 16px; }
+    .trend-card { padding: 14px 12px; }
+    .diary-item { flex-direction: column; align-items: flex-start; gap: 4px; }
+  }
 </style>

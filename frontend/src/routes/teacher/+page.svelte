@@ -606,5 +606,19 @@
     .overview-row {
       grid-template-columns: repeat(2, 1fr);
     }
+
+    .trends-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .teacher-header h1 { font-size: 15px; }
+    .ov-card { padding: 10px 8px; }
+    .ov-value { font-size: 18px; }
+    .session-row {
+      grid-template-columns: 60px 1fr 44px 40px 44px;
+      gap: 6px;
+    }
   }
 </style>
