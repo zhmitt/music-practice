@@ -7,6 +7,7 @@
   import BottomBar from '$lib/components/BottomBar.svelte';
   import SessionOverlay from '$lib/components/SessionOverlay.svelte';
   import Onboarding from '$lib/components/Onboarding.svelte';
+  import Settings from '$lib/components/Settings.svelte';
   import { initTheme } from '$lib/stores/theme';
   import { sessionActive, sessionPaused } from '$lib/stores/navigation';
   import { onboardingVisible, checkOnboardingCompleted } from '$lib/stores/onboarding';
@@ -82,6 +83,7 @@
 <BottomBar />
 <SessionOverlay />
 <Onboarding />
+<Settings />
 
 <style>
   .app {
