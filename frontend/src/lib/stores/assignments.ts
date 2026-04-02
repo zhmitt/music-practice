@@ -93,10 +93,46 @@ export function removeAssignment(assignmentId: string): void {
 export function parseAssignmentFile(jsonString: string): Assignment | null {
   try {
     const data = JSON.parse(jsonString);
-    if (data.version !== '1.0' || !data.id || !data.exercises || !Array.isArray(data.exercises)) {
+    // Structural validation — only accept known-good shapes
+    if (
+      typeof data !== 'object' || data === null ||
+      data.version !== '1.0' ||
+      typeof data.id !== 'string' || !data.id ||
+      typeof data.teacherName !== 'string' ||
+      typeof data.title !== 'string' ||
+      !Array.isArray(data.exercises) || data.exercises.length === 0
+    ) {
       return null;
     }
-    return data as Assignment;
+    // Validate each exercise has required fields
+    for (const ex of data.exercises) {
+      if (!ex || typeof ex.type !== 'string' || !Array.isArray(ex.tones)) return null;
+      for (const tone of ex.tones) {
+        if (!tone || typeof tone.note !== 'string' || typeof tone.octave !== 'number' || typeof tone.durationSec !== 'number') {
+          return null;
+        }
+      }
+    }
+    // Build a sanitised assignment with only known fields
+    return {
+      version: data.version,
+      id: data.id,
+      teacherName: String(data.teacherName),
+      title: String(data.title),
+      description: String(data.description ?? ''),
+      dueDate: typeof data.dueDate === 'string' ? data.dueDate : null,
+      exercises: data.exercises.map((ex: Record<string, unknown>) => ({
+        type: String(ex.type),
+        nameKey: String(ex.nameKey ?? ''),
+        descriptionKey: String(ex.descriptionKey ?? ''),
+        tones: (ex.tones as Array<Record<string, unknown>>).map(t => ({
+          note: String(t.note),
+          octave: Number(t.octave),
+          durationSec: Number(t.durationSec),
+        })),
+      })),
+      createdAt: typeof data.createdAt === 'string' ? data.createdAt : new Date().toISOString(),
+    } as Assignment;
   } catch {
     return null;
   }

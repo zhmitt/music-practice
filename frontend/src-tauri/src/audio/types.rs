@@ -93,6 +93,8 @@ pub struct AudioDeviceInfo {
 }
 
 /// Pitch stability measurement over a sustained note.
+/// Used by StabilityTracker — not yet exposed via Tauri commands.
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StabilityMeasurement {
     /// Mean frequency over the measurement window.

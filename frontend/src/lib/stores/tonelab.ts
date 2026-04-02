@@ -1,6 +1,7 @@
 import { writable, get } from 'svelte/store';
 import type { PitchSample, NoteTendency, ToneLabStats, ToneLabMode } from '$lib/types/tonelab';
-import { getKV } from '$lib/db';
+import type { TauriPitchResult, TauriAudioLevel } from '$lib/types/tauri';
+import { getKV, safeInvoke } from '$lib/db';
 
 // ── Reactive state ──
 
@@ -53,13 +54,8 @@ const tendencyMap = new Map<string, { sum: number; count: number }>();
 export async function startToneLab() {
   resetState();
 
-  try {
-    const { invoke } = await import('@tauri-apps/api/core');
-    await invoke('start_audio', { deviceName: null });
-    audioStarted = true;
-  } catch {
-    audioStarted = false;
-  }
+  const started = await safeInvoke<void>('start_audio', { deviceName: null });
+  audioStarted = started !== undefined;
 
   tonelabActive.set(true);
   tickInterval = setInterval(tick, 50);
@@ -77,10 +73,7 @@ export async function stopToneLab() {
   await stopDrone();
 
   if (audioStarted) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('stop_audio');
-    } catch { /* ignore */ }
+    await safeInvoke('stop_audio');
     audioStarted = false;
   }
 
@@ -90,27 +83,17 @@ export async function stopToneLab() {
 // ── Drone control ──
 
 async function startDrone() {
-  try {
-    const { invoke } = await import('@tauri-apps/api/core');
-    const note = get(droneNote);
-    const octave = get(droneOctave);
-    // Read tuning from the kv store (normalised key)
-    const stored = await getKV('tt-tuning');
-    const referenceA4 = stored ? parseFloat(stored) : 442;
-    await invoke('start_drone', { note, octave, referenceA4 });
-    droneActive.set(true);
-  } catch (e) {
-    console.error('Failed to start drone:', e);
-    droneActive.set(false);
-  }
+  const note = get(droneNote);
+  const octave = get(droneOctave);
+  const stored = await getKV('tt-tuning');
+  const referenceA4 = stored ? parseFloat(stored) : 442;
+  const result = await safeInvoke<void>('start_drone', { note, octave, referenceA4 });
+  droneActive.set(result !== undefined);
 }
 
 async function stopDrone() {
   if (!get(droneActive)) return;
-  try {
-    const { invoke } = await import('@tauri-apps/api/core');
-    await invoke('stop_drone');
-  } catch { /* ignore */ }
+  await safeInvoke('stop_drone');
   droneActive.set(false);
 }
 
@@ -120,12 +103,9 @@ export async function setDroneNote(note: string, octave: number) {
   droneOctave.set(octave);
 
   if (get(droneActive)) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const stored = await getKV('tt-tuning');
-      const referenceA4 = stored ? parseFloat(stored) : 442;
-      await invoke('set_drone_note', { note, octave, referenceA4 });
-    } catch { /* ignore */ }
+    const stored = await getKV('tt-tuning');
+    const referenceA4 = stored ? parseFloat(stored) : 442;
+    await safeInvoke('set_drone_note', { note, octave, referenceA4 });
   }
 }
 
@@ -153,25 +133,16 @@ export async function switchMode(mode: ToneLabMode) {
 async function tick() {
   if (!get(tonelabActive)) return;
 
-  let pitch: {
-    note_name: string;
-    octave: number;
-    cent_deviation: number;
-    frequency_hz: number;
-    confidence: number;
-  } | null = null;
+  let pitch: TauriPitchResult | null = null;
   let level = 0;
 
   if (audioStarted) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      const [p, l] = await Promise.all([
-        invoke<any>('get_pitch'),
-        invoke<any>('get_audio_level'),
-      ]);
-      pitch = p;
-      level = l?.rms ?? 0;
-    } catch { /* ignore */ }
+    const [p, l] = await Promise.all([
+      safeInvoke<TauriPitchResult | null>('get_pitch', undefined, null),
+      safeInvoke<TauriAudioLevel>('get_audio_level'),
+    ]);
+    pitch = p ?? null;
+    level = l?.rms ?? 0;
   }
 
   audioLevel.set(level);

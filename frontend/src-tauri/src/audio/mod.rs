@@ -35,7 +35,8 @@ pub struct AudioEngine {
     latest_level: AudioLevel,
     /// Running sample count for timestamp calculation.
     samples_processed: u64,
-    /// Processing thread handle.
+    /// Processing thread handle — stored for future graceful-shutdown support.
+    #[allow(dead_code)]
     processing_handle: Option<thread::JoinHandle<()>>,
     /// Flag to stop processing thread.
     stop_flag: Arc<std::sync::atomic::AtomicBool>,

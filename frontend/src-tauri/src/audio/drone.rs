@@ -160,7 +160,8 @@ impl DroneSynth {
             .store(f64::to_bits(frequency_hz), Ordering::Relaxed);
     }
 
-    /// Set volume (0.0–1.0).
+    /// Set volume (0.0–1.0). Will be exposed via Tauri command.
+    #[allow(dead_code)]
     pub fn set_volume(&self, vol: f64) {
         let clamped = vol.clamp(0.0, 1.0);
         self.volume

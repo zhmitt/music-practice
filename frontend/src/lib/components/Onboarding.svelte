@@ -79,7 +79,7 @@
     pollInterval = setInterval(async () => {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
-        const pitch = await invoke('get_pitch') as any;
+        const pitch = await invoke<import('$lib/types/tauri').TauriPitchResult | null>('get_pitch');
         if (pitch) {
           pitchNote = `${pitch.note_name}${pitch.octave}`;
           pitchHz = `${pitch.frequency_hz.toFixed(1)} Hz`;

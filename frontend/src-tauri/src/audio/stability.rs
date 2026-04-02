@@ -2,6 +2,8 @@ use crate::audio::instrument::frequency_to_note;
 use crate::audio::types::StabilityMeasurement;
 
 /// Accumulates frequency readings for stability measurement.
+/// Not yet exposed via Tauri commands — will be used for real-time stability UI.
+#[allow(dead_code)]
 pub struct StabilityTracker {
     /// Frequency readings in Hz.
     readings: Vec<f64>,
@@ -11,6 +13,7 @@ pub struct StabilityTracker {
     reference_a4: f64,
 }
 
+#[allow(dead_code)]
 impl StabilityTracker {
     pub fn new(readings_per_sec: f64, reference_a4: f64) -> Self {
         Self {
