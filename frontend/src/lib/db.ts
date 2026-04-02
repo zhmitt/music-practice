@@ -14,6 +14,30 @@
 const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
 
 // ---------------------------------------------------------------------------
+// Safe Tauri invoke wrapper
+// ---------------------------------------------------------------------------
+
+/**
+ * Safely invoke a Tauri command with typed return value.
+ * Logs errors to console instead of silently swallowing them.
+ * Returns `fallback` if the call fails or Tauri is not available.
+ */
+export async function safeInvoke<T>(
+  command: string,
+  args?: Record<string, unknown>,
+  fallback?: T,
+): Promise<T | undefined> {
+  if (!isTauri) return fallback;
+  try {
+    const { invoke } = await import('@tauri-apps/api/core');
+    return await invoke<T>(command, args);
+  } catch (err) {
+    console.warn(`[ToneTrainer] invoke '${command}' failed:`, err);
+    return fallback;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 

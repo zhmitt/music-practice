@@ -2,6 +2,8 @@ import { writable, get } from 'svelte/store';
 import { sessionActive, sessionPaused } from './navigation';
 import type { SessionPlan, ExerciseDef, ToneTarget, ToneResult, TonePhase, SessionPhase } from '$lib/types/session';
 import { saveSession, today, type SessionRecord, type ToneRecord } from './history';
+import type { TauriPitchResult, TauriAudioLevel } from '$lib/types/tauri';
+import { safeInvoke } from '$lib/db';
 
 // ── Reactive state (writable stores for Svelte 4/5 compatibility) ──
 
@@ -83,14 +85,8 @@ export async function startSession(plan: SessionPlan) {
   lastUnstableTime = 0;
 
   // Start audio via Tauri
-  try {
-    const { invoke } = await import('@tauri-apps/api/core');
-    await invoke('start_audio', { deviceName: null });
-    audioStarted = true;
-  } catch {
-    // Fallback: no audio (browser preview), still run session UI
-    audioStarted = false;
-  }
+  const started = await safeInvoke<void>('start_audio', { deviceName: null });
+  audioStarted = started !== undefined;
 
   // Activate session overlay
   sessionActive.set(true);
@@ -114,10 +110,7 @@ export async function stopSession() {
   clearIntervals();
 
   if (audioStarted) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('stop_audio');
-    } catch { /* ignore */ }
+    await safeInvoke('stop_audio');
     audioStarted = false;
   }
 
@@ -211,23 +204,26 @@ async function tick() {
   if (!tone) return;
 
   // Read pitch from Tauri
-  let pitch: { detected: boolean; note: string; octave: number; cents: number; frequency: number } | null = null;
+  let pitch: TauriPitchResult | null = null;
   let level = 0;
 
   if (audioStarted) {
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      [pitch, level] = await Promise.all([
-        invoke<any>('get_pitch'),
-        invoke<any>('get_audio_level').then((l: any) => l.rms as number),
-      ]);
-    } catch { /* ignore */ }
+    const [p, l] = await Promise.all([
+      safeInvoke<TauriPitchResult | null>('get_pitch', undefined, null),
+      safeInvoke<TauriAudioLevel>('get_audio_level'),
+    ]);
+    pitch = p ?? null;
+    level = l?.rms ?? 0;
   }
 
   if (pitch) {
-    currentNote.set(pitch.detected ? pitch.note : '');
-    currentFrequency.set(pitch.detected ? pitch.frequency : 0);
-    currentCents.set(pitch.detected ? pitch.cents : 0);
+    currentNote.set(pitch.note_name);
+    currentFrequency.set(pitch.frequency_hz);
+    currentCents.set(pitch.cent_deviation);
+  } else {
+    currentNote.set('');
+    currentFrequency.set(0);
+    currentCents.set(0);
   }
   audioLevel.set(level ?? 0);
 
@@ -236,21 +232,21 @@ async function tick() {
 
   if (phase === 'waiting') {
     // Wait for the correct note to appear
-    if (pitch?.detected && isNoteMatch(pitch.note, pitch.octave, tone)) {
+    if (pitch && isNoteMatch(pitch.note_name, pitch.octave, tone)) {
       tonePhase.set('detecting');
       stableStartTime = 0;
       centsAccumulator = [];
     }
   } else if (phase === 'detecting') {
-    if (!pitch?.detected || !isNoteMatch(pitch.note, pitch.octave, tone)) {
+    if (!pitch || !isNoteMatch(pitch.note_name, pitch.octave, tone)) {
       // Lost the note, go back to waiting
       tonePhase.set('waiting');
       return;
     }
-    centsAccumulator.push(pitch.cents);
+    centsAccumulator.push(pitch.cent_deviation);
     centsSamples.set([...centsAccumulator]);
 
-    if (Math.abs(pitch.cents) <= STABLE_CENTS) {
+    if (Math.abs(pitch.cent_deviation) <= STABLE_CENTS) {
       if (stableStartTime === 0) stableStartTime = now;
       if (now - stableStartTime >= SETTLE_MS) {
         // Settled -- transition to held
@@ -262,7 +258,7 @@ async function tick() {
       stableStartTime = 0;
     }
   } else if (phase === 'held') {
-    if (!pitch?.detected || !isNoteMatch(pitch.note, pitch.octave, tone)) {
+    if (!pitch || !isNoteMatch(pitch.note_name, pitch.octave, tone)) {
       // Lost the note entirely
       if (lastUnstableTime === 0) lastUnstableTime = now;
       if (now - lastUnstableTime > UNSTABLE_MS) {
@@ -272,11 +268,11 @@ async function tick() {
       return;
     }
 
-    centsAccumulator.push(pitch.cents);
+    centsAccumulator.push(pitch.cent_deviation);
     centsSamples.set([...centsAccumulator]);
     holdAccumulator += 0.05; // 50ms tick
 
-    if (Math.abs(pitch.cents) <= STABLE_CENTS) {
+    if (Math.abs(pitch.cent_deviation) <= STABLE_CENTS) {
       lastUnstableTime = 0;
     } else {
       if (lastUnstableTime === 0) lastUnstableTime = now;

@@ -50,6 +50,7 @@ impl OnsetDetector {
     }
 
     /// Reset detector state (e.g. when starting a new session).
+    #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.prev_rms = 0.0;
         self.last_onset_ms = 0;
