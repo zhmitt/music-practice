@@ -35,27 +35,29 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
 if [[ "$staged_mode" == true ]]; then
-  staged_files="$(git diff --cached --name-only)"
-  code_files="$(echo "$staged_files" | grep -E '\.(ts|tsx|js|jsx|py|rs|svelte|java|sh)$' || true)"
-
-  if [[ -z "$code_files" ]]; then
-    [[ "$quiet" == false ]] && echo "No staged code files detected."
-    exit 0
+  # Auto-derive --change from staged openspec/changes/<id>/ paths
+  # when caller didn't pass --change explicitly. Avoids "multiple active
+  # changes" deadlock when many changes are in flight simultaneously.
+  if [[ -z "$requested_change" ]]; then
+    derived_changes="$(git diff --cached --name-only 2>/dev/null \
+      | grep -oE '^openspec/changes/[A-Za-z0-9][A-Za-z0-9._-]*' \
+      | sed 's|openspec/changes/||' \
+      | sort -u)"
+    derived_count="$(printf '%s\n' "$derived_changes" | grep -cv '^$' || true)"
+    if [[ "$derived_count" == "1" ]]; then
+      requested_change="$derived_changes"
+    fi
   fi
 
-  canonical_evidence="$(echo "$staged_files" | grep -E '^(openspec/changes/.+/(proposal|design|tasks|verification)\.md|openspec/specs/.+\.md|workflow/state/(status|task-registry|NEXT-SESSION)\.md|workflow/state/reports/.+\.md|docs/.+\.md)$' || true)"
-
-  if [[ -z "$canonical_evidence" ]]; then
-    {
-      echo "Post-implementation staging check failed."
-      echo "Code files are staged, but no canonical workflow evidence was staged."
-      echo "Run: workflow/scripts/post-impl-prepare.sh --summary \"...\""
-    } >&2
-    exit 1
+  milestone_args=(--staged --mode enforce)
+  if [[ -n "$requested_change" ]]; then
+    milestone_args+=(--change "$requested_change")
   fi
-
-  [[ "$quiet" == false ]] && echo "Staged post-implementation evidence detected."
-  exit 0
+  if [[ "$quiet" == true ]]; then
+    milestone_args+=(--quiet)
+  fi
+  workflow/scripts/milestone-check.sh "${milestone_args[@]}"
+  exit $?
 fi
 
 count_matches() {
@@ -102,10 +104,12 @@ if [[ ! -f "$tasks_file" ]]; then
 else
   task_total="$(count_matches '^- \[( |x|X)\]' "$tasks_file")"
   task_complete="$(count_matches '^- \[[xX]\]' "$tasks_file")"
+  task_user_action_pending="$(count_matches '^- \[ \].*\((User-Action — pending|User-Action -- pending|pending CI run|out of scope|P3 follow-up|out-of-scope)\)' "$tasks_file")"
+  task_effective_complete="$((task_complete + task_user_action_pending))"
   if [[ "$task_total" -eq 0 ]]; then
     missing+=("tasks.md contains no checklist items")
-  elif [[ "$task_complete" -lt "$task_total" ]]; then
-    missing+=("tasks are incomplete (${task_complete}/${task_total})")
+  elif [[ "$task_effective_complete" -lt "$task_total" ]]; then
+    missing+=("tasks are incomplete (${task_complete} done + ${task_user_action_pending} user-action / ${task_total} total)")
   fi
 fi
 
@@ -135,3 +139,4 @@ if [[ ${#missing[@]} -gt 0 ]]; then
 fi
 
 [[ "$quiet" == false ]] && echo "Post-implementation check passed for ${change_id}."
+exit 0

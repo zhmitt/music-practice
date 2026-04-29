@@ -1,0 +1,94 @@
+# openspec-gate.yml
+#
+# CI gate for OpenSpec change integrity on pull requests targeting main.
+# Tool-agnostic: runs regardless of which AI or human authored the code.
+# Change-type-agnostic: covers Bug-Fix, Feature, Refactor, Migration, Security.
+#
+# All three jobs must be green before merge.
+#
+# To enforce this via branch protection (one-time, GitHub UI):
+#   Settings -> Branches -> main -> Require status checks to pass before merging
+#   Add checks: spec-drift / pr-claim-evidence / tasks-consistency
+#
+# NOTE: referenced scripts live in workflow/scripts/ and must be executable.
+
+name: OpenSpec Gate
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  # Job A: Spec-drift check per affected change
+  spec-drift:
+    name: spec-drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for git diff against base ref
+
+      - name: Detect changed openspec changes
+        id: changes
+        run: |
+          ids=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+            | grep -oE 'openspec/changes/[A-Za-z0-9][A-Za-z0-9._-]*' \
+            | sed 's|openspec/changes/||' \
+            | sort -u \
+            | tr '\n' ' ' || true)
+          echo "ids=$ids" >> "$GITHUB_OUTPUT"
+
+      - name: Run spec-drift-check per change
+        if: steps.changes.outputs.ids != ''
+        run: |
+          for cid in ${{ steps.changes.outputs.ids }}; do
+            echo "::group::Drift check $cid"
+            bash workflow/scripts/spec-drift-check.sh --change "$cid" || exit 1
+            echo "::endgroup::"
+          done
+
+  # Job B: Claim-evidence check on PR body
+  pr-claim-evidence:
+    name: pr-claim-evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract PR body
+        run: |
+          cat > /tmp/pr-body.md <<'PRBODYEOF'
+          ${{ github.event.pull_request.body }}
+          PRBODYEOF
+
+      - name: Check claims have evidence
+        run: bash workflow/scripts/claim-evidence-check.sh /tmp/pr-body.md
+
+  # Job C: Tasks consistency (done-pipeline) per affected change
+  tasks-consistency:
+    name: tasks-consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # required for git diff against base ref
+
+      - name: Detect changed openspec changes
+        id: changes
+        run: |
+          ids=$(git diff --name-only "origin/${{ github.base_ref }}...HEAD" \
+            | grep -oE 'openspec/changes/[A-Za-z0-9][A-Za-z0-9._-]*' \
+            | sed 's|openspec/changes/||' \
+            | sort -u \
+            | tr '\n' ' ' || true)
+          echo "ids=$ids" >> "$GITHUB_OUTPUT"
+
+      - name: Run change-done per change
+        if: steps.changes.outputs.ids != ''
+        run: |
+          for cid in ${{ steps.changes.outputs.ids }}; do
+            echo "::group::Done check $cid"
+            bash workflow/scripts/change-done.sh --change "$cid" || exit 1
+            echo "::endgroup::"
+          done
