@@ -199,3 +199,38 @@ Drift-risk:
 ```
 
 Tech-Lead-Regel: Sub-Agent-Antwort ohne diesen Block = nicht akzeptiert.
+
+## Sub-agent failsafe
+
+### Hook-Failsafe-System
+
+Der Sub-Agent- und Workflow-Einsatz wird durch ein dreistufiges
+Hook-System hart erzwungen (Implementierung: `.claude/hooks/` und
+`workflow/scripts/agent-evidence-check.sh`):
+
+1. **Gate 1 — PreToolUse-Block auf Edit/Write/MultiEdit/NotebookEdit**
+   (`.claude/hooks/gate-edit.sh`). Blockiert Edits an Code-Dateien
+   (`.ts/.tsx/.js/.jsx/.py/.rs/.go/.sh/…`), wenn in den letzten 4 h kein
+   `Plan`- oder `Explore`-Sub-Agent gelaufen ist. Whitelist (keine
+   Sperre): `*.md`, `*.json/yml/yaml/toml`, `openspec/`, `workflow/`,
+   `docs/`, `.claude/`, `.git-hooks/`, `.workflow-evidence/`, Dotfiles.
+2. **Gate 2 — PreToolUse-Block auf Bash**
+   (`.claude/hooks/gate-bash.sh`). Blockiert `git commit --no-verify`,
+   `git commit -n`, `git push --no-verify`, `git -c core.hooksPath=…`
+   und `--no-gpg-sign`.
+3. **Gate 3 — Pre-Commit-Advisory**
+   (`workflow/scripts/agent-evidence-check.sh`). Warnt (nicht-blockierend)
+   wenn beim Commit von Code-Dateien kein `test-runner`-Sub-Agent in den
+   letzten 30 min lief, und zeigt `CLAUDE_HOOKS_OFF`-Bypasses der
+   letzten 24 h.
+
+**Telemetrie**: Jeder Sub-Agent-Spawn wird per PostToolUse-Hook
+(`.claude/hooks/log-agent.sh`) als JSONL nach
+`.workflow-evidence/agents.jsonl` geloggt. Bypasses landen in
+`.workflow-evidence/overrides.jsonl`. Beide Logs sind `.gitignore`d.
+
+**Override**: `CLAUDE_HOOKS_OFF=1 <command>` deaktiviert Gate 1 + Gate 2
+für genau einen Aufruf, schreibt aber einen Bypass-Record. Nur mit
+expliziter User-Autorisierung verwenden. Bei fehlschlagendem Hook erst
+die Root-Cause beheben, nicht bypassen.
+
