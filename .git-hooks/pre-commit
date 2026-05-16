@@ -87,5 +87,9 @@ if [ -f ".git/COMMIT_EDITMSG" ] && [ -x "workflow/scripts/claim-evidence-check.s
   fi
 fi
 
+if [ -x workflow/scripts/agent-evidence-check.sh ]; then
+  workflow/scripts/agent-evidence-check.sh || true
+fi
+
 echo "✅ pre-commit checks passed"
 exit 0
