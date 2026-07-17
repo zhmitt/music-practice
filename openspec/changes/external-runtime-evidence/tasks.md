@@ -9,9 +9,9 @@
 
 ## Hosted delivery
 
-- [ ] push the completed hardening commits to the configured remote
+- [x] push the completed hardening commits to the configured remote
 - [ ] observe hosted CI and OpenSpec workflow results
-- [ ] inspect current main-branch protection
+- [x] inspect current main-branch protection
 - [ ] configure appropriate required checks without weakening existing protection
 
 ## macOS delivery
@@ -22,6 +22,6 @@
 ## Evidence
 
 - [ ] document automated successes and irreducible credential/physical blockers
-- [ ] run canonical verification after harness changes
+- [x] run canonical verification after harness changes
 - [ ] refresh canonical workflow state and reports
 - [ ] pass `workflow/scripts/change-done.sh --change external-runtime-evidence`
