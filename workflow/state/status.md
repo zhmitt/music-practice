@@ -297,3 +297,12 @@ Append-only project status log for deterministic session handover.
 - Summary: Completed native, hosted, branch-protection, audio hardware, signed WebView SQLite, and macOS packaging evidence; all 14 tasks are complete.
 - Evidence: openspec/changes/external-runtime-evidence/verification.md, workflow/state/reports/2026-07-17-external-runtime-evidence.md
 - Next: Archive the change into openspec/changes/archive/
+
+## 2026-07-18 00:12:44
+- Change: external-runtime-evidence
+- Status: implemented
+- Summary: Fixed hosted OpenSpec drift portability by adding a deterministic grep fallback when ripgrep and bundled tool paths are absent.
+- Completed: Reproduced the hosted failure locally with a restricted PATH and verified the fallback exits zero.
+- Remaining: Obtain a fully green hosted rerun and merge through protected main.
+- Evidence: openspec/changes/external-runtime-evidence/verification.md, workflow/state/reports/2026-07-17-external-runtime-evidence.md
+- Next: Push the portability fix and monitor all required checks.
