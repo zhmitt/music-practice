@@ -42,19 +42,52 @@ function getAudioContext(): AudioContext {
 
 function getBeatsPerBar(ts: TimeSignature): number {
   switch (ts) {
-    case '2/4': return 2;
-    case '3/4': return 3;
-    case '4/4': return 4;
-    case '6/8': return 6;
+    case '2/4':
+      return 2;
+    case '3/4':
+      return 3;
+    case '4/4':
+      return 4;
+    case '6/8':
+      return 6;
   }
 }
 
 function getSubdivisionsPerBeat(sub: Subdivision): number {
   switch (sub) {
-    case 'none': return 1;
-    case 'eighth': return 2;
-    case 'triplet': return 3;
-    case 'sixteenth': return 4;
+    case 'none':
+      return 1;
+    case 'eighth':
+      return 2;
+    case 'triplet':
+      return 3;
+    case 'sixteenth':
+      return 4;
+  }
+}
+
+export function getBeatClickBehavior(
+  accent: AccentMode,
+  beatInBar: number,
+): { shouldPlay: boolean; isAccent: boolean } {
+  const isDownbeat = beatInBar === 0;
+
+  switch (accent) {
+    case 'beat1_only':
+      return {
+        shouldPlay: isDownbeat,
+        isAccent: isDownbeat,
+      };
+    case 'none':
+      return {
+        shouldPlay: true,
+        isAccent: false,
+      };
+    default:
+      return {
+        shouldPlay: true,
+        isAccent: isDownbeat,
+      };
   }
 }
 
@@ -125,24 +158,20 @@ function scheduler() {
   const subsPerBeat = getSubdivisionsPerBeat(sub);
 
   // For 6/8, the beat unit is an eighth note — group in threes
-  const beatDuration = ts === '6/8'
-    ? 60.0 / currentBpm / 1.5  // dotted-quarter reference
-    : 60.0 / currentBpm;
+  const beatDuration =
+    ts === '6/8'
+      ? 60.0 / currentBpm / 1.5 // dotted-quarter reference
+      : 60.0 / currentBpm;
 
   const subDuration = beatDuration / subsPerBeat;
 
   while (nextBeatTime < ctx.currentTime + SCHEDULE_AHEAD) {
     const beatInBar = beatIndex % beatsPerBar;
-    const isDownbeat = beatInBar === 0;
+    const beatBehavior = getBeatClickBehavior(accent, beatInBar);
 
-    // Main beat
-    const isAccent = accent === 'standard'
-      ? isDownbeat
-      : accent === 'beat1_only'
-        ? isDownbeat
-        : false;
-
-    scheduleClick(ctx, nextBeatTime, isAccent, false);
+    if (beatBehavior.shouldPlay) {
+      scheduleClick(ctx, nextBeatTime, beatBehavior.isAccent, false);
+    }
 
     // Update visual beat on the UI thread
     const capturedBeat = beatInBar;
@@ -215,5 +244,5 @@ export function tapTempo() {
 }
 
 export function adjustBpm(delta: number) {
-  bpm.update(b => Math.max(40, Math.min(208, b + delta)));
+  bpm.update((b) => Math.max(40, Math.min(208, b + delta)));
 }

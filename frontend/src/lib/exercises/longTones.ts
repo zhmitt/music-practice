@@ -1,42 +1,44 @@
 import type { ExperienceLevel } from '$lib/stores/onboarding';
 import type { Instrument } from '$lib/stores/onboarding';
 import type { ExerciseDef, ToneTarget } from '$lib/types/session';
-import { getSequenceKey } from './instrumentUtils';
-
-/** Tone sequences per instrument family (descending partials, comfortable register). */
-const SEQUENCES: Record<string, Array<[string, number]>> = {
-  bb: [['Bb', 4], ['F', 4], ['C', 4], ['G', 3], ['Eb', 3]],
-  f:  [['F', 4], ['C', 4], ['G', 3], ['D', 3], ['Bb', 2]],
-  concert: [['Bb', 3], ['F', 3], ['C', 4], ['G', 3], ['D', 3]],
-};
+import { getInstrumentPracticeProfile } from '$lib/music/practiceProfiles';
 
 function getDuration(experience: ExperienceLevel): number {
   switch (experience) {
-    case 'beginner_new': return 5;
-    case 'beginner':     return 6;
-    case 'intermediate': return 8;
-    case 'experienced':  return 8;
-    default:             return 6;
+    case 'beginner_new':
+      return 5;
+    case 'beginner':
+      return 6;
+    case 'intermediate':
+      return 8;
+    case 'experienced':
+      return 8;
+    default:
+      return 6;
   }
 }
 
 function getToneCount(experience: ExperienceLevel): number {
   switch (experience) {
-    case 'beginner_new': return 3;
-    case 'beginner':     return 4;
-    case 'intermediate': return 5;
-    case 'experienced':  return 5;
-    default:             return 4;
+    case 'beginner_new':
+      return 3;
+    case 'beginner':
+      return 4;
+    case 'intermediate':
+      return 5;
+    case 'experienced':
+      return 5;
+    default:
+      return 4;
   }
 }
 
 /** Build a Long Tones exercise tailored to instrument and experience. */
 export function buildLongTonesExercise(
   instrument: Instrument,
-  experience: ExperienceLevel
+  experience: ExperienceLevel,
 ): ExerciseDef {
-  const key = getSequenceKey(instrument);
-  const seq = SEQUENCES[key];
+  const seq = getInstrumentPracticeProfile(instrument).longTonesWritten;
   const dur = getDuration(experience);
   const count = getToneCount(experience);
 

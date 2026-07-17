@@ -13,6 +13,7 @@ workflow:
     - Practice feedback should stay supportive and instructional rather than punitive.
     - Claude, Gemini, and Codex adapters are accelerators only.
 
+    - workspace ownership and branch handoffs must be explicit and checkpointed before tool changes
 context:
   current_repo_shape:
     - static mockups in mockup/

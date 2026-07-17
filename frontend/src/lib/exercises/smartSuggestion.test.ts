@@ -110,7 +110,7 @@ describe('generateSmartSuggestion', () => {
       vi.mocked(getHistory).mockReturnValue([makeSession()]);
       vi.mocked(getNoteTendencies).mockReturnValue([
         { note: 'Bb4', avgCents: 15, count: 3 },
-        { note: 'F4',  avgCents: -12, count: 2 },
+        { note: 'F4', avgCents: -12, count: 2 },
       ]);
 
       const result = generateSmartSuggestion(makeProfile());
@@ -124,7 +124,7 @@ describe('generateSmartSuggestion', () => {
       vi.mocked(getHistory).mockReturnValue([makeSession()]);
       vi.mocked(getNoteTendencies).mockReturnValue([
         { note: 'Bb4', avgCents: 8, count: 10 },
-        { note: 'F4',  avgCents: 9, count: 10 },
+        { note: 'F4', avgCents: 9, count: 10 },
       ]);
 
       const result = generateSmartSuggestion(makeProfile());
@@ -136,7 +136,7 @@ describe('generateSmartSuggestion', () => {
       vi.mocked(getHistory).mockReturnValue([makeSession()]);
       vi.mocked(getNoteTendencies).mockReturnValue([
         { note: 'Bb4', avgCents: 20, count: 1 },
-        { note: 'F4',  avgCents: 20, count: 1 },
+        { note: 'F4', avgCents: 20, count: 1 },
       ]);
 
       const result = generateSmartSuggestion(makeProfile());
@@ -148,7 +148,7 @@ describe('generateSmartSuggestion', () => {
       vi.mocked(getHistory).mockReturnValue([makeSession()]);
       vi.mocked(getNoteTendencies).mockReturnValue([
         { note: 'Bb4', avgCents: 20, count: 3 },
-        { note: 'F4',  avgCents: 5,  count: 5 },
+        { note: 'F4', avgCents: 5, count: 5 },
       ]);
 
       const result = generateSmartSuggestion(makeProfile());
@@ -177,9 +177,7 @@ describe('generateSmartSuggestion', () => {
     it('does NOT return streak_variety when streak < 3', () => {
       vi.mocked(getHistory).mockReturnValue([makeSession()]);
       vi.mocked(getStreak).mockReturnValue(2);
-      vi.mocked(getRecentSessions).mockReturnValue([
-        makeSession({ exerciseType: 'scale' }),
-      ]);
+      vi.mocked(getRecentSessions).mockReturnValue([makeSession({ exerciseType: 'scale' })]);
 
       const result = generateSmartSuggestion(makeProfile());
 
@@ -207,9 +205,7 @@ describe('generateSmartSuggestion', () => {
         makeSession({ accuracy: 0.9, date: `2026-01-0${i + 1}` }),
       );
       vi.mocked(getHistory).mockReturnValue(sessions);
-      vi.mocked(getRecentSessions).mockReturnValue(
-        sessions.map(s => ({ ...s })),
-      );
+      vi.mocked(getRecentSessions).mockReturnValue(sessions.map((s) => ({ ...s })));
 
       const result = generateSmartSuggestion(makeProfile());
 
@@ -220,7 +216,7 @@ describe('generateSmartSuggestion', () => {
     it('does NOT return high_accuracy when history.length < 5', () => {
       const sessions = [makeSession({ accuracy: 0.95 })];
       vi.mocked(getHistory).mockReturnValue(sessions);
-      vi.mocked(getRecentSessions).mockReturnValue(sessions.map(s => ({ ...s })));
+      vi.mocked(getRecentSessions).mockReturnValue(sessions.map((s) => ({ ...s })));
 
       const result = generateSmartSuggestion(makeProfile());
 
@@ -232,7 +228,7 @@ describe('generateSmartSuggestion', () => {
         makeSession({ accuracy: 0.8, date: `2026-01-0${i + 1}` }),
       );
       vi.mocked(getHistory).mockReturnValue(sessions);
-      vi.mocked(getRecentSessions).mockReturnValue(sessions.map(s => ({ ...s })));
+      vi.mocked(getRecentSessions).mockReturnValue(sessions.map((s) => ({ ...s })));
 
       const result = generateSmartSuggestion(makeProfile());
 
@@ -247,7 +243,7 @@ describe('generateSmartSuggestion', () => {
         makeSession({ accuracy: 0.4, date: '2026-01-02' }),
       ];
       vi.mocked(getHistory).mockReturnValue(sessions);
-      vi.mocked(getRecentSessions).mockReturnValue(sessions.map(s => ({ ...s })));
+      vi.mocked(getRecentSessions).mockReturnValue(sessions.map((s) => ({ ...s })));
 
       const result = generateSmartSuggestion(makeProfile());
 
@@ -261,7 +257,7 @@ describe('generateSmartSuggestion', () => {
         makeSession({ accuracy: 0.5, date: '2026-01-02' }),
       ];
       vi.mocked(getHistory).mockReturnValue(sessions);
-      vi.mocked(getRecentSessions).mockReturnValue(sessions.map(s => ({ ...s })));
+      vi.mocked(getRecentSessions).mockReturnValue(sessions.map((s) => ({ ...s })));
 
       const result = generateSmartSuggestion(makeProfile());
 
@@ -271,7 +267,7 @@ describe('generateSmartSuggestion', () => {
     it('does NOT return back_to_basics with only 1 recent session', () => {
       const sessions = [makeSession({ accuracy: 0.1 })];
       vi.mocked(getHistory).mockReturnValue(sessions);
-      vi.mocked(getRecentSessions).mockReturnValue(sessions.map(s => ({ ...s })));
+      vi.mocked(getRecentSessions).mockReturnValue(sessions.map((s) => ({ ...s })));
 
       const result = generateSmartSuggestion(makeProfile());
 
@@ -310,11 +306,9 @@ describe('generateSmartSuggestion', () => {
       vi.mocked(getStreak).mockReturnValue(5);
       vi.mocked(getNoteTendencies).mockReturnValue([
         { note: 'Bb4', avgCents: 20, count: 3 },
-        { note: 'F4',  avgCents: -15, count: 4 },
+        { note: 'F4', avgCents: -15, count: 4 },
       ]);
-      vi.mocked(getRecentSessions).mockReturnValue([
-        makeSession({ exerciseType: 'scale' }),
-      ]);
+      vi.mocked(getRecentSessions).mockReturnValue([makeSession({ exerciseType: 'scale' })]);
 
       const result = generateSmartSuggestion(makeProfile());
 

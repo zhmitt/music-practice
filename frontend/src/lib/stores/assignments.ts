@@ -6,7 +6,7 @@
  * Internal mutations persist back via `_persist()`.
  */
 
-import { writable, get } from 'svelte/store';
+import { writable } from 'svelte/store';
 import type { Assignment, AssignmentRecord } from '$lib/types/assignment';
 import { getKV, setKV } from '$lib/db';
 
@@ -19,7 +19,9 @@ export const assignments = writable<AssignmentRecord[]>([]);
 async function _persist(records: AssignmentRecord[]): Promise<void> {
   try {
     await setKV(STORAGE_KEY, JSON.stringify(records));
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 // ── Initialisation ──
@@ -32,7 +34,9 @@ export async function loadAssignments(): Promise<void> {
   try {
     const raw = await getKV(STORAGE_KEY);
     if (raw) assignments.set(JSON.parse(raw) as AssignmentRecord[]);
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 // ── Mutation API ──
@@ -44,8 +48,8 @@ export async function loadAssignments(): Promise<void> {
  * @param assignment - The assignment to import.
  */
 export function importAssignment(assignment: Assignment): void {
-  assignments.update(list => {
-    if (list.some(r => r.assignment.id === assignment.id)) return list;
+  assignments.update((list) => {
+    if (list.some((r) => r.assignment.id === assignment.id)) return list;
     const record: AssignmentRecord = {
       assignment,
       importedAt: new Date().toISOString(),
@@ -64,8 +68,8 @@ export function importAssignment(assignment: Assignment): void {
  * @param assignmentId - The assignment to mark complete.
  */
 export function markAssignmentCompleted(assignmentId: string): void {
-  assignments.update(list => {
-    const updated = list.map(r => {
+  assignments.update((list) => {
+    const updated = list.map((r) => {
       if (r.assignment.id === assignmentId && !r.completed) {
         return { ...r, completed: true, completedAt: new Date().toISOString() };
       }
@@ -82,8 +86,8 @@ export function markAssignmentCompleted(assignmentId: string): void {
  * @param assignmentId - The assignment id to remove.
  */
 export function removeAssignment(assignmentId: string): void {
-  assignments.update(list => {
-    const updated = list.filter(r => r.assignment.id !== assignmentId);
+  assignments.update((list) => {
+    const updated = list.filter((r) => r.assignment.id !== assignmentId);
     _persist(updated);
     return updated;
   });
@@ -95,12 +99,15 @@ export function parseAssignmentFile(jsonString: string): Assignment | null {
     const data = JSON.parse(jsonString);
     // Structural validation — only accept known-good shapes
     if (
-      typeof data !== 'object' || data === null ||
+      typeof data !== 'object' ||
+      data === null ||
       data.version !== '1.0' ||
-      typeof data.id !== 'string' || !data.id ||
+      typeof data.id !== 'string' ||
+      !data.id ||
       typeof data.teacherName !== 'string' ||
       typeof data.title !== 'string' ||
-      !Array.isArray(data.exercises) || data.exercises.length === 0
+      !Array.isArray(data.exercises) ||
+      data.exercises.length === 0
     ) {
       return null;
     }
@@ -108,7 +115,12 @@ export function parseAssignmentFile(jsonString: string): Assignment | null {
     for (const ex of data.exercises) {
       if (!ex || typeof ex.type !== 'string' || !Array.isArray(ex.tones)) return null;
       for (const tone of ex.tones) {
-        if (!tone || typeof tone.note !== 'string' || typeof tone.octave !== 'number' || typeof tone.durationSec !== 'number') {
+        if (
+          !tone ||
+          typeof tone.note !== 'string' ||
+          typeof tone.octave !== 'number' ||
+          typeof tone.durationSec !== 'number'
+        ) {
           return null;
         }
       }
@@ -125,7 +137,7 @@ export function parseAssignmentFile(jsonString: string): Assignment | null {
         type: String(ex.type),
         nameKey: String(ex.nameKey ?? ''),
         descriptionKey: String(ex.descriptionKey ?? ''),
-        tones: (ex.tones as Array<Record<string, unknown>>).map(t => ({
+        tones: (ex.tones as Array<Record<string, unknown>>).map((t) => ({
           note: String(t.note),
           octave: Number(t.octave),
           durationSec: Number(t.durationSec),

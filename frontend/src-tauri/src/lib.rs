@@ -2,7 +2,7 @@ mod audio;
 
 use audio::drone::note_to_frequency;
 use audio::instrument::InstrumentProfile;
-use audio::types::{AudioDeviceInfo, AudioLevel, DisplayMode, PitchResult};
+use audio::types::{AudioDebugSnapshot, AudioDeviceInfo, AudioLevel, DisplayMode, PitchResult};
 use audio::{SharedDrone, SharedEngine};
 use tauri::State;
 
@@ -37,6 +37,12 @@ fn get_pitch(engine: State<SharedEngine>) -> Result<Option<PitchResult>, String>
 fn get_audio_level(engine: State<SharedEngine>) -> Result<AudioLevel, String> {
     let eng = engine.lock().map_err(|e| e.to_string())?;
     Ok(eng.latest_level())
+}
+
+#[tauri::command]
+fn get_audio_debug(engine: State<SharedEngine>) -> Result<AudioDebugSnapshot, String> {
+    let eng = engine.lock().map_err(|e| e.to_string())?;
+    Ok(eng.latest_debug())
 }
 
 #[tauri::command]
@@ -141,6 +147,7 @@ pub fn run() {
             get_devices,
             get_pitch,
             get_audio_level,
+            get_audio_debug,
             set_reference_tuning,
             set_instrument_profile,
             set_display_mode,

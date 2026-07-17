@@ -71,7 +71,7 @@ function scheduleClick(ctx: AudioContext, time: number, isAccent: boolean) {
 export async function startPatternRound(pattern: RhythmPattern, isRepeat = false) {
   currentPattern.set(pattern);
   if (!isRepeat) {
-    currentRound.update(r => r + 1);
+    currentRound.update((r) => r + 1);
   }
   latestTimings.set([]);
   capturedOnsets = [];
@@ -104,7 +104,6 @@ export async function startPatternRound(pattern: RhythmPattern, isRepeat = false
   patternStartTime = patternStartSec * 1000;
 
   // Schedule pattern clicks (on every note and rest position for reference)
-  const expectedOnsets = computeExpectedOnsets(pattern);
   let offsetBeats = 0;
   for (let i = 0; i < pattern.beats.length; i++) {
     const beat = pattern.beats[i];
@@ -115,10 +114,13 @@ export async function startPatternRound(pattern: RhythmPattern, isRepeat = false
 
   // Transition to playing at pattern start
   const toPlayingDelay = (patternStartSec - ctx.currentTime) * 1000;
-  setTimeout(() => {
-    patternPhase.set('playing');
-    countdownBeat.set(0);
-  }, Math.max(0, toPlayingDelay));
+  setTimeout(
+    () => {
+      patternPhase.set('playing');
+      countdownBeat.set(0);
+    },
+    Math.max(0, toPlayingDelay),
+  );
 
   // End pattern and score
   const durationMs = patternDurationMs(pattern);
@@ -144,7 +146,8 @@ function scoreRound(pattern: RhythmPattern) {
     for (let i = 0; i < capturedOnsets.length; i++) {
       if (usedOnsets.has(i)) continue;
       const dev = capturedOnsets[i] - exp.expectedMs;
-      if (Math.abs(dev) < Math.abs(bestDev) && Math.abs(dev) < 500) { // 500ms max window
+      if (Math.abs(dev) < Math.abs(bestDev) && Math.abs(dev) < 500) {
+        // 500ms max window
         bestDev = dev;
         bestIdx = i;
       }
@@ -172,7 +175,7 @@ function scoreRound(pattern: RhythmPattern) {
   }
 
   const noteBeats = timings.length;
-  const hits = timings.filter(t => t.hit).length;
+  const hits = timings.filter((t) => t.hit).length;
   const scorePct = noteBeats > 0 ? Math.round((hits / noteBeats) * 100) : 0;
 
   const result: RoundResult = {
@@ -182,7 +185,7 @@ function scoreRound(pattern: RhythmPattern) {
   };
 
   latestTimings.set(timings);
-  roundResults.update(rs => [...rs, result]);
+  roundResults.update((rs) => [...rs, result]);
   patternPhase.set('scoring');
 }
 

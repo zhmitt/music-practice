@@ -10,7 +10,7 @@ import type { SessionPlan, ToneTarget, ExerciseDef } from '$lib/types/session';
 import { getNoteTendencies, getRecentSessions, getStreak, getHistory } from '$lib/stores/history';
 import { buildLongTonesExercise } from './longTones';
 import { buildScaleExercise } from './scales';
-import { getSequenceKey } from './instrumentUtils';
+import { getInstrumentPracticeProfile } from '$lib/music/practiceProfiles';
 
 export interface SessionSuggestion {
   plan: SessionPlan;
@@ -22,28 +22,13 @@ export interface SessionSuggestion {
 
 // ── Note helpers ──
 
-const NOTE_TO_OCTAVE: Record<string, Array<[string, number]>> = {
-  bb: [
-    ['Bb', 3], ['C', 4], ['D', 4], ['Eb', 4], ['F', 4], ['G', 4], ['A', 4], ['Bb', 4],
-    ['C', 5], ['D', 5], ['Eb', 5], ['F', 5],
-  ],
-  f: [
-    ['F', 3], ['G', 3], ['A', 3], ['Bb', 3], ['C', 4], ['D', 4], ['E', 4], ['F', 4],
-    ['G', 4], ['A', 4], ['Bb', 4], ['C', 5],
-  ],
-  concert: [
-    ['Bb', 3], ['C', 4], ['D', 4], ['Eb', 4], ['F', 4], ['G', 4], ['A', 4], ['Bb', 4],
-    ['C', 5], ['D', 5], ['Eb', 5], ['F', 5],
-  ],
-};
-
 /** Build a targeted long-tone exercise focusing on specific weak notes. */
 function buildWeakNoteLongTones(
   weakNotes: Array<{ note: string; avgCents: number }>,
   experience: string,
   durationSec: number,
 ): ExerciseDef {
-  const tones: ToneTarget[] = weakNotes.slice(0, 4).map(wn => {
+  const tones: ToneTarget[] = weakNotes.slice(0, 4).map((wn) => {
     // Parse "Bb4" → note="Bb", octave=4
     const match = wn.note.match(/^([A-Gb#]+)(\d)$/);
     if (!match) return { note: wn.note, octave: 4, durationSec };
@@ -61,11 +46,10 @@ function buildWeakNoteLongTones(
 
 /** Build a chromatic/range exercise for flexibility. */
 function buildFlexibilityExercise(
-  instrument: string,
+  instrument: UserProfile['instrument'],
   durationSec: number,
 ): ExerciseDef {
-  const key = getSequenceKey(instrument as any);
-  const notes = NOTE_TO_OCTAVE[key] || NOTE_TO_OCTAVE['bb'];
+  const notes = getInstrumentPracticeProfile(instrument).flexibilityWritten;
 
   // Pick alternating low-high notes for flexibility
   const tones: ToneTarget[] = [
@@ -107,20 +91,22 @@ export function generateSmartSuggestion(profile: UserProfile): SessionSuggestion
     };
   }
 
-  const dur = profile.experience === 'beginner_new' ? 5
-    : profile.experience === 'beginner' ? 6 : 8;
+  const dur = profile.experience === 'beginner_new' ? 5 : profile.experience === 'beginner' ? 6 : 8;
 
   // Check for significant weak spots (|avgCents| > 10)
-  const significantWeak = weakSpots.filter(w => Math.abs(w.avgCents) > 10 && w.count >= 2);
+  const significantWeak = weakSpots.filter((w) => Math.abs(w.avgCents) > 10 && w.count >= 2);
 
   // Check what we did recently to avoid repetition
-  const lastTypes = recentSessions.slice(0, 3).map(s => s.exerciseType);
+  const lastTypes = recentSessions.slice(0, 3).map((s) => s.exerciseType);
   const didLongTonesRecently = lastTypes.includes('long_tones');
   const didScaleRecently = lastTypes.includes('scale');
 
   // Strategy 1: Weak spots detected → targeted practice
   if (significantWeak.length >= 2) {
-    const weakNames = significantWeak.slice(0, 3).map(w => w.note).join(', ');
+    const weakNames = significantWeak
+      .slice(0, 3)
+      .map((w) => w.note)
+      .join(', ');
     const targeted = buildWeakNoteLongTones(significantWeak, profile.experience, dur);
     const scale = buildScaleExercise(profile.instrument, profile.experience);
 
@@ -144,9 +130,10 @@ export function generateSmartSuggestion(profile: UserProfile): SessionSuggestion
   }
 
   // Strategy 3: Recent accuracy is high → push to next challenge
-  const recentAccuracy = recentSessions.length > 0
-    ? recentSessions.reduce((s, r) => s + r.accuracy, 0) / recentSessions.length
-    : 0;
+  const recentAccuracy =
+    recentSessions.length > 0
+      ? recentSessions.reduce((s, r) => s + r.accuracy, 0) / recentSessions.length
+      : 0;
 
   if (recentAccuracy > 0.8 && history.length >= 5) {
     // Suggest scales (more challenging) if we did mostly long tones

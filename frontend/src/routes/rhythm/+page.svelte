@@ -4,18 +4,34 @@
   import PatternMode from '$lib/components/PatternMode.svelte';
   import SubdivisionMode from '$lib/components/SubdivisionMode.svelte';
   import {
-    bpm, timeSignature, accentMode, subdivision, clickSound, volume,
-    isPlaying, currentBeat,
-    toggleMetronome, stopMetronome, tapTempo, adjustBpm,
-    type TimeSignature, type AccentMode, type Subdivision, type ClickSound,
+    bpm,
+    timeSignature,
+    accentMode,
+    subdivision,
+    clickSound,
+    volume,
+    isPlaying,
+    currentBeat,
+    toggleMetronome,
+    stopMetronome,
+    tapTempo,
+    adjustBpm,
+    type TimeSignature,
+    type AccentMode,
+    type Subdivision,
+    type ClickSound,
   } from '$lib/stores/metronome';
 
   function getBeatsPerBar(ts: TimeSignature): number {
     switch (ts) {
-      case '2/4': return 2;
-      case '3/4': return 3;
-      case '4/4': return 4;
-      case '6/8': return 6;
+      case '2/4':
+        return 2;
+      case '3/4':
+        return 3;
+      case '4/4':
+        return 4;
+      case '6/8':
+        return 6;
     }
   }
 
@@ -49,6 +65,9 @@
     { key: 'soft', label: 'rhythm.sound.soft' },
   ];
 
+  let modeHelpKey = $derived.by(() => `rhythm.mode_help.${activeMode}`);
+  let modeGoalKey = $derived.by(() => `rhythm.mode_goal.${activeMode}`);
+
   onDestroy(() => {
     if ($isPlaying) stopMetronome();
   });
@@ -74,6 +93,9 @@
     </div>
   </div>
 
+  <div class="mode-help">{$t(modeHelpKey)}</div>
+  <div class="mode-goal">{$t(modeGoalKey)}</div>
+
   {#if activeMode === 'subdivision'}
     <SubdivisionMode />
   {:else if activeMode === 'patterns'}
@@ -85,11 +107,7 @@
         <!-- Beat visualization -->
         <div class="beat-row">
           {#each beats as i}
-            <div
-              class="beat-dot"
-              class:active={$currentBeat === i}
-              class:downbeat={i === 0}
-            >
+            <div class="beat-dot" class:active={$currentBeat === i} class:downbeat={i === 0}>
               {i + 1}
             </div>
           {/each}
@@ -106,13 +124,7 @@
         </div>
 
         <!-- BPM slider -->
-        <input
-          type="range"
-          class="bpm-slider"
-          min="40"
-          max="208"
-          bind:value={$bpm}
-        />
+        <input type="range" class="bpm-slider" min="40" max="208" bind:value={$bpm} />
 
         <!-- Controls -->
         <div class="metro-controls">
@@ -121,9 +133,21 @@
           </button>
           <button class="play-btn" class:active={$isPlaying} onclick={toggleMetronome}>
             {#if $isPlaying}
-              <svg viewBox="0 0 24 24" width="20" height="20"><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></svg>
+              <svg viewBox="0 0 24 24" width="20" height="20"
+                ><rect x="6" y="4" width="4" height="16" fill="currentColor" /><rect
+                  x="14"
+                  y="4"
+                  width="4"
+                  height="16"
+                  fill="currentColor"
+                /></svg
+              >
+              <span>{$t('rhythm.transport.stop')}</span>
             {:else}
-              <svg viewBox="0 0 24 24" width="20" height="20"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+              <svg viewBox="0 0 24 24" width="20" height="20"
+                ><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" /></svg
+              >
+              <span>{$t('rhythm.transport.start')}</span>
             {/if}
           </button>
         </div>
@@ -139,8 +163,8 @@
               <button
                 class="pill"
                 class:active={$timeSignature === ts}
-                onclick={() => timeSignature.set(ts)}
-              >{ts}</button>
+                onclick={() => timeSignature.set(ts)}>{ts}</button
+              >
             {/each}
           </div>
         </div>
@@ -153,8 +177,8 @@
               <button
                 class="pill"
                 class:active={$accentMode === a.key}
-                onclick={() => accentMode.set(a.key)}
-              >{$t(a.label)}</button>
+                onclick={() => accentMode.set(a.key)}>{$t(a.label)}</button
+              >
             {/each}
           </div>
         </div>
@@ -167,8 +191,8 @@
               <button
                 class="pill"
                 class:active={$subdivision === s.key}
-                onclick={() => subdivision.set(s.key)}
-              >{$t(s.label)}</button>
+                onclick={() => subdivision.set(s.key)}>{$t(s.label)}</button
+              >
             {/each}
           </div>
         </div>
@@ -181,8 +205,8 @@
               <button
                 class="pill"
                 class:active={$clickSound === snd.key}
-                onclick={() => clickSound.set(snd.key)}
-              >{$t(snd.label)}</button>
+                onclick={() => clickSound.set(snd.key)}>{$t(snd.label)}</button
+              >
             {/each}
           </div>
         </div>
@@ -190,14 +214,7 @@
         <!-- Volume -->
         <div class="setting-group">
           <div class="setting-label">{$t('rhythm.volume')}</div>
-          <input
-            type="range"
-            class="vol-slider"
-            min="0"
-            max="1"
-            step="0.05"
-            bind:value={$volume}
-          />
+          <input type="range" class="vol-slider" min="0" max="1" step="0.05" bind:value={$volume} />
         </div>
       </div>
     </div>
@@ -206,159 +223,344 @@
 
 <style>
   .rhythm {
-    display: flex; flex-direction: column; gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     height: 100%;
   }
 
   /* ── Mode tabs ── */
-  .rhythm-header { display: flex; }
-  .mode-tabs { display: flex; gap: 4px; }
+  .rhythm-header {
+    display: flex;
+  }
+  .mode-tabs {
+    display: flex;
+    gap: 4px;
+  }
+  .mode-help {
+    margin-top: -6px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .mode-goal {
+    margin-top: -8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
 
   .mode-tab {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-2); font-family: inherit;
-    font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
   }
-  .mode-tab:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
+  .mode-tab:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
   .mode-tab.active {
-    background: var(--accent-soft); color: var(--text); border-color: var(--accent); font-weight: 600;
+    background: var(--accent-soft);
+    color: var(--text);
+    border-color: var(--accent);
+    font-weight: 600;
   }
-  .mode-tab:disabled { opacity: 0.4; cursor: not-allowed; }
+  .mode-tab:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   .tab-badge {
-    font-size: 9px; padding: 2px 6px; border-radius: 4px;
-    background: var(--surface-2); color: var(--text-3);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-3);
   }
 
   /* ── Content layout ── */
   .metro-content {
-    display: grid; grid-template-columns: 1fr 280px; gap: 16px;
-    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
   }
 
   .metro-main {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 24px; padding: 32px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
   }
 
   .metro-sidebar {
-    display: flex; flex-direction: column; gap: 16px;
-    padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
   }
 
   /* ── Beat dots ── */
-  .beat-row { display: flex; gap: 12px; }
+  .beat-row {
+    display: flex;
+    gap: 12px;
+  }
 
   .beat-dot {
-    width: 44px; height: 44px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px; font-weight: 700; color: var(--text-3);
-    background: var(--surface-2); border: 2px solid var(--border);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-3);
+    background: var(--surface-2);
+    border: 2px solid var(--border);
     transition: all 0.08s ease-out;
   }
   .beat-dot.active {
-    background: var(--accent); color: white; border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
     transform: scale(1.15);
     box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 40%, transparent);
   }
-  .beat-dot.downbeat { font-weight: 900; }
+  .beat-dot.downbeat {
+    font-weight: 900;
+  }
   .beat-dot.downbeat.active {
     background: var(--accent);
     box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 50%, transparent);
   }
 
   /* ── BPM ── */
-  .bpm-area { display: flex; align-items: center; gap: 24px; }
+  .bpm-area {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
 
   .bpm-btn {
-    width: 40px; height: 40px; border-radius: 50%;
-    border: 1px solid var(--border); background: var(--surface);
-    color: var(--text); font-size: 20px; font-weight: 600;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: all 0.12s; font-family: inherit;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+    font-family: inherit;
   }
-  .bpm-btn:hover { background: var(--surface-hover); }
-  .bpm-btn:active { transform: scale(0.95); }
+  .bpm-btn:hover {
+    background: var(--surface-hover);
+  }
+  .bpm-btn:active {
+    transform: scale(0.95);
+  }
 
-  .bpm-display { text-align: center; }
+  .bpm-display {
+    text-align: center;
+  }
   .bpm-value {
-    font-size: 56px; font-weight: 900; letter-spacing: -3px; line-height: 1;
+    font-size: 56px;
+    font-weight: 900;
+    letter-spacing: -3px;
+    line-height: 1;
     color: var(--text);
   }
   .bpm-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase;
-    letter-spacing: 2px; margin-top: 4px; display: block;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 4px;
+    display: block;
   }
 
   .bpm-slider {
-    width: 260px; accent-color: var(--accent);
+    width: 260px;
+    accent-color: var(--accent);
     cursor: pointer;
   }
 
   /* ── Controls ── */
-  .metro-controls { display: flex; gap: 12px; align-items: center; }
+  .metro-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
 
   .tap-btn {
-    padding: 10px 24px; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--surface);
-    color: var(--text-2); font-family: inherit; font-size: 13px;
-    font-weight: 500; cursor: pointer; transition: all 0.12s;
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
   }
-  .tap-btn:hover { background: var(--surface-hover); color: var(--text); }
-  .tap-btn:active { transform: scale(0.97); }
+  .tap-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .tap-btn:active {
+    transform: scale(0.97);
+  }
 
   .play-btn {
-    width: 56px; height: 56px; border-radius: 50%;
-    border: none; background: var(--accent); color: white;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    min-width: 132px;
+    height: 56px;
+    border-radius: 999px;
+    border: none;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 18px;
+    font-size: 13px;
+    font-weight: 700;
     transition: all 0.15s;
     box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 30%, transparent);
   }
-  .play-btn:hover { filter: brightness(1.1); transform: scale(1.05); }
-  .play-btn:active { transform: scale(0.97); }
-  .play-btn.active { background: var(--red); }
+  .play-btn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.05);
+  }
+  .play-btn:active {
+    transform: scale(0.97);
+  }
+  .play-btn.active {
+    background: var(--red);
+  }
 
   /* ── Settings sidebar ── */
-  .setting-group { display: flex; flex-direction: column; gap: 8px; }
+  .setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 
   .setting-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
     letter-spacing: 1px;
   }
 
-  .pill-row { display: flex; gap: 4px; }
-  .pill-row-wrap { flex-wrap: wrap; }
+  .pill-row {
+    display: flex;
+    gap: 4px;
+  }
+  .pill-row-wrap {
+    flex-wrap: wrap;
+  }
 
   .pill {
-    padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-2); font-family: inherit;
-    font-size: 12px; cursor: pointer; transition: all 0.12s; white-space: nowrap;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
   }
-  .pill:hover { background: var(--surface-hover); color: var(--text); }
+  .pill:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
   .pill.active {
-    background: var(--accent-soft); color: var(--text); border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--text);
+    border-color: var(--accent);
     font-weight: 600;
   }
 
   .vol-slider {
-    width: 100%; accent-color: var(--accent); cursor: pointer;
+    width: 100%;
+    accent-color: var(--accent);
+    cursor: pointer;
   }
 
   /* ── Mobile ── */
   @media (max-width: 768px) {
-    .metro-content { grid-template-columns: 1fr; }
-    .metro-sidebar { order: -1; }
-    .mode-tabs { overflow-x: auto; }
+    .metro-content {
+      grid-template-columns: 1fr;
+    }
+    .metro-sidebar {
+      order: -1;
+    }
+    .mode-tabs {
+      overflow-x: auto;
+    }
   }
 
   @media (max-width: 480px) {
-    .metro-main { padding: 20px 16px; gap: 16px; }
-    .metro-sidebar { padding: 14px; }
-    .bpm-value { font-size: 44px; }
-    .bpm-slider { width: 200px; }
-    .beat-dot { width: 38px; height: 38px; font-size: 14px; }
-    .play-btn { width: 48px; height: 48px; }
+    .metro-main {
+      padding: 20px 16px;
+      gap: 16px;
+    }
+    .metro-sidebar {
+      padding: 14px;
+    }
+    .bpm-value {
+      font-size: 44px;
+    }
+    .bpm-slider {
+      width: 200px;
+    }
+    .beat-dot {
+      width: 38px;
+      height: 38px;
+      font-size: 14px;
+    }
+    .play-btn {
+      min-width: 116px;
+      height: 48px;
+      padding: 0 14px;
+    }
   }
 </style>

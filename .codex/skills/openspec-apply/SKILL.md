@@ -5,5 +5,4 @@ description: Implement tasks from an active OpenSpec change while preserving can
 
 Read the active change and `workflow/state/task-registry.md`.
 
-Implement from `tasks.md`, keep specs current, and refresh state using `workflow/scripts/tasks-sync.sh`.
-
+Implement from `tasks.md`, keep specs current, refresh the task registry with `workflow/scripts/tasks-sync.sh`, and use `workflow/scripts/milestone-sync.sh --summary "<what changed>"` at meaningful checkpoints.

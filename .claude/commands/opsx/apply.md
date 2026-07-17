@@ -13,4 +13,4 @@ Then:
 2. update canonical artifacts as understanding changes
 3. keep the main agent in an orchestration role when subagents can do scoped work
 4. refresh operational state with `workflow/scripts/tasks-sync.sh`
-
+5. checkpoint meaningful progress with `workflow/scripts/milestone-sync.sh --summary "<what changed>"`

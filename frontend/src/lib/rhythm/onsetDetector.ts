@@ -64,7 +64,7 @@ export class OnsetDetector {
       this.rafId = null;
     }
     this.source?.disconnect();
-    this.stream?.getTracks().forEach(t => t.stop());
+    this.stream?.getTracks().forEach((t) => t.stop());
     if (this.audioCtx?.state !== 'closed') {
       this.audioCtx?.close();
     }

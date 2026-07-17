@@ -1,15 +1,33 @@
 <script lang="ts">
+  import { goto } from '$app/navigation';
   import { sessionActive } from '$lib/stores/navigation';
   import { t } from '$lib/i18n';
   import PitchMeter from './PitchMeter.svelte';
   import StabilityGraph from './StabilityGraph.svelte';
   import StaffNotation from './StaffNotation.svelte';
+  import PracticeNote from './PracticeNote.svelte';
   import { playSequence } from '$lib/audio/playNote';
+  import { pitchDisplayMode } from '$lib/stores/notePreferences';
   import {
-    sessionPlan, exerciseIndex, toneIndex, tonePhase, sessionPhase,
-    toneResults, centsSamples, currentCents, currentNote, currentFrequency,
-    audioLevel, elapsedSeconds,
-    stopSession, togglePause, skipTone, nextExercise, repeatExercise,
+    completedExercises,
+    sessionPlan,
+    exerciseIndex,
+    toneIndex,
+    tonePhase,
+    sessionPhase,
+    toneResults,
+    centsSamples,
+    currentCents,
+    currentNote,
+    currentOctave,
+    currentFrequency,
+    audioLevel,
+    elapsedSeconds,
+    stopSession,
+    togglePause,
+    skipTone,
+    nextExercise,
+    repeatExercise,
   } from '$lib/stores/session';
 
   // Format seconds as MM:SS
@@ -42,17 +60,36 @@
 
   let progress = $derived.by(() => {
     const plan = $sessionPlan;
-    const eIdx = $exerciseIndex;
-    const tIdx = $toneIndex;
     if (!plan) return 0;
     const totalTones = plan.exercises.reduce((s, e) => s + e.tones.length, 0);
     if (totalTones === 0) return 0;
-    let done = 0;
-    for (let i = 0; i < eIdx; i++) {
-      done += plan.exercises[i].tones.length;
+    const archivedCount = $completedExercises.reduce((sum, run) => sum + run.results.length, 0);
+    return Math.min(1, (archivedCount + $toneResults.length) / totalTones);
+  });
+
+  let sessionRuns = $derived.by(() => {
+    const runs = [...$completedExercises];
+    if (exercise && $toneResults.length > 0) {
+      runs.push({
+        exercise,
+        results: $toneResults,
+      });
     }
-    done += tIdx;
-    return done / totalTones;
+    return runs;
+  });
+
+  let allToneResults = $derived.by(() => sessionRuns.flatMap((run) => run.results));
+  let sessionAccuracy = $derived.by(() => {
+    if (allToneResults.length === 0) return 0;
+    return Math.round(
+      (allToneResults.filter((result) => result.passed).length / allToneResults.length) * 100,
+    );
+  });
+  let avgSessionStability = $derived.by(() => {
+    if (allToneResults.length === 0) return 0;
+    return Math.round(
+      allToneResults.reduce((sum, result) => sum + result.stability, 0) / allToneResults.length,
+    );
   });
 
   let isListening = $state(false);
@@ -61,7 +98,7 @@
     if (!exercise || isListening) return;
     isListening = true;
     try {
-      await playSequence(exercise.tones.map(t => ({ note: t.note, octave: t.octave })));
+      await playSequence(exercise.tones.map((t) => ({ note: t.note, octave: t.octave })));
     } finally {
       isListening = false;
     }
@@ -75,6 +112,18 @@
     const targetMs = tone.durationSec * 1000;
     return Math.min(1, heldMs / targetMs);
   });
+
+  let sessionGuidanceKey = $derived.by(() => {
+    if ($sessionPhase === 'between_exercises') return 'session.review_choice';
+    if ($tonePhase === 'held') return 'session.guidance_held';
+    if ($tonePhase === 'detecting') return 'session.guidance_detecting';
+    return 'session.guidance_waiting';
+  });
+
+  async function finishSessionAndGo(path: string) {
+    await stopSession();
+    await goto(path);
+  }
 </script>
 
 {#if $sessionActive}
@@ -89,7 +138,11 @@
       <div class="session-steps">
         {#if $sessionPlan}
           {#each $sessionPlan.exercises as ex, i}
-            <span class="session-step" class:active={i === $exerciseIndex} class:done={i < $exerciseIndex}>
+            <span
+              class="session-step"
+              class:active={i === $exerciseIndex}
+              class:done={i < $exerciseIndex}
+            >
               {$t(ex.nameKey)}
             </span>
           {/each}
@@ -105,35 +158,87 @@
         {#if $sessionPhase === 'completed'}
           <div class="session-complete">
             <div class="complete-icon">
-              <svg viewBox="0 0 24 24" width="48" height="48"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" fill="var(--green)"/></svg>
+              <svg viewBox="0 0 24 24" width="48" height="48"
+                ><path
+                  d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
+                  fill="var(--green)"
+                /></svg
+              >
             </div>
             <h2 class="complete-title">{$t('session.session_complete')}</h2>
-            <div class="complete-stats">
-              {#each $toneResults as r}
-                <div class="complete-tone">
-                  <span class="tone-name">{r.target.note}{r.target.octave}</span>
-                  <span class="tone-cents" class:good={r.passed}>{r.passed ? fmtCents(r.avgCents) + 'ct' : '--'}</span>
+            <div class="complete-overview">
+              <div class="complete-overview-item">
+                <span class="complete-overview-value">{allToneResults.length}</span>
+                <span class="complete-overview-label">{$t('session.tones')}</span>
+              </div>
+              <div class="complete-overview-item">
+                <span class="complete-overview-value">{sessionAccuracy}%</span>
+                <span class="complete-overview-label">{$t('session.accuracy')}</span>
+              </div>
+              <div class="complete-overview-item">
+                <span class="complete-overview-value">±{avgSessionStability}ct</span>
+                <span class="complete-overview-label">{$t('session.stability')}</span>
+              </div>
+              <div class="complete-overview-item">
+                <span class="complete-overview-value">{fmtTime($elapsedSeconds)}</span>
+                <span class="complete-overview-label">{$t('progress.practice_time')}</span>
+              </div>
+            </div>
+            <div class="complete-groups">
+              {#each sessionRuns as run}
+                <div class="complete-group">
+                  <div class="complete-group-title">{$t(run.exercise.nameKey)}</div>
+                  <div class="complete-stats">
+                    {#each run.results as r}
+                      <div class="complete-tone">
+                        <span class="tone-name">
+                          <PracticeNote
+                            note={r.target.note}
+                            octave={r.target.octave}
+                            size="sm"
+                            sourceMode="written"
+                          />
+                        </span>
+                        <span class="tone-cents" class:good={r.passed}
+                          >{r.passed ? fmtCents(r.avgCents) + 'ct' : '--'}</span
+                        >
+                      </div>
+                    {/each}
+                  </div>
                 </div>
               {/each}
             </div>
           </div>
-
         {:else if $sessionPhase === 'between_exercises'}
           <div class="session-complete">
             <div class="complete-icon">
-              <svg viewBox="0 0 24 24" width="40" height="40"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z" fill="var(--green)"/></svg>
+              <svg viewBox="0 0 24 24" width="40" height="40"
+                ><path
+                  d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"
+                  fill="var(--green)"
+                /></svg
+              >
             </div>
             <h2 class="complete-title">{$t('session.exercise_complete')}</h2>
+            <p class="complete-help">{$t('session.review_choice')}</p>
             <div class="complete-stats">
               {#each $toneResults as r}
                 <div class="complete-tone">
-                  <span class="tone-name">{r.target.note}{r.target.octave}</span>
-                  <span class="tone-cents" class:good={r.passed}>{r.passed ? fmtCents(r.avgCents) + 'ct' : '--'}</span>
+                  <span class="tone-name">
+                    <PracticeNote
+                      note={r.target.note}
+                      octave={r.target.octave}
+                      size="sm"
+                      sourceMode="written"
+                    />
+                  </span>
+                  <span class="tone-cents" class:good={r.passed}
+                    >{r.passed ? fmtCents(r.avgCents) + 'ct' : '--'}</span
+                  >
                 </div>
               {/each}
             </div>
           </div>
-
         {:else}
           <!-- Staff notation for scale and custom exercises -->
           {#if exercise && (exercise.type === 'scale' || exercise.type === 'custom')}
@@ -146,10 +251,26 @@
           <div class="pitch-area">
             <div class="pitch-info">
               {#if $currentNote && ($tonePhase === 'detecting' || $tonePhase === 'held')}
-                <div class="note-big">{$currentNote}</div>
+                <div class="note-big">
+                  <PracticeNote
+                    note={$currentNote}
+                    octave={$currentOctave}
+                    size="lg"
+                    sourceMode={$pitchDisplayMode === 'concert' ? 'concert' : 'written'}
+                    accent
+                  />
+                </div>
                 <div class="hz-label">{$currentFrequency.toFixed(1)} Hz</div>
               {:else if tone}
-                <div class="note-big target">{tone.note}<sup>{tone.octave}</sup></div>
+                <div class="note-big target">
+                  <PracticeNote
+                    note={tone.note}
+                    octave={tone.octave}
+                    size="lg"
+                    sourceMode="written"
+                    muted
+                  />
+                </div>
                 <div class="hz-label">{$t('session.waiting_for_tone')}</div>
               {/if}
             </div>
@@ -162,7 +283,12 @@
           <!-- Cent display -->
           <div class="cent-display">
             {#if $tonePhase === 'detecting' || $tonePhase === 'held'}
-              <span class="cent-num" class:good={Math.abs($currentCents) <= 5} class:warn={Math.abs($currentCents) > 5 && Math.abs($currentCents) <= 15} class:bad={Math.abs($currentCents) > 15}>
+              <span
+                class="cent-num"
+                class:good={Math.abs($currentCents) <= 5}
+                class:warn={Math.abs($currentCents) > 5 && Math.abs($currentCents) <= 15}
+                class:bad={Math.abs($currentCents) > 15}
+              >
                 {fmtCents($currentCents)}
               </span>
               <span class="cent-unit">ct</span>
@@ -176,7 +302,8 @@
                 <div class="hold-fill" style="width: {holdProgress * 100}%"></div>
               </div>
               <div class="hold-label">
-                {$t('session.tone_held')} {Math.round(holdProgress * tone.durationSec)}s / {tone.durationSec}s
+                {$t('session.tone_held')}
+                {Math.round(holdProgress * tone.durationSec)}s / {tone.durationSec}s
               </div>
             </div>
           {/if}
@@ -206,17 +333,35 @@
             <div class="task-label">{$t('session.task')}</div>
             {#if tone}
               <div class="task-text">
-                {$t('session.hold_tone')} {tone.durationSec} {$t('session.seconds')}.
+                {$t('session.hold_tone')}
+                {tone.durationSec}
+                {$t('session.seconds')}.
               </div>
             {/if}
+            <div class="task-help">{$t(sessionGuidanceKey)}</div>
           </div>
 
           <!-- Listen button -->
-          <button class="listen-btn" class:playing={isListening} disabled={isListening} onclick={listenToExercise}>
+          <button
+            class="listen-btn"
+            class:playing={isListening}
+            disabled={isListening}
+            onclick={listenToExercise}
+          >
             {#if isListening}
-              <svg viewBox="0 0 24 24" width="16" height="16"><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16"
+                ><rect x="6" y="4" width="4" height="16" fill="currentColor" /><rect
+                  x="14"
+                  y="4"
+                  width="4"
+                  height="16"
+                  fill="currentColor"
+                /></svg
+              >
             {:else}
-              <svg viewBox="0 0 24 24" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16"
+                ><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" /></svg
+              >
             {/if}
             {$t('session.listen')}
           </button>
@@ -227,19 +372,33 @@
             <div class="tone-list">
               {#each exercise.tones as t, i}
                 {@const result = $toneResults[i]}
-                <div class="tone-item" class:current={i === $toneIndex} class:done={i < $toneIndex || result?.passed} class:upcoming={i > $toneIndex}>
+                <div
+                  class="tone-item"
+                  class:current={i === $toneIndex}
+                  class:done={i < $toneIndex || result?.passed}
+                  class:upcoming={i > $toneIndex}
+                >
                   <span class="tone-dot">
                     {#if result?.passed}
-                      <svg viewBox="0 0 16 16" width="14" height="14"><path d="M6 10.8L3.2 8l-.9.9L6 12.6l8-8-.9-.9L6 10.8z" fill="var(--green)"/></svg>
+                      <svg viewBox="0 0 16 16" width="14" height="14"
+                        ><path
+                          d="M6 10.8L3.2 8l-.9.9L6 12.6l8-8-.9-.9L6 10.8z"
+                          fill="var(--green)"
+                        /></svg
+                      >
                     {:else if i === $toneIndex}
                       <span class="dot-active"></span>
                     {:else}
                       <span class="dot-empty"></span>
                     {/if}
                   </span>
-                  <span class="tone-name">{t.note}{t.octave}</span>
+                  <span class="tone-name">
+                    <PracticeNote note={t.note} octave={t.octave} size="sm" sourceMode="written" />
+                  </span>
                   {#if result}
-                    <span class="tone-cents-small" class:good={result.passed}>{fmtCents(result.avgCents)}ct</span>
+                    <span class="tone-cents-small" class:good={result.passed}
+                      >{fmtCents(result.avgCents)}ct</span
+                    >
                   {/if}
                 </div>
               {/each}
@@ -252,7 +411,9 @@
               <div class="stat-label">{$t('session.accuracy')}</div>
               <div class="stat-value">
                 {#if $toneResults.length > 0}
-                  {Math.round(($toneResults.filter(r => r.passed).length / $toneResults.length) * 100)}%
+                  {Math.round(
+                    ($toneResults.filter((r) => r.passed).length / $toneResults.length) * 100,
+                  )}%
                 {:else}
                   --
                 {/if}
@@ -262,7 +423,9 @@
               <div class="stat-label">{$t('session.stability')}</div>
               <div class="stat-value">
                 {#if $toneResults.length > 0}
-                  ±{Math.round($toneResults.reduce((s, r) => s + r.stability, 0) / $toneResults.length)}ct
+                  ±{Math.round(
+                    $toneResults.reduce((s, r) => s + r.stability, 0) / $toneResults.length,
+                  )}ct
                 {:else}
                   --
                 {/if}
@@ -275,208 +438,530 @@
 
     <!-- Controls -->
     <div class="session-controls">
-      <button class="ctrl-btn" onclick={() => stopSession()}>{$t('session.done')}</button>
-      <div class="ctrl-group">
-        {#if $sessionPhase === 'between_exercises'}
-          <button class="ctrl-btn" onclick={() => repeatExercise()}>{$t('session.repeat')}</button>
-          <button class="ctrl-btn accent" onclick={() => nextExercise()}>{$t('session.next')}</button>
-        {:else if $sessionPhase === 'completed'}
-          <button class="ctrl-btn accent" onclick={() => stopSession()}>{$t('session.done')}</button>
-        {:else}
-          <button class="ctrl-btn" onclick={() => togglePause()}>
-            {$sessionPhase === 'paused' ? $t('session.resume') : $t('session.pause')}
-          </button>
-          <button class="ctrl-btn" onclick={() => skipTone()}>{$t('session.skip')}</button>
-        {/if}
-      </div>
+      {#if $sessionPhase === 'completed'}
+        <div class="ctrl-group ctrl-group-wide">
+          <button class="ctrl-btn" onclick={() => void finishSessionAndGo('/')}
+            >{$t('session.to_dashboard')}</button
+          >
+          <button class="ctrl-btn accent" onclick={() => void finishSessionAndGo('/progress')}
+            >{$t('session.view_progress')}</button
+          >
+        </div>
+      {:else}
+        <button class="ctrl-btn" onclick={() => void stopSession()}
+          >{$t('session.end_session')}</button
+        >
+        <div class="ctrl-group">
+          {#if $sessionPhase === 'between_exercises'}
+            <button class="ctrl-btn" onclick={() => repeatExercise()}
+              >{$t('session.repeat_exercise')}</button
+            >
+            <button class="ctrl-btn accent" onclick={() => nextExercise()}
+              >{$t('session.next_exercise')}</button
+            >
+          {:else}
+            <button class="ctrl-btn" onclick={() => togglePause()}>
+              {$sessionPhase === 'paused' ? $t('session.resume') : $t('session.pause')}
+            </button>
+            <button class="ctrl-btn" onclick={() => skipTone()}>{$t('session.skip')}</button>
+          {/if}
+        </div>
+      {/if}
     </div>
   </div>
 {/if}
 
 <style>
   .session-view {
-    position: fixed; inset: 0; background: var(--bg);
-    z-index: 1000; display: flex; flex-direction: column;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
     transition: background 0.3s;
   }
 
   /* ── Progress bar ── */
-  .session-progress-bar { height: 3px; background: var(--surface-2); }
+  .session-progress-bar {
+    height: 3px;
+    background: var(--surface-2);
+  }
   .session-progress-fill {
-    height: 100%; background: var(--accent); border-radius: 0 2px 2px 0;
+    height: 100%;
+    background: var(--accent);
+    border-radius: 0 2px 2px 0;
     transition: width 0.3s;
   }
 
   /* ── Top bar ── */
   .session-top-bar {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 28px; background: var(--bg-solid); border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 28px;
+    background: var(--bg-solid);
+    border-bottom: 1px solid var(--border);
   }
-  .session-steps { display: flex; gap: 16px; font-size: 12px; color: var(--text-3); }
-  .session-step.active { color: var(--text); font-weight: 600; }
-  .session-step.done { color: var(--green); }
-  .session-timer { font-size: 13px; font-weight: 600; color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .session-steps {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .session-step.active {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .session-step.done {
+    color: var(--green);
+  }
+  .session-timer {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
 
   /* ── Content layout ── */
-  .session-content { flex: 1; display: flex; overflow: hidden; }
+  .session-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
 
   .session-main {
-    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 40px; background: var(--bg-solid); gap: 8px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    background: var(--bg-solid);
+    gap: 8px;
   }
 
   .session-sidebar-panel {
-    width: 280px; padding: 28px 24px; background: var(--surface);
+    width: 280px;
+    padding: 28px 24px;
+    background: var(--surface);
     border-left: 1px solid var(--border);
-    display: flex; flex-direction: column; gap: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
     overflow-y: auto;
   }
 
   /* ── Staff notation ── */
   .staff-area {
-    width: 100%; max-width: 500px; margin-bottom: 8px;
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 8px;
     padding: 8px 12px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
   }
 
   /* ── Pitch area ── */
   .pitch-area {
-    display: flex; align-items: center; gap: 40px;
+    display: flex;
+    align-items: center;
+    gap: 40px;
   }
 
-  .pitch-info { text-align: center; }
+  .pitch-info {
+    text-align: center;
+  }
 
   .note-big {
-    font-size: 80px; font-weight: 900; letter-spacing: -3px; line-height: 1;
+    font-size: 80px;
+    font-weight: 900;
+    letter-spacing: -3px;
+    line-height: 1;
     color: var(--text);
   }
-  .note-big.target { color: var(--text-3); }
-  .note-big sup { font-size: 32px; font-weight: 600; }
+  .note-big.target {
+    color: var(--text-3);
+  }
 
-  .hz-label { font-size: 13px; color: var(--text-3); margin-top: 6px; }
+  .hz-label {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: 6px;
+  }
 
   /* ── Cent display ── */
-  .cent-display { display: flex; align-items: baseline; gap: 4px; margin-top: 8px; }
-  .cent-num { font-size: 32px; font-weight: 700; letter-spacing: -1px; color: var(--green); }
-  .cent-num.good { color: var(--green); }
-  .cent-num.warn { color: var(--amber); }
-  .cent-num.bad { color: var(--red); }
-  .cent-unit { font-size: 11px; color: var(--text-3); }
+  .cent-display {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .cent-num {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    color: var(--green);
+  }
+  .cent-num.good {
+    color: var(--green);
+  }
+  .cent-num.warn {
+    color: var(--amber);
+  }
+  .cent-num.bad {
+    color: var(--red);
+  }
+  .cent-unit {
+    font-size: 11px;
+    color: var(--text-3);
+  }
 
   /* ── Hold progress bar ── */
-  .hold-bar-wrap { width: 100%; max-width: 340px; margin-top: 16px; }
+  .hold-bar-wrap {
+    width: 100%;
+    max-width: 340px;
+    margin-top: 16px;
+  }
   .hold-bar {
-    width: 100%; height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden;
+    width: 100%;
+    height: 5px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    overflow: hidden;
   }
   .hold-fill {
-    height: 100%; border-radius: 3px;
+    height: 100%;
+    border-radius: 3px;
     background: linear-gradient(90deg, var(--accent), var(--green));
     transition: width 0.15s;
   }
   .hold-label {
-    font-size: 11px; color: var(--text-3); text-align: center; margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-3);
+    text-align: center;
+    margin-top: 6px;
     font-variant-numeric: tabular-nums;
   }
 
   /* ── Phase hints + level bars ── */
-  .phase-hint { font-size: 13px; color: var(--text-3); margin-top: 12px; }
-
-  .level-bars { display: flex; gap: 4px; margin-top: 12px; }
-  .level-bar {
-    width: 4px; height: 24px; border-radius: 2px;
-    background: var(--surface-2); transition: background 0.1s;
+  .phase-hint {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: 12px;
   }
-  .level-bar.active { background: var(--accent); }
+
+  .level-bars {
+    display: flex;
+    gap: 4px;
+    margin-top: 12px;
+  }
+  .level-bar {
+    width: 4px;
+    height: 24px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    transition: background 0.1s;
+  }
+  .level-bar.active {
+    background: var(--accent);
+  }
 
   /* ── Session complete ── */
   .session-complete {
-    display: flex; flex-direction: column; align-items: center; gap: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
   }
-  .complete-icon { opacity: 0.9; }
-  .complete-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-  .complete-stats { display: flex; gap: 20px; margin-top: 8px; }
-  .complete-tone { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .complete-tone .tone-name { font-size: 14px; font-weight: 600; }
-  .complete-tone .tone-cents { font-size: 12px; color: var(--text-3); }
-  .complete-tone .tone-cents.good { color: var(--green); }
+  .complete-icon {
+    opacity: 0.9;
+  }
+  .complete-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .complete-help {
+    margin: -6px 0 0;
+    font-size: 13px;
+    color: var(--text-3);
+    text-align: center;
+    line-height: 1.5;
+  }
+  .complete-overview {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    max-width: 720px;
+  }
+  .complete-overview-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+  .complete-overview-value {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.8px;
+  }
+  .complete-overview-label {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .complete-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+    max-width: 720px;
+  }
+  .complete-group {
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+  .complete-group-title {
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .complete-stats {
+    display: flex;
+    gap: 20px;
+    margin-top: 8px;
+  }
+  .complete-tone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .complete-tone .tone-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .complete-tone .tone-cents {
+    font-size: 12px;
+    color: var(--text-3);
+  }
+  .complete-tone .tone-cents.good {
+    color: var(--green);
+  }
 
   /* ── Sidebar: Task section ── */
-  .task-section { display: flex; flex-direction: column; gap: 6px; }
-  .task-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px;
+  .task-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
   }
-  .task-text { font-size: 14px; color: var(--text-2); line-height: 1.5; }
+  .task-label {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .task-text {
+    font-size: 14px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .task-help {
+    font-size: 12px;
+    color: var(--text-3);
+    line-height: 1.5;
+  }
 
   /* ── Listen button ── */
   .listen-btn {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 14px; border-radius: 9px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text-2); font-family: inherit;
-    font-size: 12px; cursor: pointer; transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
   }
-  .listen-btn:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
-  .listen-btn.playing { color: var(--accent); border-color: var(--accent); }
-  .listen-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .listen-btn:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .listen-btn.playing {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+  .listen-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 
   /* ── Tone list ── */
-  .tone-section { display: flex; flex-direction: column; gap: 8px; }
-  .tone-list-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px;
+  .tone-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
-  .tone-list { display: flex; flex-direction: column; gap: 6px; }
+  .tone-list-label {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .tone-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
 
   .tone-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 10px; border-radius: 8px; font-size: 13px;
-    color: var(--text-3); transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-3);
+    transition: all 0.15s;
   }
   .tone-item.current {
-    background: var(--accent-soft); color: var(--text); font-weight: 600;
+    background: var(--accent-soft);
+    color: var(--text);
+    font-weight: 600;
   }
-  .tone-item.done { color: var(--text-2); }
+  .tone-item.done {
+    color: var(--text-2);
+  }
 
-  .tone-dot { width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; }
+  .tone-dot {
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .dot-active {
-    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
     box-shadow: 0 0 8px var(--accent-soft);
   }
   .dot-empty {
-    width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid var(--text-3);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-3);
   }
 
-  .tone-item .tone-name { flex: 1; }
-  .tone-cents-small { font-size: 11px; color: var(--text-3); }
-  .tone-cents-small.good { color: var(--green); }
+  .tone-item .tone-name {
+    flex: 1;
+  }
+  .tone-cents-small {
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .tone-cents-small.good {
+    color: var(--green);
+  }
 
   /* ── Sidebar stats ── */
   .sidebar-stats {
-    display: flex; gap: 16px; margin-top: auto; padding-top: 16px;
+    display: flex;
+    gap: 16px;
+    margin-top: auto;
+    padding-top: 16px;
     border-top: 1px solid var(--border);
   }
-  .stat-item { flex: 1; }
-  .stat-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
-  .stat-value { font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+  .stat-item {
+    flex: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
 
   /* ── Controls ── */
   .session-controls {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 28px; background: var(--bg-solid); border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 28px;
+    background: var(--bg-solid);
+    border-top: 1px solid var(--border);
   }
   .ctrl-btn {
-    padding: 8px 18px; border-radius: 9px; border: 1px solid var(--border);
-    background: var(--bg-solid); color: var(--text-2); font-family: inherit;
-    font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    padding: 8px 18px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--bg-solid);
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
     box-shadow: var(--shadow-sm);
   }
-  .ctrl-btn:hover { background: var(--surface-hover); color: var(--text); }
-  .ctrl-btn.accent {
-    background: var(--accent); color: white; border-color: var(--accent);
+  .ctrl-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
   }
-  .ctrl-btn.accent:hover { filter: brightness(1.1); }
-  .ctrl-group { display: flex; gap: 8px; }
+  .ctrl-btn.accent {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .ctrl-btn.accent:hover {
+    filter: brightness(1.1);
+  }
+  .ctrl-group {
+    display: flex;
+    gap: 8px;
+  }
+  .ctrl-group-wide {
+    width: 100%;
+    justify-content: flex-end;
+  }
 
   /* ── Mobile: hide sidebar ── */
   @media (max-width: 768px) {
-    .session-sidebar-panel { display: none; }
+    .session-sidebar-panel {
+      display: none;
+    }
+    .complete-overview {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 480px) {
+    .complete-overview {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

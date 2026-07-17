@@ -22,7 +22,9 @@ export async function loadStudentName(): Promise<void> {
   try {
     const saved = await getKV(STORAGE_KEY);
     if (saved !== null) studentName.set(saved);
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 /**
@@ -32,5 +34,7 @@ export async function loadStudentName(): Promise<void> {
  */
 export function saveStudentName(name: string): void {
   studentName.set(name);
-  setKV(STORAGE_KEY, name).catch(() => { /* non-fatal */ });
+  setKV(STORAGE_KEY, name).catch(() => {
+    /* non-fatal */
+  });
 }

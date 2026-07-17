@@ -53,24 +53,45 @@
 </div>
 
 <style>
-  .stability-graph { width: 100%; max-width: 500px; margin-top: 32px; }
+  .stability-graph {
+    width: 100%;
+    max-width: 500px;
+    margin-top: 32px;
+  }
 
   .stab-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase;
-    letter-spacing: 1px; margin-bottom: 8px;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
   }
 
   .stab-canvas {
-    width: 100%; height: 48px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 10px;
-    position: relative; overflow: hidden;
+    width: 100%;
+    height: 48px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
   }
 
   .stab-line {
-    position: absolute; top: 50%; left: 0; right: 0;
-    height: 1px; background: var(--stab-line);
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--stab-line);
   }
 
-  .stab-path { position: absolute; inset: 0; }
-  .stab-path svg { width: 100%; height: 100%; }
+  .stab-path {
+    position: absolute;
+    inset: 0;
+  }
+  .stab-path svg {
+    width: 100%;
+    height: 100%;
+  }
 </style>

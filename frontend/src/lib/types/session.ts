@@ -1,7 +1,7 @@
 /** Tone target within an exercise. */
 export interface ToneTarget {
-  note: string;        // e.g. "Bb"
-  octave: number;      // e.g. 4
+  note: string; // e.g. "Bb"
+  octave: number; // e.g. 4
   durationSec: number; // e.g. 8
 }
 
@@ -9,8 +9,8 @@ export interface ToneTarget {
 export interface ToneResult {
   target: ToneTarget;
   avgCents: number;
-  stability: number;      // std deviation of cent samples
-  durationHeld: number;   // actual seconds held stable
+  stability: number; // std deviation of cent samples
+  durationHeld: number; // actual seconds held stable
   centsSamples: number[]; // raw samples for stability graph
   passed: boolean;
 }

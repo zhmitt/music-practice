@@ -17,6 +17,39 @@ pub struct PitchResult {
     pub timestamp_ms: u64,
 }
 
+/// Live snapshot of the audio pipeline for in-app debugging.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AudioDebugSnapshot {
+    /// Whether the CPAL input stream is currently active.
+    pub is_running: bool,
+    /// Active input sample rate.
+    pub sample_rate: u32,
+    /// Currently active input device name, if known.
+    pub active_device_name: Option<String>,
+    /// Current detector state (`idle`, `buffering`, `no_signal`, `low_confidence`, etc.).
+    pub detector_status: String,
+    /// Latest meter snapshot.
+    pub audio_level: AudioLevel,
+    /// Buffered sample count available for the rolling pitch analysis.
+    pub analysis_buffer_len: usize,
+    /// Window size used for pitch analysis.
+    pub window_size: usize,
+    /// Raw frequency estimate before confidence / range filtering.
+    pub raw_frequency_hz: Option<f64>,
+    /// Raw confidence estimate before final filtering.
+    pub raw_confidence: Option<f64>,
+    /// Tentative pitch mapping for the raw estimate, even when final detection fails.
+    pub tentative_pitch: Option<PitchResult>,
+    /// Final filtered pitch result, if any.
+    pub latest_pitch: Option<PitchResult>,
+    /// Current reference tuning for A4 in Hz.
+    pub reference_a4: f64,
+    /// Current instrument profile name.
+    pub instrument_name: String,
+    /// Current display mode (`notated` or `concert`).
+    pub display_mode: String,
+}
+
 /// Current audio input level for UI metering.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioLevel {
@@ -34,6 +67,27 @@ impl Default for AudioLevel {
             rms: 0.0,
             peak: 0.0,
             is_clipping: false,
+        }
+    }
+}
+
+impl Default for AudioDebugSnapshot {
+    fn default() -> Self {
+        Self {
+            is_running: false,
+            sample_rate: 0,
+            active_device_name: None,
+            detector_status: "idle".to_string(),
+            audio_level: AudioLevel::default(),
+            analysis_buffer_len: 0,
+            window_size: 0,
+            raw_frequency_hz: None,
+            raw_confidence: None,
+            tentative_pitch: None,
+            latest_pitch: None,
+            reference_a4: 442.0,
+            instrument_name: "Horn in Bb".to_string(),
+            display_mode: "notated".to_string(),
         }
     }
 }
@@ -63,6 +117,7 @@ pub enum AudioError {
     UnsupportedSampleRate,
     DeviceDisconnected { device_name: String },
     StreamInterrupted,
+    AudioSubsystemUnavailable,
     Unknown(String),
 }
 
@@ -76,6 +131,7 @@ impl std::fmt::Display for AudioError {
                 write!(f, "Device disconnected: {}", device_name)
             }
             Self::StreamInterrupted => write!(f, "Audio stream interrupted"),
+            Self::AudioSubsystemUnavailable => write!(f, "Audio subsystem unavailable"),
             Self::Unknown(msg) => write!(f, "Audio error: {}", msg),
         }
     }
@@ -110,16 +166,11 @@ pub struct StabilityMeasurement {
 }
 
 /// Display mode for note names.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DisplayMode {
     /// Show note names as written for the transposing instrument.
+    #[default]
     Notated,
     /// Show concert pitch note names.
     Concert,
-}
-
-impl Default for DisplayMode {
-    fn default() -> Self {
-        Self::Notated
-    }
 }

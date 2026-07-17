@@ -16,6 +16,16 @@
 
   import type { ToneTarget } from '$lib/types/session';
   import { t } from '$lib/i18n';
+  import {
+    acquireAudioLease,
+    releaseAudioLease,
+    type AudioLeaseHandle,
+  } from '$lib/stores/audioPreferences';
+  import { invokeTauri } from '$lib/tauri/runtime';
+  import { selectedInstrument } from '$lib/stores/onboarding';
+  import { getPitchDisplayModeValue } from '$lib/stores/notePreferences';
+  import { matchesDisplayedTone } from '$lib/music/noteUtils';
+  import PracticeNote from './PracticeNote.svelte';
   import StaffNotation from './StaffNotation.svelte';
 
   /** Per-note outcome recorded after the play-along finishes. */
@@ -75,7 +85,9 @@
   let noteCentsSamples: number[] = [];
   let noteDetected = false;
 
-  let tickInterval: ReturnType<typeof setInterval> | null = null;
+  let tickTimer: ReturnType<typeof setTimeout> | null = null;
+  let pollingGeneration = 0;
+  let audioLease: AudioLeaseHandle | null = null;
   let advanceTimeout: ReturnType<typeof setTimeout> | null = null;
 
   let scrollContainer: HTMLDivElement | undefined = $state();
@@ -85,7 +97,7 @@
   /** Summary statistics once the play-along is complete. */
   let score = $derived.by(() => {
     if (results.length === 0) return { passed: 0, total: 0, pct: 0, avgAbsCents: 0 };
-    const passed = results.filter(r => r.passed).length;
+    const passed = results.filter((r) => r.passed).length;
     const avgAbsCents = results.reduce((sum, r) => sum + Math.abs(r.avgCents), 0) / results.length;
     return {
       passed,
@@ -98,7 +110,7 @@
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /** Duration in milliseconds for one beat at the current BPM. */
@@ -147,18 +159,21 @@
     if (phase !== 'playing' || currentIdx < 0 || currentIdx >= tones.length) return;
 
     try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      // get_pitch returns { note_name, octave, cent_deviation, confidence } or null
-      const pitch = await invoke<{
-        note_name: string;
-        octave: number;
-        cent_deviation: number;
-        confidence: number;
-      } | null>('get_pitch');
+      const pitch = await invokeTauri('get_pitch');
 
       if (pitch && pitch.confidence >= MIN_CONFIDENCE) {
         const target = tones[currentIdx];
-        if (pitch.note_name === target.note && pitch.octave === target.octave) {
+        const targetMode = getPitchDisplayModeValue() === 'concert' ? 'concert' : 'written';
+        if (
+          matchesDisplayedTone(
+            pitch.note_name,
+            pitch.octave,
+            target,
+            $selectedInstrument,
+            'written',
+            targetMode,
+          )
+        ) {
           noteDetected = true;
           noteCentsSamples.push(pitch.cent_deviation);
         }
@@ -166,6 +181,17 @@
     } catch {
       // Backend may not be active (desktop required); fail silently
     }
+  }
+
+  function schedulePitchTick(generation: number): void {
+    if (generation !== pollingGeneration || phase !== 'playing') return;
+    tickTimer = setTimeout(async () => {
+      try {
+        await tickPitch();
+      } finally {
+        schedulePitchTick(generation);
+      }
+    }, TICK_MS);
   }
 
   /** Commit the current note's result and move to the next note (or finish). */
@@ -210,6 +236,7 @@
 
   /** Begin the full play-along sequence. */
   async function startPlayAlong(): Promise<void> {
+    const generation = ++pollingGeneration;
     // Reset all state
     results = [];
     currentIdx = -1;
@@ -221,33 +248,37 @@
       await sleep(700);
     }
 
-    // Attempt to start Tauri audio (desktop only; silently skip in browser)
-    try {
-      const { invoke } = await import('@tauri-apps/api/core');
-      await invoke('start_audio', { deviceName: null });
-    } catch {
-      // Not available in browser dev — that's fine
+    const acquiredLease = await acquireAudioLease('playalong');
+    if (generation !== pollingGeneration) {
+      if (acquiredLease) await releaseAudioLease(acquiredLease);
+      return;
     }
+    if (!acquiredLease) {
+      phase = 'idle';
+      return;
+    }
+    audioLease = acquiredLease;
 
     phase = 'playing';
     startNote(0);
-    tickInterval = setInterval(tickPitch, TICK_MS);
+    schedulePitchTick(generation);
   }
 
   /** Clean up timers and stop audio. */
   function teardown(): void {
-    if (tickInterval !== null) {
-      clearInterval(tickInterval);
-      tickInterval = null;
+    pollingGeneration++;
+    if (tickTimer !== null) {
+      clearTimeout(tickTimer);
+      tickTimer = null;
     }
     if (advanceTimeout !== null) {
       clearTimeout(advanceTimeout);
       advanceTimeout = null;
     }
-    // Stop Tauri audio capture
-    import('@tauri-apps/api/core')
-      .then(({ invoke }) => invoke('stop_audio'))
-      .catch(() => {});
+    if (audioLease) {
+      void releaseAudioLease(audioLease);
+      audioLease = null;
+    }
   }
 
   /** Called when all notes have been processed. */
@@ -315,11 +346,11 @@
       </button>
     </div>
 
-  <!-- ── COUNTDOWN ── -->
+    <!-- ── COUNTDOWN ── -->
   {:else if phase === 'countdown'}
     <div class="pa-countdown" role="status" aria-live="polite">{countdownNum}</div>
 
-  <!-- ── PLAYING ── -->
+    <!-- ── PLAYING ── -->
   {:else if phase === 'playing'}
     <div class="pa-playing-bar">
       <span class="pa-progress" aria-live="polite">
@@ -328,7 +359,7 @@
       <button class="pa-stop-btn" onclick={stopPlayAlong}>{$t('playalong.stop')}</button>
     </div>
 
-  <!-- ── COMPLETE ── -->
+    <!-- ── COMPLETE ── -->
   {:else if phase === 'complete'}
     <div class="pa-results">
       <div class="pa-score-row">
@@ -347,7 +378,12 @@
             class:undetected={!r.detected}
             role="listitem"
           >
-            {r.target.note}{r.target.octave}
+            <PracticeNote
+              note={r.target.note}
+              octave={r.target.octave}
+              size="sm"
+              sourceMode="written"
+            />
             {#if r.detected}
               <small>{fmtCents(r.avgCents)}ct</small>
             {:else}
@@ -410,9 +446,16 @@
     transition: background 0.2s;
   }
 
-  .pa-dot.passed    { background: var(--green); }
-  .pa-dot.missed    { background: var(--amber); }
-  .pa-dot.undetected { background: var(--red); opacity: 0.45; }
+  .pa-dot.passed {
+    background: var(--green);
+  }
+  .pa-dot.missed {
+    background: var(--amber);
+  }
+  .pa-dot.undetected {
+    background: var(--red);
+    opacity: 0.45;
+  }
 
   /* ── Idle controls ── */
   .pa-controls {
@@ -565,9 +608,17 @@
     gap: 1px;
   }
 
-  .pa-note-chip.passed    { background: rgba(34,197,94,0.1); color: var(--green); }
-  .pa-note-chip.missed    { background: rgba(245,158,11,0.1); color: var(--amber); }
-  .pa-note-chip.undetected { opacity: 0.45; }
+  .pa-note-chip.passed {
+    background: rgba(34, 197, 94, 0.1);
+    color: var(--green);
+  }
+  .pa-note-chip.missed {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--amber);
+  }
+  .pa-note-chip.undetected {
+    opacity: 0.45;
+  }
 
   .pa-note-chip small {
     font-size: 9px;

@@ -20,12 +20,12 @@ function mapNoteStep(step: string, alter: number): string {
   if (alter === 1) {
     const sharpMap: Record<string, string> = {
       C: 'C#',
-      D: 'Eb',  // D# enharmonic = Eb
-      E: 'F',   // E# enharmonic = F
+      D: 'Eb', // D# enharmonic = Eb
+      E: 'F', // E# enharmonic = F
       F: 'F#',
-      G: 'Ab',  // G# enharmonic = Ab
-      A: 'Bb',  // A# enharmonic = Bb
-      B: 'C',   // B# enharmonic = C
+      G: 'Ab', // G# enharmonic = Ab
+      A: 'Bb', // A# enharmonic = Bb
+      B: 'C', // B# enharmonic = C
     };
     return sharpMap[step] ?? step;
   }
@@ -33,11 +33,11 @@ function mapNoteStep(step: string, alter: number): string {
   // Flats: Eb, Ab, Bb are canonical. Db→C#, Gb→F#
   if (alter === -1) {
     const flatMap: Record<string, string> = {
-      C: 'B',   // Cb enharmonic = B
-      D: 'C#',  // Db enharmonic = C#
+      C: 'B', // Cb enharmonic = B
+      D: 'C#', // Db enharmonic = C#
       E: 'Eb',
-      F: 'E',   // Fb enharmonic = E
-      G: 'F#',  // Gb enharmonic = F#
+      F: 'E', // Fb enharmonic = E
+      G: 'F#', // Gb enharmonic = F#
       A: 'Ab',
       B: 'Bb',
     };

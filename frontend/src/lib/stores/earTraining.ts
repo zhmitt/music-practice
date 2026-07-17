@@ -9,6 +9,10 @@
 import { writable, get } from 'svelte/store';
 import { playNote } from '$lib/audio/playNote';
 import { currentNote, currentOctave, currentCents, isDetecting } from './tonelab';
+import { selectedInstrument } from './onboarding';
+import { getPitchDisplayModeValue } from './notePreferences';
+import { matchesDisplayedTone } from '$lib/music/noteUtils';
+import { getInstrumentPracticeProfile } from '$lib/music/practiceProfiles';
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
@@ -54,10 +58,6 @@ let lastDetectedNote = '';
 
 // ── Helpers ──
 
-const ROOT_NOTES: Array<[string, number]> = [
-  ['C', 4], ['D', 4], ['Eb', 4], ['F', 4], ['G', 4], ['A', 4], ['Bb', 4],
-];
-
 function noteToMidi(note: string, octave: number): number {
   const idx = NOTE_NAMES.indexOf(note);
   return (octave + 1) * 12 + (idx >= 0 ? idx : 0);
@@ -76,10 +76,10 @@ function midiToNote(midi: number): { note: string; octave: number } {
  */
 function getActiveIntervals(): typeof INTERVALS {
   const results = get(earResults);
-  const correct = results.filter(r => r.correct).length;
-  if (correct < 3) return INTERVALS.filter(i => [0, 7, 12].includes(i.semitones));
-  if (correct < 6) return INTERVALS.filter(i => [0, 4, 5, 7, 12].includes(i.semitones));
-  if (correct < 10) return INTERVALS.filter(i => [0, 2, 3, 4, 5, 7, 12].includes(i.semitones));
+  const correct = results.filter((r) => r.correct).length;
+  if (correct < 3) return INTERVALS.filter((i) => [0, 7, 12].includes(i.semitones));
+  if (correct < 6) return INTERVALS.filter((i) => [0, 4, 5, 7, 12].includes(i.semitones));
+  if (correct < 10) return INTERVALS.filter((i) => [0, 2, 3, 4, 5, 7, 12].includes(i.semitones));
   return INTERVALS;
 }
 
@@ -94,7 +94,8 @@ export async function startIntervalId(): Promise<void> {
   earPhase.set('listening');
   earFeedback.set('');
 
-  const root = ROOT_NOTES[Math.floor(Math.random() * ROOT_NOTES.length)];
+  const roots = getInstrumentPracticeProfile(get(selectedInstrument)).earRootsConcert;
+  const root = roots[Math.floor(Math.random() * roots.length)];
   const intervals = getActiveIntervals();
   const interval = intervals[Math.floor(Math.random() * intervals.length)];
 
@@ -106,7 +107,7 @@ export async function startIntervalId(): Promise<void> {
   earCurrentQuestion.set(`${root[0]}${root[1]} → ${target.note}${target.octave}`);
 
   await playNote(root[0], root[1], 800, 0.3);
-  await new Promise(r => setTimeout(r, 200));
+  await new Promise((r) => setTimeout(r, 200));
   await playNote(target.note, target.octave, 800, 0.3);
 
   earPhase.set('answering');
@@ -119,7 +120,7 @@ export async function startIntervalId(): Promise<void> {
  */
 export function answerIntervalId(intervalKey: string): void {
   const correct = intervalKey === currentAnswer;
-  earResults.update(r => [...r, { correct, detail: currentAnswer }]);
+  earResults.update((r) => [...r, { correct, detail: currentAnswer }]);
   earFeedback.set(correct ? 'correct' : 'wrong');
   earPhase.set('result');
 }
@@ -137,10 +138,11 @@ export async function startMelodicDictation(): Promise<void> {
   earFeedback.set('');
 
   const results = get(earResults);
-  const correct = results.filter(r => r.correct).length;
+  const correct = results.filter((r) => r.correct).length;
   const length = correct < 5 ? 3 : correct < 10 ? 4 : 5;
 
-  const root = ROOT_NOTES[Math.floor(Math.random() * ROOT_NOTES.length)];
+  const roots = getInstrumentPracticeProfile(get(selectedInstrument)).earRootsConcert;
+  const root = roots[Math.floor(Math.random() * roots.length)];
   const rootMidi = noteToMidi(root[0], root[1]);
   const melody: Array<{ note: string; octave: number }> = [];
 
@@ -155,11 +157,11 @@ export async function startMelodicDictation(): Promise<void> {
 
   for (const n of melody) {
     await playNote(n.note, n.octave, 600, 0.3);
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise((r) => setTimeout(r, 150));
   }
 
   earPhase.set('answering');
-  earCurrentQuestion.set(melody.map(n => `${n.note}${n.octave}`).join(' '));
+  earCurrentQuestion.set(melody.map((n) => `${n.note}${n.octave}`).join(' '));
 
   holdStartMs = 0;
   lastDetectedNote = '';
@@ -186,7 +188,7 @@ function checkMelodicPitch(): void {
 
   const noteKey = `${note}${octave}`;
   const expected = melody[melodyIdx];
-  const expectedKey = `${expected.note}${expected.octave}`;
+  const targetMode = getPitchDisplayModeValue() === 'concert' ? 'concert' : 'written';
 
   if (noteKey !== lastDetectedNote) {
     lastDetectedNote = noteKey;
@@ -195,21 +197,32 @@ function checkMelodicPitch(): void {
 
   if (Date.now() - holdStartMs < 400) return;
 
-  if (noteKey === expectedKey) {
+  if (
+    matchesDisplayedTone(note, octave, expected, get(selectedInstrument), 'concert', targetMode)
+  ) {
     melodyIdx++;
     earMelodyProgress.set(melodyIdx);
     holdStartMs = 0;
     lastDetectedNote = '';
 
     if (melodyIdx >= melody.length) {
-      if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
-      earResults.update(r => [...r, { correct: true, detail: 'melody_complete' }]);
+      if (checkInterval) {
+        clearInterval(checkInterval);
+        checkInterval = null;
+      }
+      earResults.update((r) => [...r, { correct: true, detail: 'melody_complete' }]);
       earFeedback.set('correct');
       earPhase.set('result');
     }
   } else {
-    if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
-    earResults.update(r => [...r, { correct: false, detail: `expected ${expectedKey} got ${noteKey}` }]);
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
+    earResults.update((r) => [
+      ...r,
+      { correct: false, detail: `expected ${expected.note}${expected.octave} got ${noteKey}` },
+    ]);
     earFeedback.set('wrong');
     earPhase.set('result');
   }
@@ -229,8 +242,9 @@ export async function startPitchMemory(): Promise<void> {
   earPhase.set('listening');
   earFeedback.set('');
 
-  const root = ROOT_NOTES[Math.floor(Math.random() * ROOT_NOTES.length)];
-  const octaveShift = Math.random() > 0.5 ? 0 : (Math.random() > 0.5 ? 1 : -1);
+  const roots = getInstrumentPracticeProfile(get(selectedInstrument)).earRootsConcert;
+  const root = roots[Math.floor(Math.random() * roots.length)];
+  const octaveShift = Math.random() > 0.5 ? 0 : Math.random() > 0.5 ? 1 : -1;
   memoryNote = { note: root[0], octave: root[1] + octaveShift };
 
   earCurrentQuestion.set(`${memoryNote.note}${memoryNote.octave}`);
@@ -239,7 +253,7 @@ export async function startPitchMemory(): Promise<void> {
   await playNote(memoryNote.note, memoryNote.octave, 1200, 0.3);
 
   earCurrentQuestion.set('...');
-  await new Promise(r => setTimeout(r, 3000));
+  await new Promise((r) => setTimeout(r, 3000));
 
   earPhase.set('answering');
   earCurrentQuestion.set('?');
@@ -250,8 +264,11 @@ export async function startPitchMemory(): Promise<void> {
 
   setTimeout(() => {
     if (get(earPhase) === 'answering' && get(earMode) === 'pitch_memory') {
-      if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
-      earResults.update(r => [...r, { correct: false, detail: 'timeout' }]);
+      if (checkInterval) {
+        clearInterval(checkInterval);
+        checkInterval = null;
+      }
+      earResults.update((r) => [...r, { correct: false, detail: 'timeout' }]);
       earFeedback.set('wrong');
       earPhase.set('result');
     }
@@ -274,7 +291,7 @@ function checkMemoryPitch(): void {
   }
 
   const noteKey = `${note}${octave}`;
-  const expectedKey = `${memoryNote.note}${memoryNote.octave}`;
+  const targetMode = getPitchDisplayModeValue() === 'concert' ? 'concert' : 'written';
 
   if (noteKey !== lastDetectedNote) {
     lastDetectedNote = noteKey;
@@ -283,10 +300,24 @@ function checkMemoryPitch(): void {
 
   if (Date.now() - holdStartMs < 600) return;
 
-  if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
 
-  const correct = noteKey === expectedKey && Math.abs(cents) <= 20;
-  earResults.update(r => [...r, { correct, detail: `${expectedKey} → ${noteKey}` }]);
+  const correct =
+    matchesDisplayedTone(
+      note,
+      octave,
+      memoryNote,
+      get(selectedInstrument),
+      'concert',
+      targetMode,
+    ) && Math.abs(cents) <= 20;
+  earResults.update((r) => [
+    ...r,
+    { correct, detail: `${memoryNote.note}${memoryNote.octave} → ${noteKey}` },
+  ]);
   earFeedback.set(correct ? 'correct' : 'wrong');
   earPhase.set('result');
 }
@@ -298,7 +329,10 @@ function checkMemoryPitch(): void {
  * Safe to call even when no session is running.
  */
 export function stopEarTraining(): void {
-  if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
   earPhase.set('idle');
   earFeedback.set('');
   earCurrentQuestion.set('');
@@ -313,7 +347,7 @@ export function stopEarTraining(): void {
  */
 export function getEarScore(): { total: number; correct: number } {
   const results = get(earResults);
-  return { total: results.length, correct: results.filter(r => r.correct).length };
+  return { total: results.length, correct: results.filter((r) => r.correct).length };
 }
 
 /** Reset the result history (called at the start of each new sub-mode session). */

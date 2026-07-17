@@ -1,5 +1,9 @@
 import { writable, get } from 'svelte/store';
 import { currentNote, currentOctave, currentCents, isDetecting } from './tonelab';
+import { selectedInstrument } from './onboarding';
+import { getPitchDisplayModeValue } from './notePreferences';
+import { matchesDisplayedTone } from '$lib/music/noteUtils';
+import { getInstrumentPracticeProfile } from '$lib/music/practiceProfiles';
 
 export interface TargetResult {
   note: string;
@@ -8,19 +12,6 @@ export interface TargetResult {
   holdMs: number;
   passed: boolean;
 }
-
-// Available target notes per instrument key (same approach as exercises)
-const TARGET_NOTES: Record<string, Array<[string, number]>> = {
-  bb: [
-    ['Bb', 3], ['C', 4], ['D', 4], ['Eb', 4], ['F', 4], ['G', 4], ['A', 4], ['Bb', 4],
-  ],
-  f: [
-    ['F', 3], ['G', 3], ['A', 3], ['Bb', 3], ['C', 4], ['D', 4], ['E', 4], ['F', 4],
-  ],
-  concert: [
-    ['C', 4], ['D', 4], ['E', 4], ['F', 4], ['G', 4], ['A', 4], ['B', 4], ['C', 5],
-  ],
-};
 
 export type TargetPhase = 'idle' | 'waiting' | 'detecting' | 'held' | 'result';
 
@@ -34,18 +25,9 @@ export const targetCurrentCentsAvg = writable(0);
 let holdStartMs = 0;
 let centsSamples: number[] = [];
 let checkInterval: ReturnType<typeof setInterval> | null = null;
-let instrumentKey = 'bb';
 
 const HOLD_REQUIRED_MS = 2000; // must hold 2 seconds
-const TOLERANCE_CENTS = 15;    // note must be within 15 cents
-
-/**
- * Set the instrument transposition key used to pick target notes.
- * @param key - One of 'bb', 'f', or 'concert'
- */
-export function setInstrumentKey(key: string): void {
-  instrumentKey = key;
-}
+const TOLERANCE_CENTS = 15; // note must be within 15 cents
 
 /**
  * Start a new target training session. Clears previous results and picks the first target.
@@ -59,7 +41,10 @@ export function startTargetTraining(): void {
  * Stop the current target training session and reset all state to idle.
  */
 export function stopTargetTraining(): void {
-  if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
   targetPhase.set('idle');
   targetNote.set('');
   targetOctave.set(0);
@@ -72,9 +57,12 @@ export function stopTargetTraining(): void {
  * Advance to the next randomly selected target note, avoiding consecutive repeats.
  */
 export function nextTarget(): void {
-  if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
 
-  const notes = TARGET_NOTES[instrumentKey] || TARGET_NOTES['bb'];
+  const notes = getInstrumentPracticeProfile(get(selectedInstrument)).targetNotesWritten;
   // Pick a random note, avoid repeating the last one
   const lastNote = get(targetNote);
   const lastOctave = get(targetOctave);
@@ -106,7 +94,17 @@ function checkPitch(): void {
   const tgt = get(targetNote);
   const tgtOct = get(targetOctave);
 
-  const noteMatches = detecting && note === tgt && octave === tgtOct;
+  const targetMode = getPitchDisplayModeValue() === 'concert' ? 'concert' : 'written';
+  const noteMatches =
+    detecting &&
+    matchesDisplayedTone(
+      note,
+      octave,
+      { note: tgt, octave: tgtOct },
+      get(selectedInstrument),
+      'written',
+      targetMode,
+    );
 
   if (!noteMatches) {
     // Reset hold if wrong note or no detection
@@ -143,7 +141,10 @@ function checkPitch(): void {
 
   // Complete!
   if (elapsed >= HOLD_REQUIRED_MS) {
-    if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
 
     const avgCents = centsSamples.reduce((a, b) => a + b, 0) / centsSamples.length;
     const passed = Math.abs(avgCents) <= TOLERANCE_CENTS;
@@ -156,7 +157,7 @@ function checkPitch(): void {
       passed,
     };
 
-    targetResults.update(r => [...r, result]);
+    targetResults.update((r) => [...r, result]);
     targetPhase.set('result');
   }
 }
@@ -173,7 +174,7 @@ function checkPitch(): void {
 export function getTargetScore(): { total: number; passed: number; avgCents: number } {
   const results = get(targetResults);
   if (results.length === 0) return { total: 0, passed: 0, avgCents: 0 };
-  const passed = results.filter(r => r.passed).length;
+  const passed = results.filter((r) => r.passed).length;
   const avgCents = results.reduce((s, r) => s + Math.abs(r.avgCents), 0) / results.length;
   return { total: results.length, passed, avgCents };
 }

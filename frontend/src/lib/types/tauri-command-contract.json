@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "commands": [
+    "get_audio_debug()->TauriAudioDebugSnapshot",
+    "get_audio_level()->TauriAudioLevel",
+    "get_devices()->TauriAudioDeviceInfo[]",
+    "get_pitch()->TauriPitchResult|null",
+    "is_audio_running()->boolean",
+    "is_drone_playing()->boolean",
+    "set_display_mode(mode:string)->void",
+    "set_drone_note(note:string,octave:number,referenceA4:number)->void",
+    "set_instrument_profile(profileName:string)->void",
+    "set_reference_tuning(hz:number)->void",
+    "start_audio(deviceName:string|null)->void",
+    "start_drone(note:string,octave:number,referenceA4:number)->void",
+    "stop_audio()->void",
+    "stop_drone()->void"
+  ]
+}

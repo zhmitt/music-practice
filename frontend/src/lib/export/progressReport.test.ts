@@ -116,8 +116,8 @@ describe('generateProgressReport', () => {
 
     it('computes totalMinutes by summing durationSeconds and rounding to minutes', () => {
       vi.mocked(getHistory).mockReturnValue([
-        makeSession({ durationSeconds: 90 }),  // 1.5 min
-        makeSession({ durationSeconds: 90 }),  // 1.5 min → total 3 min
+        makeSession({ durationSeconds: 90 }), // 1.5 min
+        makeSession({ durationSeconds: 90 }), // 1.5 min → total 3 min
       ]);
       const report = generateProgressReport('Alice');
       expect(report.summary.totalMinutes).toBe(3);
@@ -195,9 +195,7 @@ describe('generateProgressReport', () => {
     });
 
     it('each weakSpot has note, avgCents, and count fields', () => {
-      vi.mocked(getNoteTendencies).mockReturnValue([
-        { note: 'Bb4', avgCents: 15, count: 3 },
-      ]);
+      vi.mocked(getNoteTendencies).mockReturnValue([{ note: 'Bb4', avgCents: 15, count: 3 }]);
       const report = generateProgressReport('Alice');
 
       expect(report.weakSpots[0]).toMatchObject({

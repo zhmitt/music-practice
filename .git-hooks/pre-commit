@@ -31,7 +31,15 @@ if [[ -n "$task_file_changes" ]] || echo "$staged_files" | grep -q '^workflow/st
   fi
 fi
 
-if [[ -x "workflow/scripts/post-impl-check.sh" ]] && ! workflow/scripts/post-impl-check.sh --staged >/dev/null 2>&1; then
+declared_change="${OPENSPEC_CHANGE:-}"
+if [[ -z "$declared_change" && -f ".git/COMMIT_EDITMSG" ]]; then
+  declared_change="$(sed -nE 's/^OpenSpec-Change:[[:space:]]*([A-Za-z0-9][A-Za-z0-9._-]*)[[:space:]]*$/\1/p' .git/COMMIT_EDITMSG | tail -n 1)"
+fi
+post_check_args=(--staged)
+if [[ -n "$declared_change" ]]; then
+  post_check_args+=(--change "$declared_change")
+fi
+if [[ -x "workflow/scripts/post-impl-check.sh" ]] && ! workflow/scripts/post-impl-check.sh "${post_check_args[@]}" >/dev/null 2>&1; then
   echo ""
   echo "❌ Commit blocked: canonical post-implementation evidence is missing."
   echo "Stage updates in openspec/, workflow/state/, or docs/ before committing code."

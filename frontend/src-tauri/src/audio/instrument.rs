@@ -63,8 +63,8 @@ impl InstrumentProfile {
         Self {
             name: "Trumpet in Bb".to_string(),
             transposition_semitones: 2,
-            min_hz: 165.0,  // E3 concert (~164.8 Hz)
-            max_hz: 932.0,  // Bb5 concert (~932.3 Hz)
+            min_hz: 165.0, // E3 concert (~164.8 Hz)
+            max_hz: 932.0, // Bb5 concert (~932.3 Hz)
             typical_partials: vec![1.0, 2.0, 3.0, 4.0, 5.0],
         }
     }
@@ -113,8 +113,8 @@ impl InstrumentProfile {
         Self {
             name: "Trombone".to_string(),
             transposition_semitones: 0,
-            min_hz: 82.0,   // E2 (~82.4 Hz)
-            max_hz: 698.0,  // F5 (~698.5 Hz)
+            min_hz: 82.0,  // E2 (~82.4 Hz)
+            max_hz: 698.0, // F5 (~698.5 Hz)
             typical_partials: vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0],
         }
     }
@@ -226,8 +226,8 @@ mod tests {
     fn test_trumpet_bb_range() {
         let p = InstrumentProfile::trumpet_bb();
         assert_eq!(p.transposition_semitones, 2);
-        assert!(p.in_range(440.0));   // A4 — well within range
-        assert!(!p.in_range(80.0));   // E2 — too low for trumpet
+        assert!(p.in_range(440.0)); // A4 — well within range
+        assert!(!p.in_range(80.0)); // E2 — too low for trumpet
         assert!(!p.in_range(2000.0)); // too high
     }
 
@@ -243,24 +243,24 @@ mod tests {
     fn test_flute_concert_pitch() {
         let p = InstrumentProfile::flute();
         assert_eq!(p.transposition_semitones, 0);
-        assert!(p.in_range(440.0));   // A4
-        assert!(!p.in_range(100.0));  // below flute range
+        assert!(p.in_range(440.0)); // A4
+        assert!(!p.in_range(100.0)); // below flute range
     }
 
     #[test]
     fn test_trombone_low_range() {
         let p = InstrumentProfile::trombone();
         assert_eq!(p.transposition_semitones, 0);
-        assert!(p.in_range(100.0));   // low brass range
-        assert!(!p.in_range(50.0));   // below E2
+        assert!(p.in_range(100.0)); // low brass range
+        assert!(!p.in_range(50.0)); // below E2
     }
 
     #[test]
     fn test_oboe_range() {
         let p = InstrumentProfile::oboe();
         assert_eq!(p.transposition_semitones, 0);
-        assert!(p.in_range(440.0));   // A4
-        assert!(!p.in_range(100.0));  // below oboe range
+        assert!(p.in_range(440.0)); // A4
+        assert!(!p.in_range(100.0)); // below oboe range
     }
 
     #[test]
@@ -268,7 +268,7 @@ mod tests {
         let p = InstrumentProfile::double_horn();
         assert_eq!(p.transposition_semitones, 2);
         // Double horn should have the widest range (F side low + Bb side high)
-        assert!(p.in_range(60.0));    // low F horn range
-        assert!(p.in_range(1000.0));  // high range
+        assert!(p.in_range(60.0)); // low F horn range
+        assert!(p.in_range(1000.0)); // high range
     }
 }
