@@ -1,15 +1,10 @@
 # Next Session
 
-**Last Updated:** 2026-07-18 00:12:44
+**Last Updated:** 2026-07-18 00:21:12
 
-## Last Milestone
+## Last Summary
 
-- Change: external-runtime-evidence
-- Summary: Fixed hosted OpenSpec drift portability by adding a deterministic grep fallback when ripgrep and bundled tool paths are absent.
-- State: ready_for_archive
-- Tasks complete: 14/14
-- Completed: Reproduced the hosted failure locally with a restricted PATH and verified the fallback exits zero.
-- Remaining: Obtain a fully green hosted rerun and merge through protected main.
+External runtime evidence is complete: signed bundled WebView SQLite and audio hardware smokes passed, all nine hosted checks passed, PR 1 merged, and main protection is active. Developer ID distribution signing/notarization remains credential-blocked.
 
 ## Active Changes
 
@@ -51,12 +46,8 @@
 
 - external-runtime-evidence: ready_for_archive
 
-  Next: Push the portability fix and monitor all required checks.
+  Next: Archive the change into openspec/changes/archive/
 
 - openspec-verification-toolchain: draft
 
   Next: Complete proposal and delta specs
-
-## Recommended Next Step
-
-- Push the portability fix and monitor all required checks.

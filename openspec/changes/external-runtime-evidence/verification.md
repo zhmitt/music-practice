@@ -71,3 +71,12 @@
 - Completed: Reproduced the hosted failure locally with a restricted PATH and verified the fallback exits zero.
 - Remaining: Obtain a fully green hosted rerun and merge through protected main.
 - Next: Push the portability fix and monitor all required checks.
+
+## 2026-07-18 00:21:06
+
+- Summary: Hosted PR 1 passed all nine required checks, merged by rebase into protected main, and local main was synchronized to origin/main.
+- Phase state: ready_for_archive
+- Tasks complete: 14/14
+- Completed: Hosted CI, OpenSpec gates, branch protection, protected merge, native runtime, hardware, and packaging evidence.
+- Remaining: Only Developer ID distribution signing and notarization remain blocked by absent credentials.
+- Next: Archive external-runtime-evidence when desired.

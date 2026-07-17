@@ -306,3 +306,48 @@ Append-only project status log for deterministic session handover.
 - Remaining: Obtain a fully green hosted rerun and merge through protected main.
 - Evidence: openspec/changes/external-runtime-evidence/verification.md, workflow/state/reports/2026-07-17-external-runtime-evidence.md
 - Next: Push the portability fix and monitor all required checks.
+
+## 2026-07-18 00:21:06
+- Change: external-runtime-evidence
+- Status: implemented
+- Summary: Hosted PR 1 passed all nine required checks, merged by rebase into protected main, and local main was synchronized to origin/main.
+- Completed: Hosted CI, OpenSpec gates, branch protection, protected merge, native runtime, hardware, and packaging evidence.
+- Remaining: Only Developer ID distribution signing and notarization remain blocked by absent credentials.
+- Evidence: openspec/changes/external-runtime-evidence/verification.md, workflow/state/reports/2026-07-17-external-runtime-evidence.md
+- Next: Archive external-runtime-evidence when desired.
+
+## 2026-07-18 00:21:12
+- Summary: External runtime evidence is complete: signed bundled WebView SQLite and audio hardware smokes passed, all nine hosted checks passed, PR 1 merged, and main protection is active. Developer ID distribution signing/notarization remains credential-blocked.
+- Change: 2026-03-31-app-shell-foundation
+- State: draft
+- Next: Complete proposal and delta specs
+- Change: 2026-03-31-audio-pitch-engine
+- State: draft
+- Next: Complete proposal and delta specs
+- Change: 2026-04-04-student-practice-journeys
+- State: in_progress
+- Next: Complete remaining tasks
+- Change: 2026-04-06-bb-horn-practice-pedagogy
+- State: in_progress
+- Next: Complete remaining tasks
+- Change: add-canonical-milestone-sync
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-followup
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-v3
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-v4
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: external-runtime-evidence
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: openspec-verification-toolchain
+- State: draft
+- Next: Complete proposal and delta specs
