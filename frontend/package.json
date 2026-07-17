@@ -15,6 +15,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",
     "contract:check": "bash ../workflow/scripts/tauri-contract-check.sh",
+    "smoke:sqlite-native": "cargo tauri dev -- --bin tonetrainer -- --sqlite-smoke",
     "verify": "bash ../workflow/scripts/verify.sh --frontend",
     "format": "prettier --write .",
     "format:check": "prettier --check ."

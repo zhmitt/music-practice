@@ -1,0 +1,41 @@
+# Report: external-runtime-evidence
+
+## Summary
+
+Added and executed real native evidence for Tauri WebView SQLite CRUD, microphone capture, drone lifecycle, deterministic smoke exit, macOS bundling, hardened-runtime entitlements, and development signing. Hosted GitHub delivery remains the next execution stage.
+
+## Current state
+
+- Phase state: in_progress
+- Tasks complete: 0/14
+
+## Evidence
+
+- Signed bundled WebView CRUD: create/insert/read/update/delete succeeded.
+- Audio: eight devices enumerated; Logitech StreamCam, 48 kHz, 1,024 samples; 440 Hz drone lifecycle transitioned playing to stopped.
+- Bundle: one executable, identifier `com.zhmitt.tonetrainer`, microphone usage text, audio-input entitlement, hardened runtime, strict signature verification.
+- Distribution blocker: no Developer ID Application certificate or notarization credential is installed; development signing is verified.
+
+## Next step
+
+- Commit and push the evidence branch, observe hosted checks, and configure branch protection from actual successful check contexts.
+
+## 2026-07-17 23:48:11
+
+- Summary: Started external runtime evidence for real WebView SQLite, hosted GitHub delivery, branch protection, native audio hardware, and macOS packaging.
+- Change: external-runtime-evidence
+- Phase state: in_progress
+- Tasks complete: 0/14
+- Completed: Defined evidence boundaries and implementation plan.
+- Remaining: Implement and execute native, hosted, hardware, and bundle evidence.
+- Next: Build the WebView smoke and audit hosted delivery in parallel.
+
+## 2026-07-18 00:04:36
+
+- Summary: Implemented and executed signed bundled WebView SQLite CRUD, real microphone capture, drone lifecycle, macOS bundle, hardened-runtime entitlement, and development signing evidence.
+- Change: external-runtime-evidence
+- Phase state: in_progress
+- Tasks complete: 6/14
+- Completed: Native WebView, audio hardware, bundle structure, entitlement, identifier, and Apple Development signature evidence.
+- Remaining: Push hosted PR, observe GitHub checks, configure branch protection, and close external evidence.
+- Next: Commit and push the evidence branch for hosted validation.

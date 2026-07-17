@@ -95,6 +95,11 @@ export interface TauriCommandMap {
   };
   is_drone_playing: { args: undefined; result: boolean };
   get_drone_runtime_status: { args: undefined; result: TauriDroneRuntimeStatus };
+  get_runtime_smoke_mode: { args: undefined; result: string | null };
+  complete_runtime_smoke: {
+    args: { resultJson: string; success: boolean };
+    result: void;
+  };
 }
 
 export type TauriCommandName = keyof TauriCommandMap;

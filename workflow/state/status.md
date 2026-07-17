@@ -263,3 +263,21 @@ Append-only project status log for deterministic session handover.
 - Change: openspec-verification-toolchain
 - State: draft
 - Next: Complete proposal and delta specs
+
+## 2026-07-17 23:48:11
+- Change: external-runtime-evidence
+- Status: checkpointed
+- Summary: Started external runtime evidence for real WebView SQLite, hosted GitHub delivery, branch protection, native audio hardware, and macOS packaging.
+- Completed: Defined evidence boundaries and implementation plan.
+- Remaining: Implement and execute native, hosted, hardware, and bundle evidence.
+- Evidence: openspec/changes/external-runtime-evidence/verification.md, workflow/state/reports/2026-07-17-external-runtime-evidence.md
+- Next: Build the WebView smoke and audit hosted delivery in parallel.
+
+## 2026-07-18 00:04:36
+- Change: external-runtime-evidence
+- Status: checkpointed
+- Summary: Implemented and executed signed bundled WebView SQLite CRUD, real microphone capture, drone lifecycle, macOS bundle, hardened-runtime entitlement, and development signing evidence.
+- Completed: Native WebView, audio hardware, bundle structure, entitlement, identifier, and Apple Development signature evidence.
+- Remaining: Push hosted PR, observe GitHub checks, configure branch protection, and close external evidence.
+- Evidence: openspec/changes/external-runtime-evidence/verification.md, workflow/state/reports/2026-07-17-external-runtime-evidence.md
+- Next: Commit and push the evidence branch for hosted validation.
