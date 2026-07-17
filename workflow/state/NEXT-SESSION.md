@@ -1,10 +1,15 @@
 # Next Session
 
-**Last Updated:** 2026-07-17 23:43:31
+**Last Updated:** 2026-07-18 00:04:36
 
-## Last Summary
+## Last Milestone
 
-Completed engineering-quality-hardening-v4 after a fresh post-V3 audit: all reproduced residuals are fixed, canonical verify and change-done are green; hosted GitHub, physical audio, and GUI WebView SQLite remain external evidence.
+- Change: external-runtime-evidence
+- Summary: Implemented and executed signed bundled WebView SQLite CRUD, real microphone capture, drone lifecycle, macOS bundle, hardened-runtime entitlement, and development signing evidence.
+- State: in_progress
+- Tasks complete: 6/14
+- Completed: Native WebView, audio hardware, bundle structure, entitlement, identifier, and Apple Development signature evidence.
+- Remaining: Push hosted PR, observe GitHub checks, configure branch protection, and close external evidence.
 
 ## Active Changes
 
@@ -44,6 +49,14 @@ Completed engineering-quality-hardening-v4 after a fresh post-V3 audit: all repr
 
   Next: Archive the change into openspec/changes/archive/
 
+- external-runtime-evidence: in_progress
+
+  Next: Commit and push the evidence branch for hosted validation.
+
 - openspec-verification-toolchain: draft
 
   Next: Complete proposal and delta specs
+
+## Recommended Next Step
+
+- Commit and push the evidence branch for hosted validation.

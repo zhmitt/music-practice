@@ -31,10 +31,13 @@
     restartPreferredAudioCapture,
     refreshAudioRuntimeStatus,
   } from '$lib/stores/audioPreferences';
+  import { runRuntimeSmokeIfRequested } from '$lib/smoke/sqliteRuntimeSmoke';
 
   let { children } = $props();
 
   onMount(async () => {
+    const runtimeSmoke = await runRuntimeSmokeIfRequested();
+    if (runtimeSmoke) return;
     await initDb();
 
     // Load all persisted data from SQLite (or localStorage fallback)

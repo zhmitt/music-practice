@@ -1,11 +1,13 @@
 {
   "version": 1,
   "commands": [
+    "complete_runtime_smoke(resultJson:string,success:boolean)->void",
     "get_audio_debug()->TauriAudioDebugSnapshot",
     "get_audio_level()->TauriAudioLevel",
     "get_devices()->TauriAudioDeviceInfo[]",
     "get_drone_runtime_status()->TauriDroneRuntimeStatus",
     "get_pitch()->TauriPitchResult|null",
+    "get_runtime_smoke_mode()->string|null",
     "is_audio_running()->boolean",
     "is_drone_playing()->boolean",
     "set_display_mode(mode:string)->void",

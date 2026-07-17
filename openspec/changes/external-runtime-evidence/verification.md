@@ -1,0 +1,45 @@
+# Verification: external-runtime-evidence
+
+## Current status
+
+- State: in_progress
+- Tasks complete: 0/14
+- Created: 2026-07-17 23:48:12
+
+## Automated checks
+
+- Native development WebView SQLite CRUD emitted `TONETRAINER_RUNTIME_SMOKE` success for create, insert, read, update, and delete.
+- Signed `.app` WebView SQLite CRUD emitted the same successful five-stage result.
+- Native audio hardware smoke enumerated eight input devices, captured 1,024 samples from Logitech StreamCam at 48 kHz, started a 440 Hz drone, observed `playing`, stopped it, and observed `stopped`.
+- macOS `.app` bundle built with one executable only and passed strict deep code-signature verification using the installed Apple Development identity.
+- Bundle identifier is `com.zhmitt.tonetrainer`; hardened runtime and `com.apple.security.device.audio-input` are present.
+- Frontend tests: 17 files / 158 tests. Rust tests: 48 tests. Tauri contract: 17 commands / 6 DTOs.
+
+## Manual checks
+
+- Confirmed `NSMicrophoneUsageDescription` in the generated bundle.
+- Confirmed the hardware smoke is a Cargo example and is not included in `Contents/MacOS`.
+- Confirmed no local notarization credential or Developer ID Application certificate is available; Apple Development signing is valid for development evidence but not Gatekeeper distribution.
+
+## Notes
+
+- Acoustic frequency accuracy, loudness, distortion, and speaker routing are not inferred from the successful CPAL output lifecycle.
+- Hosted GitHub workflows and branch protection will be recorded after the committed branch is pushed.
+
+## 2026-07-17 23:48:11
+
+- Summary: Started external runtime evidence for real WebView SQLite, hosted GitHub delivery, branch protection, native audio hardware, and macOS packaging.
+- Phase state: in_progress
+- Tasks complete: 0/14
+- Completed: Defined evidence boundaries and implementation plan.
+- Remaining: Implement and execute native, hosted, hardware, and bundle evidence.
+- Next: Build the WebView smoke and audit hosted delivery in parallel.
+
+## 2026-07-18 00:04:36
+
+- Summary: Implemented and executed signed bundled WebView SQLite CRUD, real microphone capture, drone lifecycle, macOS bundle, hardened-runtime entitlement, and development signing evidence.
+- Phase state: in_progress
+- Tasks complete: 6/14
+- Completed: Native WebView, audio hardware, bundle structure, entitlement, identifier, and Apple Development signature evidence.
+- Remaining: Push hosted PR, observe GitHub checks, configure branch protection, and close external evidence.
+- Next: Commit and push the evidence branch for hosted validation.

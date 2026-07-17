@@ -1,5 +1,12 @@
 mod audio;
 
+pub use audio::types::{AudioError as HardwareSmokeError, AudioRuntimeError};
+pub use audio::{run_audio_hardware_smoke, AudioHardwareSmokeReport};
+
+pub fn audio_runtime_error(error: &HardwareSmokeError) -> AudioRuntimeError {
+    AudioRuntimeError::from(error)
+}
+
 use audio::drone::note_to_frequency;
 use audio::instrument::InstrumentProfile;
 use audio::types::{
@@ -7,6 +14,52 @@ use audio::types::{
 };
 use audio::{SharedDrone, SharedEngine};
 use tauri::State;
+
+fn run_requested_audio_smoke(args: &[String]) {
+    if !args.iter().any(|arg| arg == "--audio-smoke") {
+        return;
+    }
+    if !args
+        .iter()
+        .any(|arg| arg == "--acknowledge-microphone-access")
+    {
+        eprintln!("Refusing microphone access without --acknowledge-microphone-access");
+        std::process::exit(2);
+    }
+    let duration_ms = args
+        .windows(2)
+        .find(|pair| pair[0] == "--duration-ms")
+        .and_then(|pair| pair[1].parse::<u64>().ok())
+        .unwrap_or(3000);
+    match run_audio_hardware_smoke(std::time::Duration::from_millis(duration_ms)) {
+        Ok(report) => println!(
+            "TONETRAINER_AUDIO_SMOKE={}",
+            serde_json::to_string(&report).expect("smoke report must serialize")
+        ),
+        Err(error) => {
+            let report = serde_json::json!({
+                "success": false,
+                "error": audio_runtime_error(&error),
+            });
+            eprintln!("TONETRAINER_AUDIO_SMOKE={report}");
+            std::process::exit(3);
+        }
+    }
+    std::process::exit(0);
+}
+
+fn runtime_smoke_mode_from_args(args: impl IntoIterator<Item = String>) -> Option<String> {
+    args.into_iter()
+        .any(|arg| arg == "--sqlite-smoke")
+        .then(|| "sqlite".to_string())
+}
+
+fn normalize_runtime_smoke_result(result: &str) -> String {
+    match serde_json::from_str::<serde_json::Value>(result) {
+        Ok(value) => serde_json::to_string(&value).expect("JSON value must serialize"),
+        Err(_) => serde_json::to_string(result).expect("string must serialize"),
+    }
+}
 
 // ── Tauri Commands ──────────────────────────────────────────────
 
@@ -137,10 +190,29 @@ fn get_drone_runtime_status(drone: State<SharedDrone>) -> Result<DroneRuntimeSta
     Ok(d.runtime_status())
 }
 
+#[tauri::command]
+fn get_runtime_smoke_mode() -> Result<Option<String>, String> {
+    Ok(runtime_smoke_mode_from_args(std::env::args()))
+}
+
+#[tauri::command]
+fn complete_runtime_smoke(result_json: String, success: bool) -> Result<(), String> {
+    use std::io::Write;
+
+    println!(
+        "TONETRAINER_RUNTIME_SMOKE={}",
+        normalize_runtime_smoke_result(&result_json)
+    );
+    let _ = std::io::stdout().flush();
+    std::process::exit(if success { 0 } else { 1 });
+}
+
 // ── App Entry Point ─────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let args: Vec<String> = std::env::args().collect();
+    run_requested_audio_smoke(&args);
     let engine = audio::create_engine();
     let engine_for_loop = engine.clone();
     let drone = audio::create_drone();
@@ -167,6 +239,8 @@ pub fn run() {
             set_drone_note,
             is_drone_playing,
             get_drone_runtime_status,
+            get_runtime_smoke_mode,
+            complete_runtime_smoke,
         ])
         .setup(move |app| {
             if cfg!(debug_assertions) {
@@ -181,4 +255,30 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod runtime_smoke_tests {
+    use super::*;
+
+    #[test]
+    fn smoke_mode_requires_exact_opt_in_flag() {
+        assert_eq!(
+            runtime_smoke_mode_from_args(["app".into(), "--sqlite-smoke".into()]),
+            Some("sqlite".into())
+        );
+        assert_eq!(
+            runtime_smoke_mode_from_args(["app".into(), "--sqlite-smoke=true".into()]),
+            None
+        );
+    }
+
+    #[test]
+    fn smoke_result_is_always_one_compact_json_value() {
+        assert_eq!(
+            normalize_runtime_smoke_result("{\n  \"ok\": true\n}"),
+            r#"{"ok":true}"#
+        );
+        assert_eq!(normalize_runtime_smoke_result("not json"), r#""not json""#);
+    }
 }

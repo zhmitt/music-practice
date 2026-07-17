@@ -23,6 +23,119 @@ use types::{
     PitchResult,
 };
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AudioHardwareSmokeReport {
+    pub input_devices: Vec<AudioDeviceInfo>,
+    pub active_device_name: Option<String>,
+    pub sample_rate: u32,
+    pub samples_received: usize,
+    pub elapsed_ms: u64,
+    pub drone_frequency_hz: f64,
+    pub drone_play_duration_ms: u64,
+    pub drone_status_after_start: String,
+    pub drone_status_after_stop: String,
+}
+
+/// Exercise the production CPAL capture owner without starting the Tauri UI.
+/// The caller is responsible for obtaining explicit user consent before invoking it.
+pub fn run_audio_hardware_smoke(timeout: Duration) -> Result<AudioHardwareSmokeReport, AudioError> {
+    let timeout = timeout.clamp(Duration::from_millis(250), Duration::from_secs(10));
+    let mut capture = AudioCapture::new();
+    let input_devices = capture.list_devices()?;
+    let sample_rate = capture.start(None)?;
+    let active_device_name = capture.active_device_name();
+    let started = std::time::Instant::now();
+    let mut samples_received = 0usize;
+    let mut samples = Vec::new();
+    while started.elapsed() < timeout {
+        samples_received += capture.read_samples(&mut samples);
+        if samples_received >= 1024 {
+            break;
+        }
+        if !capture.is_running() {
+            let error = capture
+                .last_error()
+                .unwrap_or(AudioError::StreamInterrupted);
+            capture.stop();
+            return Err(error);
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+    capture.stop();
+    if samples_received == 0 {
+        return Err(AudioError::Unknown(
+            "Microphone opened but delivered no samples before timeout".to_string(),
+        ));
+    }
+    const DRONE_FREQUENCY_HZ: f64 = 440.0;
+    const DRONE_PLAY_DURATION: Duration = Duration::from_millis(250);
+    let capture_elapsed_ms = started.elapsed().as_millis() as u64;
+    let mut drone = DroneSynth::new();
+    drone
+        .start(DRONE_FREQUENCY_HZ)
+        .map_err(|error| AudioError::Unknown(format!("Drone smoke start failed: {error}")))?;
+    let started_status = drone.runtime_status();
+    if !started_status.is_playing {
+        drone.stop();
+        return Err(started_status.runtime_error.map_or_else(
+            || AudioError::Unknown("Drone did not enter playing state".to_string()),
+            |error| AudioError::Unknown(format!("Drone runtime failed: {}", error.message)),
+        ));
+    }
+    thread::sleep(DRONE_PLAY_DURATION);
+    let runtime_status = drone.runtime_status();
+    if !runtime_status.is_playing || runtime_status.runtime_error.is_some() {
+        drone.stop();
+        return Err(runtime_status.runtime_error.map_or_else(
+            || AudioError::Unknown("Drone left playing state before stop".to_string()),
+            |error| AudioError::Unknown(format!("Drone runtime failed: {}", error.message)),
+        ));
+    }
+    drone.stop();
+    let stopped_status = drone.runtime_status();
+    if stopped_status.is_playing {
+        return Err(AudioError::Unknown(
+            "Drone did not enter stopped state".to_string(),
+        ));
+    }
+
+    Ok(AudioHardwareSmokeReport {
+        input_devices,
+        active_device_name,
+        sample_rate,
+        samples_received,
+        elapsed_ms: capture_elapsed_ms,
+        drone_frequency_hz: DRONE_FREQUENCY_HZ,
+        drone_play_duration_ms: DRONE_PLAY_DURATION.as_millis() as u64,
+        drone_status_after_start: "playing".to_string(),
+        drone_status_after_stop: "stopped".to_string(),
+    })
+}
+
+#[cfg(test)]
+mod hardware_smoke_report_tests {
+    use super::*;
+
+    #[test]
+    fn report_serializes_explicit_drone_lifecycle_without_quality_claims() {
+        let report = AudioHardwareSmokeReport {
+            input_devices: vec![],
+            active_device_name: None,
+            sample_rate: 48_000,
+            samples_received: 1024,
+            elapsed_ms: 50,
+            drone_frequency_hz: 440.0,
+            drone_play_duration_ms: 250,
+            drone_status_after_start: "playing".to_string(),
+            drone_status_after_stop: "stopped".to_string(),
+        };
+        let value = serde_json::to_value(report).unwrap();
+        assert_eq!(value["drone_status_after_start"], "playing");
+        assert_eq!(value["drone_status_after_stop"], "stopped");
+        assert!(value.get("audio_quality").is_none());
+    }
+}
+
 /// Thread-safe wrapper around DroneSynth (separate from engine to avoid lock contention).
 pub type SharedDrone = Arc<Mutex<DroneSynth>>;
 
