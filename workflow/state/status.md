@@ -351,3 +351,39 @@ Append-only project status log for deterministic session handover.
 - Change: openspec-verification-toolchain
 - State: draft
 - Next: Complete proposal and delta specs
+
+## 2026-07-18 00:35:54
+- Summary: External runtime evidence is implemented, verified, documented, and merged through protected PRs #1 and #2. All nine hosted checks and change-done for external-runtime-evidence pass. Only Developer ID distribution signing and Apple notarization remain blocked pending user-owned credentials; archive external-runtime-evidence in a future session if desired.
+- Change: 2026-03-31-app-shell-foundation
+- State: draft
+- Next: Complete proposal and delta specs
+- Change: 2026-03-31-audio-pitch-engine
+- State: draft
+- Next: Complete proposal and delta specs
+- Change: 2026-04-04-student-practice-journeys
+- State: in_progress
+- Next: Complete remaining tasks
+- Change: 2026-04-06-bb-horn-practice-pedagogy
+- State: in_progress
+- Next: Complete remaining tasks
+- Change: add-canonical-milestone-sync
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-followup
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-v3
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-v4
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: external-runtime-evidence
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: openspec-verification-toolchain
+- State: draft
+- Next: Complete proposal and delta specs
