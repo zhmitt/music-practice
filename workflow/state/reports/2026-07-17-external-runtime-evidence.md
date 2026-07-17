@@ -15,10 +15,12 @@ Added and executed real native evidence for Tauri WebView SQLite CRUD, microphon
 - Audio: eight devices enumerated; Logitech StreamCam, 48 kHz, 1,024 samples; 440 Hz drone lifecycle transitioned playing to stopped.
 - Bundle: one executable, identifier `com.zhmitt.tonetrainer`, microphone usage text, audio-input entitlement, hardened runtime, strict signature verification.
 - Distribution blocker: no Developer ID Application certificate or notarization credential is installed; development signing is verified.
+- Hosted PR: https://github.com/zhmitt/music-practice/pull/1 materialized all nine expected workflow contexts.
+- Branch protection: strict required checks for all nine contexts, PR flow, conversation resolution, linear history, no force pushes/deletions, zero approvals for the sole-collaborator repository, and temporary admin recovery.
 
 ## Next step
 
-- Commit and push the evidence branch, observe hosted checks, and configure branch protection from actual successful check contexts.
+- Complete the final hosted rerun with the now-complete OpenSpec evidence and merge through the protected PR.
 
 ## 2026-07-17 23:48:11
 
@@ -49,3 +51,11 @@ Added and executed real native evidence for Tauri WebView SQLite CRUD, microphon
 - Completed: Remote branch push, PR creation, branch-protection audit, local canonical verify, signed bundled SQLite/audio smokes.
 - Remaining: Wait for final hosted checks, close their evidence tasks, and configure required checks.
 - Next: Resolve hosted gate results and enable main branch protection.
+
+## 2026-07-18 00:09:41
+
+- Summary: Completed native, hosted, branch-protection, audio hardware, signed WebView SQLite, and macOS packaging evidence; all 14 tasks are complete.
+- Change: external-runtime-evidence
+- Phase state: ready_for_archive
+- Tasks complete: 14/14
+- Next: Archive the change into openspec/changes/archive/
