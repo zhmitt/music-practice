@@ -1,6 +1,6 @@
 # Spec-Drift Report: external-runtime-evidence
 
-Generated: 2026-07-17T22:09:44Z
+Generated: 2026-07-17T22:12:00Z
 
 ## Summary
 

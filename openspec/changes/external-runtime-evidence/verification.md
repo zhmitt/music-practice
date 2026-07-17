@@ -16,6 +16,7 @@
 - Frontend tests: 17 files / 158 tests. Rust tests: 48 tests. Tauri contract: 17 commands / 6 DTOs.
 - GitHub PR #1 materialized all nine declared CI/OpenSpec check contexts; the first run proved CI execution and correctly rejected incomplete OpenSpec tasks.
 - `main` branch protection now requires those nine exact observed contexts with strict up-to-date checks, PR flow, conversation resolution, linear history, and force-push/deletion disabled.
+- The hosted OpenSpec run exposed a missing-ripgrep bootstrap failure; `spec-drift-check.sh` now falls back to recursive grep and no longer exits silently when bundled search paths are absent.
 
 ## Manual checks
 
@@ -61,3 +62,12 @@
 - Summary: Completed native, hosted, branch-protection, audio hardware, signed WebView SQLite, and macOS packaging evidence; all 14 tasks are complete.
 - Phase state: ready_for_archive
 - Tasks complete: 14/14
+
+## 2026-07-18 00:12:44
+
+- Summary: Fixed hosted OpenSpec drift portability by adding a deterministic grep fallback when ripgrep and bundled tool paths are absent.
+- Phase state: ready_for_archive
+- Tasks complete: 14/14
+- Completed: Reproduced the hosted failure locally with a restricted PATH and verified the fallback exits zero.
+- Remaining: Obtain a fully green hosted rerun and merge through protected main.
+- Next: Push the portability fix and monitor all required checks.

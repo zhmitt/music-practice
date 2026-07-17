@@ -1,15 +1,15 @@
 # Next Session
 
-**Last Updated:** 2026-07-18 00:08:25
+**Last Updated:** 2026-07-18 00:12:44
 
 ## Last Milestone
 
 - Change: external-runtime-evidence
-- Summary: Pushed PR 1 and observed hosted workflow execution; local signed-bundle SQLite and audio evidence remains green after the final smoke and entitlement changes.
-- State: in_progress
-- Tasks complete: 9/14
-- Completed: Remote branch push, PR creation, branch-protection audit, local canonical verify, signed bundled SQLite/audio smokes.
-- Remaining: Wait for final hosted checks, close their evidence tasks, and configure required checks.
+- Summary: Fixed hosted OpenSpec drift portability by adding a deterministic grep fallback when ripgrep and bundled tool paths are absent.
+- State: ready_for_archive
+- Tasks complete: 14/14
+- Completed: Reproduced the hosted failure locally with a restricted PATH and verified the fallback exits zero.
+- Remaining: Obtain a fully green hosted rerun and merge through protected main.
 
 ## Active Changes
 
@@ -49,9 +49,9 @@
 
   Next: Archive the change into openspec/changes/archive/
 
-- external-runtime-evidence: in_progress
+- external-runtime-evidence: ready_for_archive
 
-  Next: Resolve hosted gate results and enable main branch protection.
+  Next: Push the portability fix and monitor all required checks.
 
 - openspec-verification-toolchain: draft
 
@@ -59,4 +59,4 @@
 
 ## Recommended Next Step
 
-- Resolve hosted gate results and enable main branch protection.
+- Push the portability fix and monitor all required checks.

@@ -17,6 +17,7 @@ Added and executed real native evidence for Tauri WebView SQLite CRUD, microphon
 - Distribution blocker: no Developer ID Application certificate or notarization credential is installed; development signing is verified.
 - Hosted PR: https://github.com/zhmitt/music-practice/pull/1 materialized all nine expected workflow contexts.
 - Branch protection: strict required checks for all nine contexts, PR flow, conversation resolution, linear history, no force pushes/deletions, zero approvals for the sole-collaborator repository, and temporary admin recovery.
+- Hosted runner portability: the first OpenSpec run exposed absent ripgrep; the drift checker now has a deterministic grep fallback instead of a silent `set -e` exit.
 
 ## Next step
 
@@ -59,3 +60,13 @@ Added and executed real native evidence for Tauri WebView SQLite CRUD, microphon
 - Phase state: ready_for_archive
 - Tasks complete: 14/14
 - Next: Archive the change into openspec/changes/archive/
+
+## 2026-07-18 00:12:44
+
+- Summary: Fixed hosted OpenSpec drift portability by adding a deterministic grep fallback when ripgrep and bundled tool paths are absent.
+- Change: external-runtime-evidence
+- Phase state: ready_for_archive
+- Tasks complete: 14/14
+- Completed: Reproduced the hosted failure locally with a restricted PATH and verified the fallback exits zero.
+- Remaining: Obtain a fully green hosted rerun and merge through protected main.
+- Next: Push the portability fix and monitor all required checks.

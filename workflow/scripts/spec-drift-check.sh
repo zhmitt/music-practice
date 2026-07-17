@@ -225,18 +225,15 @@ if command -v rg >/dev/null 2>&1 && rg --version >/dev/null 2>&1; then
   _RG="rg"
 else
   # Claude Code bundles rg under its node_modules
-  _claude_rg="$(find /opt/homebrew/lib/node_modules /usr/local/lib/node_modules \
+  _claude_rg="$({ find /opt/homebrew/lib/node_modules /usr/local/lib/node_modules \
     -name "rg" -path "*/ripgrep/arm64-darwin/rg" -o \
-    -name "rg" -path "*/ripgrep/x64-darwin/rg" 2>/dev/null | head -1)"
+    -name "rg" -path "*/ripgrep/x64-darwin/rg" 2>/dev/null || true; } | head -1)"
   if [[ -x "$_claude_rg" ]]; then
     _RG="$_claude_rg"
   fi
 fi
 
-if [[ -z "$_RG" ]]; then
-  echo "rg (ripgrep) not found. Install via: brew install ripgrep" >&2
-  exit 1
-fi
+[[ -n "$_RG" ]] || _RG="grep"
 
 # ---------------------------------------------------------------------------
 # Search helpers
@@ -245,14 +242,22 @@ fi
 rg_found_fixed() {
   local pattern="$1"
   local scope="${2:-.}"
-  "$_RG" -q --fixed-strings "$pattern" "$scope" 2>/dev/null
+  if [[ "$_RG" == "grep" ]]; then
+    grep -R -qF --exclude-dir=.git -- "$pattern" "$scope" 2>/dev/null
+  else
+    "$_RG" -q --fixed-strings "$pattern" "$scope" 2>/dev/null
+  fi
 }
 
 # rg_found_regex: exits 0 if regex pattern is found, 1 if not
 rg_found_regex() {
   local pattern="$1"
   local scope="${2:-.}"
-  "$_RG" -q "$pattern" "$scope" 2>/dev/null
+  if [[ "$_RG" == "grep" ]]; then
+    grep -R -qE --exclude-dir=.git -- "$pattern" "$scope" 2>/dev/null
+  else
+    "$_RG" -q "$pattern" "$scope" 2>/dev/null
+  fi
 }
 
 # ---------------------------------------------------------------------------
