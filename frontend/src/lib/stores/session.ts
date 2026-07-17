@@ -1,9 +1,20 @@
 import { writable, get } from 'svelte/store';
 import { sessionActive, sessionPaused } from './navigation';
-import type { SessionPlan, ExerciseDef, ToneTarget, ToneResult, TonePhase, SessionPhase } from '$lib/types/session';
+import type {
+  SessionPlan,
+  ExerciseDef,
+  ToneTarget,
+  ToneResult,
+  TonePhase,
+  SessionPhase,
+} from '$lib/types/session';
 import { saveSession, today, type SessionRecord, type ToneRecord } from './history';
+import { acquireAudioLease, releaseAudioLease, type AudioLeaseHandle } from './audioPreferences';
 import type { TauriPitchResult, TauriAudioLevel } from '$lib/types/tauri';
 import { safeInvoke } from '$lib/db';
+import { selectedInstrument } from './onboarding';
+import { getPitchDisplayModeValue } from './notePreferences';
+import { matchesDisplayedTone } from '$lib/music/noteUtils';
 
 // ── Reactive state (writable stores for Svelte 4/5 compatibility) ──
 
@@ -13,26 +24,35 @@ export const toneIndex = writable(0);
 export const tonePhase = writable<TonePhase>('waiting');
 export const sessionPhase = writable<SessionPhase>('running');
 export const toneResults = writable<ToneResult[]>([]);
+export interface CompletedExerciseRun {
+  exercise: ExerciseDef;
+  results: ToneResult[];
+}
+export const completedExercises = writable<CompletedExerciseRun[]>([]);
 export const centsSamples = writable<number[]>([]);
 export const currentCents = writable(0);
 export const currentNote = writable('');
+export const currentOctave = writable(0);
 export const currentFrequency = writable(0);
 export const audioLevel = writable(0);
 export const elapsedSeconds = writable(0);
 
 // ── Internal state ──
 
-let tickInterval: ReturnType<typeof setInterval> | null = null;
+let tickTimer: ReturnType<typeof setTimeout> | null = null;
 let elapsedInterval: ReturnType<typeof setInterval> | null = null;
+let pollingGeneration = 0;
 let stableStartTime = 0;
 let holdAccumulator = 0;
 let centsAccumulator: number[] = [];
-let audioStarted = false;
+let audioLease: AudioLeaseHandle | null = null;
+let lastAcceptedSampleTime = 0;
+let advanceTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Thresholds
-const STABLE_CENTS = 15;   // considered stable within +-15 cents
-const SETTLE_MS = 400;     // settling time before hold timer starts
-const UNSTABLE_MS = 800;   // if unstable for this long, reset hold
+const STABLE_CENTS = 15; // considered stable within +-15 cents
+const SETTLE_MS = 400; // settling time before hold timer starts
+const UNSTABLE_MS = 800; // if unstable for this long, reset hold
 
 let lastUnstableTime = 0;
 
@@ -66,6 +86,10 @@ export function getOverallProgress(): number {
 // ── Session lifecycle ──
 
 export async function startSession(plan: SessionPlan) {
+  const generation = ++pollingGeneration;
+  clearIntervals();
+  if (audioLease) await releaseAudioLease(audioLease);
+  audioLease = null;
   // Reset state
   sessionPlan.set(plan);
   exerciseIndex.set(0);
@@ -73,9 +97,11 @@ export async function startSession(plan: SessionPlan) {
   tonePhase.set('waiting');
   sessionPhase.set('running');
   toneResults.set([]);
+  completedExercises.set([]);
   centsSamples.set([]);
   currentCents.set(0);
   currentNote.set('');
+  currentOctave.set(0);
   currentFrequency.set(0);
   audioLevel.set(0);
   elapsedSeconds.set(0);
@@ -85,67 +111,73 @@ export async function startSession(plan: SessionPlan) {
   lastUnstableTime = 0;
 
   // Start audio via Tauri
-  const started = await safeInvoke<void>('start_audio', { deviceName: null });
-  audioStarted = started !== undefined;
+  const acquiredLease = await acquireAudioLease('session');
+  if (generation !== pollingGeneration) {
+    if (acquiredLease) await releaseAudioLease(acquiredLease);
+    return;
+  }
+  audioLease = acquiredLease;
 
   // Activate session overlay
   sessionActive.set(true);
   sessionPaused.set(false);
 
   // Start tick loop (20Hz)
-  tickInterval = setInterval(tick, 50);
+  scheduleTick(generation);
 
   // Start elapsed timer
   elapsedInterval = setInterval(() => {
     if (get(sessionPhase) === 'running') {
-      elapsedSeconds.update(v => v + 1);
+      elapsedSeconds.update((v) => v + 1);
     }
   }, 1000);
 }
 
 export async function stopSession() {
-  // Persist session results before cleanup
-  persistSessionResults();
-
+  pollingGeneration++;
   clearIntervals();
+  // Persist session results before cleanup
+  await persistSessionResults();
 
-  if (audioStarted) {
-    await safeInvoke('stop_audio');
-    audioStarted = false;
+  if (audioLease) {
+    await releaseAudioLease(audioLease);
+    audioLease = null;
   }
 
   sessionActive.set(false);
   sessionPaused.set(false);
   sessionPhase.set('completed');
+  resetSessionStores();
 }
 
-function persistSessionResults() {
-  const results = get(toneResults);
-  const exercise = getCurrentExercise();
-  if (!exercise || results.length === 0) return;
+async function persistSessionResults() {
+  const runs = getPersistedExerciseRuns();
+  const allResults = runs.flatMap((run) => run.results);
+  if (allResults.length === 0) return;
 
-  const tones: ToneRecord[] = results.map(r => ({
-    note: `${r.target.note}${r.target.octave}`,
-    avgCents: r.avgCents,
-    stability: r.stability,
-    passed: r.passed,
+  const tones: ToneRecord[] = allResults.map((result) => ({
+    note: `${result.target.note}${result.target.octave}`,
+    avgCents: result.avgCents,
+    stability: result.stability,
+    passed: result.passed,
   }));
 
-  const passed = results.filter(r => r.passed).length;
-  const totalCents = results.reduce((s, r) => s + Math.abs(r.avgCents), 0);
+  const passed = allResults.filter((result) => result.passed).length;
+  const totalCents = allResults.reduce((sum, result) => sum + Math.abs(result.avgCents), 0);
+  const exerciseTypes = [...new Set(runs.map((run) => run.exercise.type))];
 
   const record: SessionRecord = {
     id: new Date().toISOString(),
     date: today(),
     durationSeconds: get(elapsedSeconds),
-    exerciseType: exercise.type,
-    exerciseName: exercise.nameKey,
+    exerciseType: exerciseTypes.length === 1 ? exerciseTypes[0] : 'mixed',
+    exerciseName: runs.length === 1 ? runs[0].exercise.nameKey : 'mixed',
     tones,
-    accuracy: results.length > 0 ? passed / results.length : 0,
-    avgCents: results.length > 0 ? totalCents / results.length : 0,
+    accuracy: passed / allResults.length,
+    avgCents: totalCents / allResults.length,
   };
 
-  saveSession(record);
+  await saveSession(record);
 }
 
 export function togglePause() {
@@ -167,13 +199,14 @@ export function skipTone() {
     centsSamples: [...centsAccumulator],
     passed: false,
   };
-  toneResults.update(r => [...r, result]);
+  toneResults.update((r) => [...r, result]);
   advanceTone();
 }
 
 export function nextExercise() {
   const plan = get(sessionPlan);
   if (!plan) return;
+  archiveCurrentExerciseResults();
   const nextIdx = get(exerciseIndex) + 1;
   if (nextIdx >= plan.exercises.length) {
     sessionPhase.set('completed');
@@ -183,6 +216,7 @@ export function nextExercise() {
   toneIndex.set(0);
   tonePhase.set('waiting');
   sessionPhase.set('running');
+  toneResults.set([]);
   resetToneState();
 }
 
@@ -196,117 +230,143 @@ export function repeatExercise() {
 
 // ── Tick (called at ~20Hz) ──
 
-async function tick() {
-  if (get(sessionPaused)) return;
-  if (get(sessionPhase) !== 'running') return;
+function scheduleTick(generation: number) {
+  if (generation !== pollingGeneration) return;
+  tickTimer = setTimeout(() => void tick(generation), 50);
+}
 
-  const tone = getCurrentTone();
-  if (!tone) return;
+async function tick(generation: number) {
+  if (generation !== pollingGeneration) return;
+  try {
+    if (get(sessionPaused)) return;
+    if (get(sessionPhase) !== 'running') return;
 
-  // Read pitch from Tauri
-  let pitch: TauriPitchResult | null = null;
-  let level = 0;
+    const tone = getCurrentTone();
+    if (!tone) return;
 
-  if (audioStarted) {
-    const [p, l] = await Promise.all([
-      safeInvoke<TauriPitchResult | null>('get_pitch', undefined, null),
-      safeInvoke<TauriAudioLevel>('get_audio_level'),
-    ]);
-    pitch = p ?? null;
-    level = l?.rms ?? 0;
-  }
+    // Read pitch from Tauri
+    let pitch: TauriPitchResult | null = null;
+    let level = 0;
 
-  if (pitch) {
-    currentNote.set(pitch.note_name);
-    currentFrequency.set(pitch.frequency_hz);
-    currentCents.set(pitch.cent_deviation);
-  } else {
-    currentNote.set('');
-    currentFrequency.set(0);
-    currentCents.set(0);
-  }
-  audioLevel.set(level ?? 0);
-
-  const phase = get(tonePhase);
-  const now = Date.now();
-
-  if (phase === 'waiting') {
-    // Wait for the correct note to appear
-    if (pitch && isNoteMatch(pitch.note_name, pitch.octave, tone)) {
-      tonePhase.set('detecting');
-      stableStartTime = 0;
-      centsAccumulator = [];
+    if (audioLease) {
+      const [p, l] = await Promise.all([
+        safeInvoke<TauriPitchResult | null>('get_pitch', undefined, null),
+        safeInvoke<TauriAudioLevel>('get_audio_level'),
+      ]);
+      if (generation !== pollingGeneration) return;
+      pitch = p ?? null;
+      level = l?.rms ?? 0;
     }
-  } else if (phase === 'detecting') {
-    if (!pitch || !isNoteMatch(pitch.note_name, pitch.octave, tone)) {
-      // Lost the note, go back to waiting
-      tonePhase.set('waiting');
-      return;
-    }
-    centsAccumulator.push(pitch.cent_deviation);
-    centsSamples.set([...centsAccumulator]);
 
-    if (Math.abs(pitch.cent_deviation) <= STABLE_CENTS) {
-      if (stableStartTime === 0) stableStartTime = now;
-      if (now - stableStartTime >= SETTLE_MS) {
-        // Settled -- transition to held
-        tonePhase.set('held');
-        holdAccumulator = 0;
-        lastUnstableTime = 0;
-      }
+    if (pitch) {
+      currentNote.set(pitch.note_name);
+      currentOctave.set(pitch.octave);
+      currentFrequency.set(pitch.frequency_hz);
+      currentCents.set(pitch.cent_deviation);
     } else {
-      stableStartTime = 0;
+      currentNote.set('');
+      currentOctave.set(0);
+      currentFrequency.set(0);
+      currentCents.set(0);
     }
-  } else if (phase === 'held') {
-    if (!pitch || !isNoteMatch(pitch.note_name, pitch.octave, tone)) {
-      // Lost the note entirely
-      if (lastUnstableTime === 0) lastUnstableTime = now;
-      if (now - lastUnstableTime > UNSTABLE_MS) {
-        tonePhase.set('waiting');
-        resetToneState();
-      }
-      return;
-    }
+    audioLevel.set(level ?? 0);
 
-    centsAccumulator.push(pitch.cent_deviation);
-    centsSamples.set([...centsAccumulator]);
-    holdAccumulator += 0.05; // 50ms tick
+    const phase = get(tonePhase);
+    const now = performance.now();
 
-    if (Math.abs(pitch.cent_deviation) <= STABLE_CENTS) {
-      lastUnstableTime = 0;
-    } else {
-      if (lastUnstableTime === 0) lastUnstableTime = now;
-      if (now - lastUnstableTime > UNSTABLE_MS) {
-        // Reset hold but stay in detecting
+    if (phase === 'waiting') {
+      // Wait for the correct note to appear
+      if (pitch && isNoteMatch(pitch.note_name, pitch.octave, tone)) {
         tonePhase.set('detecting');
-        holdAccumulator = 0;
         stableStartTime = 0;
+        centsAccumulator = [];
+      }
+    } else if (phase === 'detecting') {
+      if (!pitch || !isNoteMatch(pitch.note_name, pitch.octave, tone)) {
+        // Lost the note, go back to waiting
+        tonePhase.set('waiting');
+        return;
+      }
+      centsAccumulator.push(pitch.cent_deviation);
+      centsSamples.set([...centsAccumulator]);
+
+      if (Math.abs(pitch.cent_deviation) <= STABLE_CENTS) {
+        if (stableStartTime === 0) stableStartTime = now;
+        if (now - stableStartTime >= SETTLE_MS) {
+          // Settled -- transition to held
+          tonePhase.set('held');
+          holdAccumulator = 0;
+          lastAcceptedSampleTime = now;
+          lastUnstableTime = 0;
+        }
+      } else {
+        stableStartTime = 0;
+      }
+    } else if (phase === 'held') {
+      if (!pitch || !isNoteMatch(pitch.note_name, pitch.octave, tone)) {
+        // Lost the note entirely
+        if (lastUnstableTime === 0) lastUnstableTime = now;
+        if (now - lastUnstableTime > UNSTABLE_MS) {
+          tonePhase.set('waiting');
+          resetToneState();
+        }
+        return;
+      }
+
+      centsAccumulator.push(pitch.cent_deviation);
+      centsSamples.set([...centsAccumulator]);
+      const elapsed = lastAcceptedSampleTime === 0 ? 0 : (now - lastAcceptedSampleTime) / 1000;
+      holdAccumulator += Math.max(0, Math.min(elapsed, 0.2));
+      lastAcceptedSampleTime = now;
+
+      if (Math.abs(pitch.cent_deviation) <= STABLE_CENTS) {
         lastUnstableTime = 0;
+      } else {
+        if (lastUnstableTime === 0) lastUnstableTime = now;
+        if (now - lastUnstableTime > UNSTABLE_MS) {
+          // Reset hold but stay in detecting
+          tonePhase.set('detecting');
+          holdAccumulator = 0;
+          stableStartTime = 0;
+          lastUnstableTime = 0;
+        }
+      }
+
+      // Check if tone duration met
+      if (holdAccumulator >= tone.durationSec) {
+        completeTone();
       }
     }
-
-    // Check if tone duration met
-    if (holdAccumulator >= tone.durationSec) {
-      completeTone();
-    }
+  } finally {
+    scheduleTick(generation);
   }
 }
 
 function isNoteMatch(detected: string, octave: number, target: ToneTarget): boolean {
-  return detected === target.note && octave === target.octave;
+  const targetMode = getPitchDisplayModeValue() === 'concert' ? 'concert' : 'written';
+  return matchesDisplayedTone(
+    detected,
+    octave,
+    target,
+    get(selectedInstrument),
+    'written',
+    targetMode,
+  );
 }
 
 function completeTone() {
   const tone = getCurrentTone();
   if (!tone) return;
 
-  const avg = centsAccumulator.length > 0
-    ? centsAccumulator.reduce((s, c) => s + c, 0) / centsAccumulator.length
-    : 0;
+  const avg =
+    centsAccumulator.length > 0
+      ? centsAccumulator.reduce((s, c) => s + c, 0) / centsAccumulator.length
+      : 0;
 
-  const variance = centsAccumulator.length > 0
-    ? centsAccumulator.reduce((s, c) => s + (c - avg) ** 2, 0) / centsAccumulator.length
-    : 0;
+  const variance =
+    centsAccumulator.length > 0
+      ? centsAccumulator.reduce((s, c) => s + (c - avg) ** 2, 0) / centsAccumulator.length
+      : 0;
 
   const result: ToneResult = {
     target: tone,
@@ -317,21 +377,26 @@ function completeTone() {
     passed: true,
   };
 
-  toneResults.update(r => [...r, result]);
+  toneResults.update((r) => [...r, result]);
   tonePhase.set('completed');
 
   // Auto-advance after brief pause
-  setTimeout(() => advanceTone(), 600);
+  const generation = pollingGeneration;
+  advanceTimer = setTimeout(() => {
+    advanceTimer = null;
+    if (generation === pollingGeneration) advanceTone();
+  }, 600);
 }
 
 function advanceTone() {
   const ex = getCurrentExercise();
   if (!ex) return;
+  const plan = get(sessionPlan);
 
   const nextTone = get(toneIndex) + 1;
   if (nextTone >= ex.tones.length) {
-    // Exercise complete
-    sessionPhase.set('between_exercises');
+    const isLastExercise = !plan || get(exerciseIndex) >= plan.exercises.length - 1;
+    sessionPhase.set(isLastExercise ? 'completed' : 'between_exercises');
     tonePhase.set('completed');
   } else {
     toneIndex.set(nextTone);
@@ -346,9 +411,73 @@ function resetToneState() {
   centsSamples.set([]);
   stableStartTime = 0;
   lastUnstableTime = 0;
+  lastAcceptedSampleTime = 0;
+}
+
+function resetSessionStores() {
+  sessionPlan.set(null);
+  exerciseIndex.set(0);
+  toneIndex.set(0);
+  tonePhase.set('waiting');
+  toneResults.set([]);
+  completedExercises.set([]);
+  centsSamples.set([]);
+  currentCents.set(0);
+  currentNote.set('');
+  currentOctave.set(0);
+  currentFrequency.set(0);
+  audioLevel.set(0);
+  elapsedSeconds.set(0);
+  resetToneState();
+}
+
+function cloneResult(result: ToneResult): ToneResult {
+  return {
+    ...result,
+    target: { ...result.target },
+    centsSamples: [...result.centsSamples],
+  };
+}
+
+function snapshotCurrentExerciseRun(): CompletedExerciseRun | null {
+  const exercise = getCurrentExercise();
+  const results = get(toneResults);
+  if (!exercise || results.length === 0) return null;
+
+  return {
+    exercise,
+    results: results.map(cloneResult),
+  };
+}
+
+function archiveCurrentExerciseResults() {
+  const run = snapshotCurrentExerciseRun();
+  if (!run) return;
+
+  completedExercises.update((runs) => [...runs, run]);
+}
+
+function getPersistedExerciseRuns(): CompletedExerciseRun[] {
+  const runs = get(completedExercises).map((run) => ({
+    exercise: run.exercise,
+    results: run.results.map(cloneResult),
+  }));
+  const currentRun = snapshotCurrentExerciseRun();
+  if (currentRun) runs.push(currentRun);
+  return runs;
 }
 
 function clearIntervals() {
-  if (tickInterval) { clearInterval(tickInterval); tickInterval = null; }
-  if (elapsedInterval) { clearInterval(elapsedInterval); elapsedInterval = null; }
+  if (tickTimer) {
+    clearTimeout(tickTimer);
+    tickTimer = null;
+  }
+  if (elapsedInterval) {
+    clearInterval(elapsedInterval);
+    elapsedInterval = null;
+  }
+  if (advanceTimer) {
+    clearTimeout(advanceTimer);
+    advanceTimer = null;
+  }
 }

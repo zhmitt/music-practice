@@ -70,7 +70,7 @@
         }
         // Skip exact duplicates (same name + same export timestamp).
         const exists = students.some(
-          (s) => s.studentName === data.studentName && s.exportedAt === data.exportedAt
+          (s) => s.studentName === data.studentName && s.exportedAt === data.exportedAt,
         );
         if (!exists) {
           students = [...students, data as ProgressReport];
@@ -116,13 +116,11 @@
   }
 
   let selected = $derived(
-    selectedIdx >= 0 && selectedIdx < students.length ? students[selectedIdx] : null
+    selectedIdx >= 0 && selectedIdx < students.length ? students[selectedIdx] : null,
   );
 
   // Chart data derived from the selected student's daily activity.
-  let accuracyData = $derived(
-    selected ? selected.dailyActivity.map((d) => d.accuracy * 100) : []
-  );
+  let accuracyData = $derived(selected ? selected.dailyActivity.map((d) => d.accuracy * 100) : []);
   let activityData = $derived(selected ? selected.dailyActivity.map((d) => d.sessions) : []);
 </script>
 
@@ -182,7 +180,11 @@
         <div class="student-detail">
           <div class="detail-header">
             <h2>{selected.studentName}</h2>
-            <button class="remove-btn" aria-label="Remove student" onclick={() => removeStudent(selectedIdx)}>
+            <button
+              class="remove-btn"
+              aria-label="Remove student"
+              onclick={() => removeStudent(selectedIdx)}
+            >
               <svg viewBox="0 0 24 24" width="14" height="14">
                 <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2" />
                 <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2" />
@@ -248,8 +250,8 @@
                       class="weak-cents"
                       class:good={Math.abs(ws.avgCents) <= 5}
                       class:warn={Math.abs(ws.avgCents) > 5 && Math.abs(ws.avgCents) <= 15}
-                      class:bad={Math.abs(ws.avgCents) > 15}
-                    >{fmtCents(ws.avgCents)}ct</span>
+                      class:bad={Math.abs(ws.avgCents) > 15}>{fmtCents(ws.avgCents)}ct</span
+                    >
                   </div>
                 {/each}
               </div>
@@ -613,9 +615,15 @@
   }
 
   @media (max-width: 480px) {
-    .teacher-header h1 { font-size: 15px; }
-    .ov-card { padding: 10px 8px; }
-    .ov-value { font-size: 18px; }
+    .teacher-header h1 {
+      font-size: 15px;
+    }
+    .ov-card {
+      padding: 10px 8px;
+    }
+    .ov-value {
+      font-size: 18px;
+    }
     .session-row {
       grid-template-columns: 60px 1fr 44px 40px 44px;
       gap: 6px;

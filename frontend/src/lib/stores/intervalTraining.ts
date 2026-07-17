@@ -10,32 +10,31 @@
 import { writable, get } from 'svelte/store';
 import { currentNote, currentOctave, currentCents, isDetecting } from './tonelab';
 import { playNote } from '$lib/audio/playNote';
+import { selectedInstrument } from './onboarding';
+import { getPitchDisplayModeValue } from './notePreferences';
+import { matchesDisplayedTone } from '$lib/music/noteUtils';
+import { getInstrumentPracticeProfile } from '$lib/music/practiceProfiles';
 
 // ── Interval definitions (semitones above root) ──
 
 const INTERVALS = [
-  { semitones: 0,  nameKey: 'interval.unison' },
-  { semitones: 2,  nameKey: 'interval.major_second' },
-  { semitones: 3,  nameKey: 'interval.minor_third' },
-  { semitones: 4,  nameKey: 'interval.major_third' },
-  { semitones: 5,  nameKey: 'interval.perfect_fourth' },
-  { semitones: 7,  nameKey: 'interval.perfect_fifth' },
-  { semitones: 9,  nameKey: 'interval.major_sixth' },
+  { semitones: 0, nameKey: 'interval.unison' },
+  { semitones: 2, nameKey: 'interval.major_second' },
+  { semitones: 3, nameKey: 'interval.minor_third' },
+  { semitones: 4, nameKey: 'interval.major_third' },
+  { semitones: 5, nameKey: 'interval.perfect_fourth' },
+  { semitones: 7, nameKey: 'interval.perfect_fifth' },
+  { semitones: 9, nameKey: 'interval.major_sixth' },
   { semitones: 12, nameKey: 'interval.octave' },
 ] as const;
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
 
-// Root notes comfortable for common wind/brass instruments (concert pitch).
-const ROOT_NOTES: Array<[string, number]> = [
-  ['C', 4], ['D', 4], ['Eb', 4], ['F', 4], ['G', 4], ['A', 4], ['Bb', 4],
-];
-
 /** How long the player must sustain the correct note (ms). */
 const HOLD_REQUIRED_MS = 1500;
 
 /** Intervals used for training (up to P5 by default). */
-const activeIntervals = INTERVALS.filter(i => i.semitones <= 7);
+const activeIntervals = INTERVALS.filter((i) => i.semitones <= 7);
 
 // ── Helpers ──
 
@@ -105,7 +104,10 @@ export function startIntervalTraining(): void {
  * Stop an in-progress session and reset all state to idle.
  */
 export function stopIntervalTraining(): void {
-  if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
   intervalPhase.set('idle');
   intervalChallenge.set(null);
   intervalHoldProgress.set(0);
@@ -120,10 +122,14 @@ export function stopIntervalTraining(): void {
  * polling for the target note.
  */
 export async function nextInterval(): Promise<void> {
-  if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+  if (checkInterval) {
+    clearInterval(checkInterval);
+    checkInterval = null;
+  }
 
   // Pick random root and interval
-  const root = ROOT_NOTES[Math.floor(Math.random() * ROOT_NOTES.length)];
+  const roots = getInstrumentPracticeProfile(get(selectedInstrument)).intervalRootsConcert;
+  const root = roots[Math.floor(Math.random() * roots.length)];
   const interval = activeIntervals[Math.floor(Math.random() * activeIntervals.length)];
 
   const rootMidi = noteToMidi(root[0], root[1]);
@@ -162,7 +168,7 @@ export async function nextInterval(): Promise<void> {
 export function getIntervalScore(): { total: number; correct: number; avgCents: number } {
   const results = get(intervalResults);
   if (results.length === 0) return { total: 0, correct: 0, avgCents: 0 };
-  const correct = results.filter(r => r.correct).length;
+  const correct = results.filter((r) => r.correct).length;
   const avgCents = results.reduce((s, r) => s + Math.abs(r.avgCents), 0) / results.length;
   return { total: results.length, correct, avgCents };
 }
@@ -195,7 +201,15 @@ function checkPitch(): void {
     return;
   }
 
-  const noteMatches = note === challenge.targetNote && octave === challenge.targetOctave;
+  const targetMode = getPitchDisplayModeValue() === 'concert' ? 'concert' : 'written';
+  const noteMatches = matchesDisplayedTone(
+    note,
+    octave,
+    { note: challenge.targetNote, octave: challenge.targetOctave },
+    get(selectedInstrument),
+    'concert',
+    targetMode,
+  );
 
   if (!noteMatches) {
     // Wrong note — reset hold
@@ -223,7 +237,10 @@ function checkPitch(): void {
   intervalCurrentCents.set(avg);
 
   if (elapsed >= HOLD_REQUIRED_MS) {
-    if (checkInterval) { clearInterval(checkInterval); checkInterval = null; }
+    if (checkInterval) {
+      clearInterval(checkInterval);
+      checkInterval = null;
+    }
 
     const avgCents = centsSamples.reduce((a, b) => a + b, 0) / centsSamples.length;
     const correct = Math.abs(avgCents) <= 15;
@@ -236,7 +253,7 @@ function checkPitch(): void {
       correct,
     };
 
-    intervalResults.update(r => [...r, result]);
+    intervalResults.update((r) => [...r, result]);
     intervalPhase.set('result');
   }
 }

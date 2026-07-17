@@ -29,20 +29,21 @@ done
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
+changes_root="openspec/changes"
+
 count_matches() {
   local pattern="$1"
-  local file="$2"
   if command -v rg >/dev/null 2>&1; then
-    { rg -N "$pattern" "$file" || true; } | wc -l | tr -d ' '
+    { rg -N "$pattern" "$2" || true; } | wc -l | tr -d ' '
   else
-    grep -Ec "$pattern" "$file" || true
+    grep -Ec "$pattern" "$2" || true
   fi
 }
 
 active_changes=()
 while IFS= read -r line; do
   active_changes+=("$line")
-done < <(find openspec/changes -mindepth 1 -maxdepth 1 -type d ! -name archive | sort)
+done < <(find "$changes_root" -mindepth 1 -maxdepth 1 -type d ! -name archive | sort)
 
 if [[ ${#active_changes[@]} -eq 0 ]]; then
   if [[ "$json_output" == true ]]; then
@@ -50,7 +51,7 @@ if [[ ${#active_changes[@]} -eq 0 ]]; then
 {
   "change": "",
   "state": "no_change",
-  "next_step": "Create or activate a change in openspec/changes/",
+  "next_step": "Create a new change in openspec/changes/",
   "tasks_total": 0,
   "tasks_complete": 0
 }
@@ -59,14 +60,14 @@ EOF
     echo "Change: none"
     echo "State: no_change"
     echo "Tasks: 0/0"
-    echo "Next: Create or activate a change in openspec/changes/"
+    echo "Next: Create a new change in openspec/changes/"
   fi
   exit 0
 fi
 
 change_dir=""
 if [[ -n "$requested_change" ]]; then
-  change_dir="openspec/changes/$requested_change"
+  change_dir="$changes_root/$requested_change"
   if [[ ! -d "$change_dir" ]]; then
     echo "Active change not found: $requested_change" >&2
     exit 1
@@ -85,6 +86,7 @@ tasks_exists=false
 verification_exists=false
 report_exists=false
 status_entry_exists=false
+spec_count=0
 tasks_total=0
 tasks_complete=0
 
@@ -92,6 +94,10 @@ tasks_complete=0
 [[ -f "$change_dir/design.md" ]] && design_exists=true
 [[ -f "$change_dir/tasks.md" ]] && tasks_exists=true
 [[ -f "$change_dir/verification.md" ]] && verification_exists=true
+
+if [[ -d "$change_dir/specs" ]]; then
+  spec_count="$(find "$change_dir/specs" -type f -name 'spec.md' | wc -l | tr -d ' ')"
+fi
 
 if find workflow/state/reports -type f -name "*${change_id}*.md" | grep -q .; then
   report_exists=true
@@ -107,11 +113,11 @@ if [[ "$tasks_exists" == true ]]; then
 fi
 
 state="draft"
-next_step="Complete proposal.md"
+next_step="Complete proposal and delta specs"
 
-if [[ "$proposal_exists" != true ]]; then
+if [[ "$proposal_exists" != true || "$spec_count" -eq 0 ]]; then
   state="draft"
-  next_step="Complete proposal.md"
+  next_step="Complete proposal and delta specs"
 elif [[ "$design_exists" != true ]]; then
   state="ready_for_design"
   next_step="Write design.md"

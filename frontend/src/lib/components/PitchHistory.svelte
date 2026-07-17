@@ -2,7 +2,8 @@
   import { t } from '$lib/i18n';
   import type { PitchSample } from '$lib/types/tonelab';
 
-  let { samples = [], maxDurationMs = 60000 }: { samples: PitchSample[]; maxDurationMs?: number } = $props();
+  let { samples = [], maxDurationMs = 60000 }: { samples: PitchSample[]; maxDurationMs?: number } =
+    $props();
 
   const WIDTH = 800;
   const HEIGHT = 80;
@@ -16,10 +17,12 @@
     const now = Date.now();
     const clamp = (v: number) => Math.min(50, Math.max(-50, v));
 
-    const points = s.map(sample => ({
-      x: ((sample.timestampMs - (now - maxMs)) / maxMs) * WIDTH,
-      y: CENTER - (clamp(sample.cents) / 50) * CENTER,
-    })).filter(p => p.x >= 0);
+    const points = s
+      .map((sample) => ({
+        x: ((sample.timestampMs - (now - maxMs)) / maxMs) * WIDTH,
+        y: CENTER - (clamp(sample.cents) / 50) * CENTER,
+      }))
+      .filter((p) => p.x >= 0);
 
     if (points.length < 2) return '';
 
@@ -58,30 +61,55 @@
 </div>
 
 <style>
-  .pitch-history { width: 100%; }
+  .pitch-history {
+    width: 100%;
+  }
 
   .history-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase;
-    letter-spacing: 1px; margin-bottom: 8px;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
   }
 
   .history-canvas {
-    width: 100%; height: 80px; background: var(--surface);
-    border: 1px solid var(--border); border-radius: 10px;
-    position: relative; overflow: hidden;
+    width: 100%;
+    height: 80px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
   }
 
   .history-center-line {
-    position: absolute; top: 50%; left: 0; right: 0;
-    height: 1px; background: var(--stab-line);
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: var(--stab-line);
   }
 
-  .history-path { position: absolute; inset: 0; }
-  .history-path svg { width: 100%; height: 100%; }
+  .history-path {
+    position: absolute;
+    inset: 0;
+  }
+  .history-path svg {
+    width: 100%;
+    height: 100%;
+  }
 
   .history-time-labels {
-    position: absolute; bottom: 4px; left: 8px; right: 8px;
-    display: flex; justify-content: space-between;
-    font-size: 8px; color: var(--text-3); opacity: 0.5;
+    position: absolute;
+    bottom: 4px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 8px;
+    color: var(--text-3);
+    opacity: 0.5;
   }
 </style>

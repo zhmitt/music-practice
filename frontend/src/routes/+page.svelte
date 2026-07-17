@@ -1,19 +1,39 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
-  import { getUserProfile } from '$lib/stores/onboarding';
+  import {
+    selectedDays,
+    selectedExperience,
+    selectedInstrument,
+    selectedMinutes,
+  } from '$lib/stores/onboarding';
   import { generateSmartSuggestion, type SessionSuggestion } from '$lib/exercises/smartSuggestion';
   import { startSession } from '$lib/stores/session';
   import { settingsOpen } from '$lib/stores/navigation';
-  import { getStreak, getWeekDays, getWeekProgress, getWeekMinutes, getRecentSessions, getNoteTendencies } from '$lib/stores/history';
+  import {
+    getNoteTendencies,
+    getRecentSessions,
+    getStreak,
+    getWeekDays,
+    getWeekMinutes,
+    getWeekProgress,
+    historyVersion,
+  } from '$lib/stores/history';
   import ImportPanel from '$lib/components/ImportPanel.svelte';
   import AssignmentPanel from '$lib/components/AssignmentPanel.svelte';
 
-  const profile = getUserProfile();
-  const suggestion: SessionSuggestion | null = profile ? generateSmartSuggestion(profile) : null;
+  let profile = $derived.by(() => ({
+    instrument: $selectedInstrument,
+    experience: $selectedExperience,
+    daysPerWeek: $selectedDays,
+    minutesPerSession: $selectedMinutes,
+  }));
+  let suggestion = $derived.by((): SessionSuggestion => {
+    $historyVersion;
+    return generateSmartSuggestion(profile);
+  });
 
-  function handleStartSession() {
-    if (!suggestion) return;
-    startSession(suggestion.plan);
+  async function handleStartSession() {
+    await startSession(suggestion.plan);
   }
 
   /** Simple template interpolation for suggestion reason. */
@@ -30,16 +50,34 @@
     return rounded >= 0 ? `+${rounded}` : `${rounded}`;
   }
 
-  const sessionMinutes = profile?.minutesPerSession ?? 15;
-  const targetDays = profile?.daysPerWeek ?? 5;
+  let sessionMinutes = $derived(profile.minutesPerSession);
+  let targetDays = $derived(profile.daysPerWeek);
 
   // Dashboard data
-  const streak = getStreak();
-  const weekDays = getWeekDays();
-  const weekProgress = getWeekProgress(targetDays);
-  const weekMinutes = getWeekMinutes();
-  const lastSession = getRecentSessions(1)[0] ?? null;
-  const weakSpots = getNoteTendencies(30).slice(0, 3);
+  let streak = $derived.by(() => {
+    $historyVersion;
+    return getStreak();
+  });
+  let weekDays = $derived.by(() => {
+    $historyVersion;
+    return getWeekDays();
+  });
+  let weekProgress = $derived.by(() => {
+    $historyVersion;
+    return getWeekProgress(targetDays);
+  });
+  let weekMinutes = $derived.by(() => {
+    $historyVersion;
+    return getWeekMinutes();
+  });
+  let lastSession = $derived.by(() => {
+    $historyVersion;
+    return getRecentSessions(1)[0] ?? null;
+  });
+  let weakSpots = $derived.by(() => {
+    $historyVersion;
+    return getNoteTendencies(30).slice(0, 3);
+  });
 
   const dayLabels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 </script>
@@ -54,18 +92,25 @@
       <div class="session-duration">{sessionMinutes}<span>min</span></div>
     </div>
 
+    <div class="focus-label">{$t('dashboard.today_focus')}</div>
+
     {#if suggestion}
       <div class="suggestion-row">
-        <span class="suggestion-text">{formatReason(suggestion.reasonKey, suggestion.reasonParams)}</span>
+        <span class="suggestion-text"
+          >{formatReason(suggestion.reasonKey, suggestion.reasonParams)}</span
+        >
       </div>
     {/if}
 
-    <button class="start-btn" onclick={handleStartSession}>
-      <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    <button class="start-btn" onclick={() => void handleStartSession()}>
+      <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3" /></svg>
       {$t('dashboard.start_session')}
     </button>
+    <div class="session-help">{$t('dashboard.session_help')}</div>
     <div class="session-customize">
-      <button class="customize-link" onclick={() => settingsOpen.set(true)}>{$t('dashboard.customize')}</button>
+      <button class="customize-link" onclick={() => settingsOpen.set(true)}
+        >{$t('dashboard.customize_session')}</button
+      >
     </div>
 
     <!-- Last session -->
@@ -73,7 +118,13 @@
       <div class="last-session">
         <div class="ls-label">{$t('dashboard.last_session')}</div>
         <div class="ls-row">
-          <span class="ls-date">{new Date(lastSession.id).toLocaleDateString(undefined, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+          <span class="ls-date"
+            >{new Date(lastSession.id).toLocaleDateString(undefined, {
+              weekday: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}</span
+          >
           <span class="ls-duration">{Math.round(lastSession.durationSeconds / 60)} min</span>
           <span class="ls-accuracy">{Math.round(lastSession.accuracy * 100)}%</span>
         </div>
@@ -86,13 +137,25 @@
         <div class="ws-label">{$t('dashboard.weak_spots')}</div>
         <div class="ws-list">
           {#each weakSpots as ws}
-            <span class="ws-chip" class:warn={Math.abs(ws.avgCents) > 5} class:bad={Math.abs(ws.avgCents) > 15}>
-              {ws.note} {fmtCents(ws.avgCents)}ct
+            <span
+              class="ws-chip"
+              class:warn={Math.abs(ws.avgCents) > 5}
+              class:bad={Math.abs(ws.avgCents) > 15}
+            >
+              {ws.note}
+              {fmtCents(ws.avgCents)}ct
             </span>
           {/each}
         </div>
       </div>
     {/if}
+  </div>
+
+  <div class="card materials-card">
+    <div class="materials-header">
+      <div class="materials-title">{$t('dashboard.materials')}</div>
+      <p class="materials-desc">{$t('dashboard.materials_desc')}</p>
+    </div>
 
     <div class="assignment-section">
       <AssignmentPanel />
@@ -125,106 +188,345 @@
 
 <style>
   .dashboard {
-    display: grid; gap: 12px;
-    grid-template-columns: 1fr 320px;
-    grid-template-rows: auto auto;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-areas:
+      'session streak'
+      'materials week';
   }
 
-  .session-card { grid-column: 1; grid-row: 1 / 3; padding: 28px; }
-  .streak-card { grid-column: 2; grid-row: 1; padding: 22px; display: flex; flex-direction: column; align-items: center; text-align: center; }
-  .week-card { grid-column: 2; grid-row: 2; padding: 22px; }
+  .session-card {
+    grid-area: session;
+    padding: 28px;
+  }
+  .materials-card {
+    grid-area: materials;
+    padding: 24px 28px;
+  }
+  .streak-card {
+    grid-area: streak;
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .week-card {
+    grid-area: week;
+    padding: 22px;
+  }
 
-  .session-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; }
-  .session-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-  .session-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
-  .session-duration { font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--accent); }
-  .session-duration span { font-size: 13px; font-weight: 400; color: var(--text-3); margin-left: 2px; }
+  .session-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .session-label {
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .session-title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+  .session-duration {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--accent);
+  }
+  .session-duration span {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-3);
+    margin-left: 2px;
+  }
+  .focus-label {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
 
   .suggestion-row {
-    padding: 10px 14px; border-radius: 8px; margin-bottom: 16px;
-    background: var(--accent-soft); border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
   }
-  .suggestion-text { font-size: 12px; color: var(--text-2); line-height: 1.5; }
+  .suggestion-text {
+    font-size: 12px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
 
   .start-btn {
-    width: 100%; padding: 13px; border: none; border-radius: 12px;
-    background: var(--accent); color: white; font-family: inherit;
-    font-size: 13px; font-weight: 600; cursor: pointer; letter-spacing: -0.2px;
-    transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 12px;
+    background: var(--accent);
+    color: white;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: -0.2px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
-  .start-btn:hover { filter: brightness(1.1); box-shadow: 0 4px 24px rgba(99,102,241,0.3); transform: translateY(-1px); }
-  .start-btn svg { width: 14px; height: 14px; fill: currentColor; stroke: none; }
+  .start-btn:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 4px 24px rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
+  }
+  .start-btn svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+    stroke: none;
+  }
 
-  .session-customize { text-align: center; margin-top: 10px; }
-  .customize-link { font-size: 11px; color: var(--text-3); border: none; background: none; cursor: pointer; font-family: inherit; }
-  .customize-link:hover { color: var(--text-2); }
+  .session-help {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-3);
+    line-height: 1.5;
+    text-align: center;
+  }
+  .session-customize {
+    text-align: center;
+    margin-top: 8px;
+  }
+  .customize-link {
+    font-size: 11px;
+    color: var(--text-3);
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .customize-link:hover {
+    color: var(--text-2);
+  }
 
   /* ── Last session ── */
-  .last-session { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); }
-  .ls-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-  .ls-row { display: flex; gap: 16px; font-size: 12px; color: var(--text-2); }
-  .ls-accuracy { color: var(--green); font-weight: 500; }
+  .last-session {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .ls-label {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .ls-row {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text-2);
+  }
+  .ls-accuracy {
+    color: var(--green);
+    font-weight: 500;
+  }
 
   /* ── Weak spots ── */
-  .weak-spots { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .weak-spots {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
 
   /* ── Assignment section ── */
-  .assignment-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .materials-header {
+    margin-bottom: 18px;
+  }
+  .materials-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .materials-desc {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--text-3);
+    line-height: 1.5;
+  }
+  .assignment-section {
+    padding-top: 0;
+  }
 
   /* ── Import section ── */
-  .import-section { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
-  .ws-label { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
-  .ws-list { display: flex; flex-wrap: wrap; gap: 6px; }
-  .ws-chip {
-    font-size: 11px; padding: 4px 10px; border-radius: 6px;
-    background: var(--surface); border: 1px solid var(--border);
-    color: var(--text-2); font-variant-numeric: tabular-nums;
+  .import-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
   }
-  .ws-chip.warn { color: var(--amber); border-color: var(--amber-soft); }
-  .ws-chip.bad { color: var(--red); border-color: var(--red-soft); }
+  .ws-label {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .ws-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .ws-chip {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .ws-chip.warn {
+    color: var(--amber);
+    border-color: var(--amber-soft);
+  }
+  .ws-chip.bad {
+    color: var(--red);
+    border-color: var(--red-soft);
+  }
 
   /* ── Streak ── */
   .streak-num {
-    font-size: 44px; font-weight: 900; letter-spacing: -2px; line-height: 1;
+    font-size: 44px;
+    font-weight: 900;
+    letter-spacing: -2px;
+    line-height: 1;
     background: linear-gradient(135deg, var(--accent), var(--green));
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
   }
-  .streak-sub { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1.2px; margin-top: 3px; margin-bottom: 14px; }
-  .days-row { display: flex; gap: 4px; }
+  .streak-sub {
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-top: 3px;
+    margin-bottom: 14px;
+  }
+  .days-row {
+    display: flex;
+    gap: 4px;
+  }
   .day {
-    width: 30px; height: 30px; border-radius: 8px; font-size: 9px; font-weight: 600;
-    display: flex; align-items: center; justify-content: center; color: var(--text-3);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-3);
     transition: all 0.2s;
   }
   .day.practiced {
-    background: var(--accent-soft); color: var(--accent); font-weight: 700;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 700;
   }
 
   /* ── Week ── */
-  .week-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; }
-  .week-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 1px; }
-  .week-pct { font-size: 22px; font-weight: 800; letter-spacing: -1px; }
-  .week-track { height: 5px; background: var(--surface-2); border-radius: 3px; overflow: hidden; }
-  .week-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width 0.3s; }
-  .week-minutes { font-size: 11px; color: var(--text-3); margin-top: 8px; }
+  .week-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .week-label {
+    font-size: 11px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .week-pct {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -1px;
+  }
+  .week-track {
+    height: 5px;
+    background: var(--surface-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .week-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--green));
+    transition: width 0.3s;
+  }
+  .week-minutes {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 8px;
+  }
 
   @media (max-width: 1024px) {
-    .dashboard { grid-template-columns: 1fr; }
-    .session-card { grid-column: 1; grid-row: auto; }
-    .streak-card { grid-column: 1; grid-row: auto; }
-    .week-card { grid-column: 1; grid-row: auto; }
+    .dashboard {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'session'
+        'materials'
+        'streak'
+        'week';
+    }
   }
 
   @media (max-width: 768px) {
-    .session-card { padding: 20px; }
-    .session-title { font-size: 18px; }
-    .start-btn { padding: 11px; }
+    .session-card {
+      padding: 20px;
+    }
+    .materials-card {
+      padding: 20px;
+    }
+    .session-title {
+      font-size: 18px;
+    }
+    .start-btn {
+      padding: 11px;
+    }
   }
 
   @media (max-width: 480px) {
-    .session-card { padding: 16px; }
-    .streak-card { padding: 16px; }
-    .week-card { padding: 16px; }
-    .streak-num { font-size: 36px; }
+    .session-card {
+      padding: 16px;
+    }
+    .materials-card {
+      padding: 16px;
+    }
+    .streak-card {
+      padding: 16px;
+    }
+    .week-card {
+      padding: 16px;
+    }
+    .streak-num {
+      font-size: 36px;
+    }
   }
 </style>

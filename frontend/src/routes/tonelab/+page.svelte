@@ -4,17 +4,34 @@
   import PitchMeter from '$lib/components/PitchMeter.svelte';
   import StabilityGraph from '$lib/components/StabilityGraph.svelte';
   import PitchHistory from '$lib/components/PitchHistory.svelte';
+  import PracticeNote from '$lib/components/PracticeNote.svelte';
   import TargetMode from '$lib/components/TargetMode.svelte';
   import IntervalMode from '$lib/components/IntervalMode.svelte';
   import EarTraining from '$lib/components/EarTraining.svelte';
+  import { getInstrumentPracticeProfile } from '$lib/music/practiceProfiles';
+  import { pitchDisplayMode } from '$lib/stores/notePreferences';
   import { stopEarTraining } from '$lib/stores/earTraining';
+  import { selectedInstrument } from '$lib/stores/onboarding';
   import {
-    tonelabActive, tonelabMode,
-    currentNote, currentOctave, currentCents, currentFrequency,
-    isDetecting, audioLevel,
-    historySamples, centsSamples, tendencies, stats,
-    droneNote, droneOctave, droneActive,
-    startToneLab, stopToneLab, switchMode, setDroneNote,
+    tonelabActive,
+    tonelabMode,
+    currentNote,
+    currentOctave,
+    currentCents,
+    currentFrequency,
+    isDetecting,
+    audioLevel,
+    historySamples,
+    centsSamples,
+    tendencies,
+    stats,
+    droneNote,
+    droneOctave,
+    droneActive,
+    startToneLab,
+    stopToneLab,
+    switchMode,
+    setDroneNote,
   } from '$lib/stores/tonelab';
   import { stopTargetTraining } from '$lib/stores/targetTraining';
   import { stopIntervalTraining } from '$lib/stores/intervalTraining';
@@ -52,21 +69,22 @@
     { key: 'ear' as const, enabled: true },
   ];
 
-  /** Available drone notes (concert pitch, comfortable register). */
-  const droneNotes: Array<{ note: string; octave: number; label: string }> = [
-    { note: 'Bb', octave: 2, label: 'Bb2' },
-    { note: 'C',  octave: 3, label: 'C3' },
-    { note: 'D',  octave: 3, label: 'D3' },
-    { note: 'Eb', octave: 3, label: 'Eb3' },
-    { note: 'F',  octave: 3, label: 'F3' },
-    { note: 'G',  octave: 3, label: 'G3' },
-    { note: 'A',  octave: 3, label: 'A3' },
-    { note: 'Bb', octave: 3, label: 'Bb3' },
-    { note: 'C',  octave: 4, label: 'C4' },
-    { note: 'D',  octave: 4, label: 'D4' },
-    { note: 'Eb', octave: 4, label: 'Eb4' },
-    { note: 'F',  octave: 4, label: 'F4' },
-  ];
+  let droneNotes = $derived.by(() =>
+    getInstrumentPracticeProfile($selectedInstrument).droneNotesConcert.map(([note, octave]) => ({
+      note,
+      octave,
+      label: `${note}${octave}`,
+    })),
+  );
+
+  let liveHintKey = $derived.by(() => {
+    if (!$tonelabActive) return 'tonelab.live_hint_inactive';
+    if ($tonelabMode === 'drone') return 'tonelab.live_hint_drone';
+    if ($tonelabMode === 'free_play') return 'tonelab.live_hint_free';
+    return 'tonelab.live_hint_training';
+  });
+
+  let modeGoalKey = $derived.by(() => `tonelab.mode_goal.${$tonelabMode}`);
 </script>
 
 <div class="tonelab">
@@ -74,14 +92,27 @@
   <div class="tonelab-header">
     <button class="toggle-btn" class:active={$tonelabActive} onclick={toggle}>
       {#if $tonelabActive}
-        <svg viewBox="0 0 24 24" width="14" height="14"><rect x="6" y="4" width="4" height="16" fill="currentColor"/><rect x="14" y="4" width="4" height="16" fill="currentColor"/></svg>
-        {$t('tonelab.stop')}
+        <svg viewBox="0 0 24 24" width="14" height="14"
+          ><rect x="6" y="4" width="4" height="16" fill="currentColor" /><rect
+            x="14"
+            y="4"
+            width="4"
+            height="16"
+            fill="currentColor"
+          /></svg
+        >
+        {$t('tonelab.stop_listening')}
       {:else}
-        <svg viewBox="0 0 24 24" width="14" height="14"><polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/></svg>
-        {$t('tonelab.start')}
+        <svg viewBox="0 0 24 24" width="14" height="14"
+          ><polygon points="5 3 19 12 5 21 5 3" fill="currentColor" /></svg
+        >
+        {$t('tonelab.start_listening')}
       {/if}
     </button>
   </div>
+
+  <div class="helper-banner">{$t(liveHintKey)}</div>
+  <div class="mode-purpose">{$t(modeGoalKey)}</div>
 
   <!-- Main content: two columns -->
   <div class="tonelab-content">
@@ -91,7 +122,15 @@
         <div class="pitch-area">
           <div class="pitch-info">
             {#if $isDetecting}
-              <div class="note-big">{$currentNote}<sup>{$currentOctave}</sup></div>
+              <div class="note-big">
+                <PracticeNote
+                  note={$currentNote}
+                  octave={$currentOctave}
+                  size="lg"
+                  sourceMode={$pitchDisplayMode === 'concert' ? 'concert' : 'written'}
+                  accent
+                />
+              </div>
               <div class="hz-label">{$currentFrequency.toFixed(1)} Hz</div>
             {:else}
               <div class="note-big idle">--</div>
@@ -104,7 +143,12 @@
         <!-- Cent display -->
         <div class="cent-display">
           {#if $isDetecting}
-            <span class="cent-num" class:good={Math.abs($currentCents) <= 5} class:warn={Math.abs($currentCents) > 5 && Math.abs($currentCents) <= 15} class:bad={Math.abs($currentCents) > 15}>
+            <span
+              class="cent-num"
+              class:good={Math.abs($currentCents) <= 5}
+              class:warn={Math.abs($currentCents) > 5 && Math.abs($currentCents) <= 15}
+              class:bad={Math.abs($currentCents) > 15}
+            >
               {fmtCents($currentCents)}
             </span>
             <span class="cent-unit">ct</span>
@@ -125,9 +169,25 @@
       {:else}
         <div class="idle-prompt">
           <div class="idle-icon">
-            <svg viewBox="0 0 24 24" width="48" height="48"><circle cx="12" cy="12" r="10" fill="none" stroke="var(--text-3)" stroke-width="1.2"/><circle cx="12" cy="12" r="3" fill="none" stroke="var(--text-3)" stroke-width="1.2"/></svg>
+            <svg viewBox="0 0 24 24" width="48" height="48"
+              ><circle
+                cx="12"
+                cy="12"
+                r="10"
+                fill="none"
+                stroke="var(--text-3)"
+                stroke-width="1.2"
+              /><circle
+                cx="12"
+                cy="12"
+                r="3"
+                fill="none"
+                stroke="var(--text-3)"
+                stroke-width="1.2"
+              /></svg
+            >
           </div>
-          <p>{$t('tonelab.no_signal')}</p>
+          <p>{$t('tonelab.idle_prompt')}</p>
         </div>
       {/if}
     </div>
@@ -164,7 +224,7 @@
                 class:active={$droneNote === dn.note && $droneOctave === dn.octave}
                 onclick={() => setDroneNote(dn.note, dn.octave)}
               >
-                {dn.label}
+                <PracticeNote note={dn.note} octave={dn.octave} size="sm" sourceMode="concert" />
               </button>
             {/each}
           </div>
@@ -214,7 +274,8 @@
           {#each $tendencies.slice(0, 8) as tn}
             <div class="tendency-chip">
               <span class="tn-note">{tn.noteKey}</span>
-              <span class="tn-cents"
+              <span
+                class="tn-cents"
                 class:good={Math.abs(tn.avgCents) <= 5}
                 class:warn={Math.abs(tn.avgCents) > 5 && Math.abs(tn.avgCents) <= 15}
                 class:bad={Math.abs(tn.avgCents) > 15}
@@ -231,182 +292,401 @@
 
 <style>
   .tonelab {
-    display: flex; flex-direction: column; gap: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     height: 100%;
   }
 
   /* ── Header ── */
-  .tonelab-header { display: flex; justify-content: flex-end; }
+  .tonelab-header {
+    display: flex;
+    justify-content: flex-end;
+  }
+  .helper-banner {
+    margin-top: -8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .mode-purpose {
+    margin-top: -8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+    color: var(--text-2);
+    font-size: 12px;
+    line-height: 1.5;
+  }
 
   .toggle-btn {
-    display: flex; align-items: center; gap: 6px;
-    padding: 8px 20px; border-radius: 10px; border: 1px solid var(--border);
-    background: var(--surface); color: var(--text-2); font-family: inherit;
-    font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
   }
-  .toggle-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .toggle-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
   .toggle-btn.active {
-    background: var(--accent); color: white; border-color: var(--accent);
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
   }
-  .toggle-btn.active:hover { filter: brightness(1.1); }
+  .toggle-btn.active:hover {
+    filter: brightness(1.1);
+  }
 
   /* ── Content two-column ── */
   .tonelab-content {
-    display: grid; grid-template-columns: 1fr 240px; gap: 16px;
-    flex: 1; min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 240px;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
   }
 
   .tonelab-main {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 8px; padding: 24px;
-    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
   }
 
   .tonelab-sidebar {
-    display: flex; flex-direction: column; gap: 12px;
-    padding: 20px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
   }
 
   /* ── Pitch area ── */
-  .pitch-area { display: flex; align-items: center; gap: 40px; }
-  .pitch-info { text-align: center; }
+  .pitch-area {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+  }
+  .pitch-info {
+    text-align: center;
+  }
 
   .note-big {
-    font-size: 72px; font-weight: 900; letter-spacing: -3px; line-height: 1;
+    font-size: 72px;
+    font-weight: 900;
+    letter-spacing: -3px;
+    line-height: 1;
     color: var(--text);
   }
-  .note-big.idle { color: var(--text-3); }
-  .note-big sup { font-size: 28px; font-weight: 600; }
-  .hz-label { font-size: 13px; color: var(--text-3); margin-top: 6px; }
+  .note-big.idle {
+    color: var(--text-3);
+  }
+  .hz-label {
+    font-size: 13px;
+    color: var(--text-3);
+    margin-top: 6px;
+  }
 
   /* ── Cent display ── */
-  .cent-display { display: flex; align-items: baseline; gap: 4px; }
-  .cent-num { font-size: 32px; font-weight: 700; letter-spacing: -1px; color: var(--green); }
-  .cent-num.good { color: var(--green); }
-  .cent-num.warn { color: var(--amber); }
-  .cent-num.bad { color: var(--red); }
-  .cent-unit { font-size: 11px; color: var(--text-3); }
+  .cent-display {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .cent-num {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    color: var(--green);
+  }
+  .cent-num.good {
+    color: var(--green);
+  }
+  .cent-num.warn {
+    color: var(--amber);
+  }
+  .cent-num.bad {
+    color: var(--red);
+  }
+  .cent-unit {
+    font-size: 11px;
+    color: var(--text-3);
+  }
 
   /* ── Level bars ── */
-  .level-bars { display: flex; gap: 4px; margin-top: 12px; }
-  .level-bar {
-    width: 4px; height: 24px; border-radius: 2px;
-    background: var(--surface-2); transition: background 0.1s;
+  .level-bars {
+    display: flex;
+    gap: 4px;
+    margin-top: 12px;
   }
-  .level-bar.active { background: var(--accent); }
+  .level-bar {
+    width: 4px;
+    height: 24px;
+    border-radius: 2px;
+    background: var(--surface-2);
+    transition: background 0.1s;
+  }
+  .level-bar.active {
+    background: var(--accent);
+  }
 
   /* ── Idle prompt ── */
   .idle-prompt {
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     color: var(--text-3);
   }
-  .idle-prompt p { font-size: 13px; }
+  .idle-prompt p {
+    font-size: 13px;
+  }
 
   /* ── Mode selector ── */
   .mode-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
     letter-spacing: 1px;
   }
-  .mode-list { display: flex; flex-direction: column; gap: 6px; }
+  .mode-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
 
   .mode-btn {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-2); font-family: inherit;
-    font-size: 13px; cursor: pointer; transition: all 0.15s; text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
   }
-  .mode-btn:hover:not(:disabled) { background: var(--surface-hover); color: var(--text); }
-  .mode-btn.active { background: var(--accent-soft); color: var(--text); border-color: var(--accent); font-weight: 600; }
-  .mode-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .mode-btn:hover:not(:disabled) {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+  .mode-btn.active {
+    background: var(--accent-soft);
+    color: var(--text);
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .mode-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 
   .mode-badge {
-    font-size: 9px; padding: 2px 6px; border-radius: 4px;
-    background: var(--surface-2); color: var(--text-3);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--surface-2);
+    color: var(--text-3);
   }
 
   /* ── Drone panel ── */
   .drone-panel {
-    display: flex; flex-direction: column; gap: 10px;
-    margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
   }
 
   .drone-status {
-    font-size: 11px; color: var(--green); font-weight: 600;
-    display: flex; align-items: center; gap: 6px;
+    font-size: 11px;
+    color: var(--green);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
   .drone-status::before {
-    content: ''; width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green); display: inline-block;
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    display: inline-block;
     animation: pulse-dot 1.5s ease-in-out infinite;
   }
   @keyframes pulse-dot {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
   }
 
   .drone-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
   }
 
   .drone-note-btn {
-    padding: 6px 4px; border-radius: 6px; border: 1px solid var(--border);
-    background: transparent; color: var(--text-2); font-family: inherit;
-    font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.12s;
+    padding: 6px 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.12s;
   }
-  .drone-note-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .drone-note-btn:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
   .drone-note-btn.active {
-    background: var(--accent-soft); color: var(--text); border-color: var(--accent);
+    background: var(--accent-soft);
+    color: var(--text);
+    border-color: var(--accent);
     font-weight: 700;
   }
 
   .drone-hint {
-    font-size: 11px; color: var(--text-3); line-height: 1.4; margin: 0;
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.4;
+    margin: 0;
   }
 
   /* ── Stats row ── */
-  .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
 
   .stat-card {
-    padding: 16px; text-align: center;
+    padding: 16px;
+    text-align: center;
   }
-  .stat-value { font-size: 24px; font-weight: 800; letter-spacing: -1px; }
+  .stat-value {
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -1px;
+  }
   .stat-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase;
-    letter-spacing: 1px; margin-top: 4px;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
   }
 
   /* ── Tendencies ── */
-  .tendency-section { display: flex; flex-direction: column; gap: 8px; }
+  .tendency-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
   .tendency-label {
-    font-size: 10px; color: var(--text-3); text-transform: uppercase;
+    font-size: 10px;
+    color: var(--text-3);
+    text-transform: uppercase;
     letter-spacing: 1px;
   }
-  .tendency-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tendency-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 
   .tendency-chip {
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 12px; border-radius: 8px;
-    background: var(--surface); border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
     font-size: 13px;
   }
-  .tn-note { font-weight: 600; }
-  .tn-cents { font-size: 11px; color: var(--text-3); }
-  .tn-cents.good { color: var(--green); }
-  .tn-cents.warn { color: var(--amber); }
-  .tn-cents.bad { color: var(--red); }
+  .tn-note {
+    font-weight: 600;
+  }
+  .tn-cents {
+    font-size: 11px;
+    color: var(--text-3);
+  }
+  .tn-cents.good {
+    color: var(--green);
+  }
+  .tn-cents.warn {
+    color: var(--amber);
+  }
+  .tn-cents.bad {
+    color: var(--red);
+  }
 
   /* ── Mobile ── */
   @media (max-width: 768px) {
-    .tonelab-content { grid-template-columns: 1fr; }
-    .tonelab-sidebar { order: -1; }
+    .tonelab-content {
+      grid-template-columns: 1fr;
+    }
+    .tonelab-sidebar {
+      order: -1;
+    }
   }
 
   @media (max-width: 480px) {
-    .tonelab-main { padding: 16px; }
-    .tonelab-sidebar { padding: 14px; }
-    .note-big { font-size: 56px; }
-    .stats-row { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .stat-card { padding: 12px 8px; }
-    .stat-value { font-size: 18px; }
+    .tonelab-main {
+      padding: 16px;
+    }
+    .tonelab-sidebar {
+      padding: 14px;
+    }
+    .note-big {
+      font-size: 56px;
+    }
+    .stats-row {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .stat-card {
+      padding: 12px 8px;
+    }
+    .stat-value {
+      font-size: 18px;
+    }
   }
 </style>

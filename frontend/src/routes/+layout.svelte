@@ -9,15 +9,23 @@
   import Onboarding from '$lib/components/Onboarding.svelte';
   import Settings from '$lib/components/Settings.svelte';
   import { initTheme } from '$lib/stores/theme';
-  import { sessionActive, sessionPaused } from '$lib/stores/navigation';
+  import { sessionActive } from '$lib/stores/navigation';
   import { onboardingVisible, checkOnboardingCompleted, loadProfile } from '$lib/stores/onboarding';
-  import { sessionPhase, stopSession, togglePause, skipTone, nextExercise, repeatExercise } from '$lib/stores/session';
-  import { initDb } from '$lib/db';
+  import {
+    sessionPhase,
+    stopSession,
+    togglePause,
+    skipTone,
+    nextExercise,
+    repeatExercise,
+  } from '$lib/stores/session';
+  import { initDb, persistenceStatus, retryLastPersistence } from '$lib/db';
   import { loadHistory } from '$lib/stores/history';
   import { loadStudentName } from '$lib/stores/sharing';
   import { loadAssignments } from '$lib/stores/assignments';
   import { loadImportedPieces } from '$lib/stores/imports';
-  import { loadLocale } from '$lib/i18n';
+  import { loadLocale, t } from '$lib/i18n';
+  import { loadNotePreferences } from '$lib/stores/notePreferences';
 
   let { children } = $props();
 
@@ -32,6 +40,7 @@
       loadAssignments(),
       loadImportedPieces(),
       loadLocale(),
+      loadNotePreferences(),
     ]);
 
     // initTheme reads from the kv store and sets up the subscriber
@@ -48,12 +57,16 @@
     if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
 
     let isSession = false;
-    const unsub = sessionActive.subscribe(v => { isSession = v; });
+    const unsub = sessionActive.subscribe((v) => {
+      isSession = v;
+    });
     unsub();
 
     if (isSession) {
       let phase = 'running';
-      const unsub2 = sessionPhase.subscribe(v => { phase = v; });
+      const unsub2 = sessionPhase.subscribe((v) => {
+        phase = v;
+      });
       unsub2();
 
       switch (e.key) {
@@ -105,6 +118,17 @@
 <Onboarding />
 <Settings />
 
+{#if $persistenceStatus.degraded}
+  <aside class="persistence-warning" role="status" aria-live="polite">
+    <span>{$t('persistence.warning')}</span>
+    {#if $persistenceStatus.retryAvailable}
+      <button type="button" onclick={() => void retryLastPersistence()}>
+        {$t('persistence.retry')}
+      </button>
+    {/if}
+  </aside>
+{/if}
+
 <style>
   .app {
     display: grid;
@@ -125,11 +149,42 @@
     padding: 24px 28px;
   }
 
+  .persistence-warning {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10000;
+    display: flex;
+    max-width: min(420px, calc(100vw - 32px));
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    color: var(--text-primary);
+    background: var(--surface-raised);
+    border: 1px solid var(--warning, #d99b2b);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+  }
+
+  .persistence-warning button {
+    flex: none;
+    padding: 6px 10px;
+    color: var(--surface-base, #111);
+    background: var(--warning, #d99b2b);
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
   @media (max-width: 768px) {
-    .main { padding: 16px; }
+    .main {
+      padding: 16px;
+    }
   }
 
   @media (max-width: 480px) {
-    .main { padding: 12px 10px; }
+    .main {
+      padding: 12px 10px;
+    }
   }
 </style>

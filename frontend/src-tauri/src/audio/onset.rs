@@ -19,8 +19,8 @@ impl OnsetDetector {
     pub fn new() -> Self {
         Self {
             prev_rms: 0.0,
-            threshold: 3.0,  // current must be 3x previous to trigger
-            min_rms: 0.02,   // ignore very quiet signals
+            threshold: 3.0, // current must be 3x previous to trigger
+            min_rms: 0.02,  // ignore very quiet signals
             min_interval_ms: 100,
             last_onset_ms: 0,
         }
@@ -33,7 +33,8 @@ impl OnsetDetector {
         let result = if rms > self.min_rms
             && self.prev_rms > 0.0
             && rms > self.prev_rms * self.threshold
-            && (self.last_onset_ms == 0 || timestamp_ms - self.last_onset_ms >= self.min_interval_ms)
+            && (self.last_onset_ms == 0
+                || timestamp_ms - self.last_onset_ms >= self.min_interval_ms)
         {
             self.last_onset_ms = timestamp_ms;
             Some(OnsetEvent {

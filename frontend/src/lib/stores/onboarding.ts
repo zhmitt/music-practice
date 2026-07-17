@@ -8,7 +8,15 @@
 import { writable } from 'svelte/store';
 import { getKV, setKV, removeKV } from '$lib/db';
 
-export type Instrument = 'horn_bb' | 'horn_f' | 'double_horn' | 'trumpet_bb' | 'clarinet_bb' | 'flute' | 'trombone' | 'oboe';
+export type Instrument =
+  | 'horn_bb'
+  | 'horn_f'
+  | 'double_horn'
+  | 'trumpet_bb'
+  | 'clarinet_bb'
+  | 'flute'
+  | 'trombone'
+  | 'oboe';
 export type ExperienceLevel = 'beginner_new' | 'beginner' | 'intermediate' | 'experienced';
 
 export interface UserProfile {
@@ -47,8 +55,16 @@ export async function loadProfile(): Promise<void> {
     _onboardingCompleted = completed === 'true';
 
     const raw = await getKV('tt-user-profile');
-    if (raw) _profile = JSON.parse(raw) as UserProfile;
-  } catch { /* non-fatal */ }
+    if (raw) {
+      _profile = JSON.parse(raw) as UserProfile;
+      selectedInstrument.set(_profile.instrument);
+      selectedExperience.set(_profile.experience);
+      selectedDays.set(_profile.daysPerWeek);
+      selectedMinutes.set(_profile.minutesPerSession);
+    }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 /**
@@ -58,9 +74,15 @@ export async function loadProfile(): Promise<void> {
  */
 export async function saveProfile(profile: UserProfile): Promise<void> {
   _profile = profile;
+  selectedInstrument.set(profile.instrument);
+  selectedExperience.set(profile.experience);
+  selectedDays.set(profile.daysPerWeek);
+  selectedMinutes.set(profile.minutesPerSession);
   try {
     await setKV('tt-user-profile', JSON.stringify(profile));
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }
 
 // ── Synchronous API (backward-compatible) ──
@@ -84,13 +106,19 @@ export function checkOnboardingCompleted(): boolean {
 export function completeOnboarding(profile: UserProfile): void {
   _onboardingCompleted = true;
   _profile = profile;
+  selectedInstrument.set(profile.instrument);
+  selectedExperience.set(profile.experience);
+  selectedDays.set(profile.daysPerWeek);
+  selectedMinutes.set(profile.minutesPerSession);
   onboardingVisible.set(false);
 
   // Fire-and-forget async persistence
   Promise.all([
     setKV('tt-onboarding-completed', 'true'),
     setKV('tt-user-profile', JSON.stringify(profile)),
-  ]).catch(() => { /* non-fatal */ });
+  ]).catch(() => {
+    /* non-fatal */
+  });
 }
 
 /**
@@ -112,5 +140,7 @@ export async function clearProfile(): Promise<void> {
   try {
     await removeKV('tt-onboarding-completed');
     await removeKV('tt-user-profile');
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }

@@ -1,0 +1,26 @@
+# Dependency Audit Policy and Triage
+
+`npm audit --omit=dev` runs in CI as a report-only check. Severity alone does
+not prove exploitability in the static Tauri application, but every live
+finding requires an owner, exposure decision, remediation and review date.
+
+Current snapshot: 2026-07-17, seven affected package entries (three high, two
+moderate, two low). Owner for all entries: ToneTrainer maintainers. Next review:
+2026-07-31.
+
+| Package         | Severity | Exposure assessment                                                                                                                                                                             | Remediation                                                                                                           |
+| --------------- | -------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `@sveltejs/kit` |     High | Low in packaged static adapter: affected server hooks, adapter-node request limits and query batching are not shipped as a network server. Build/preview remains developer-exposed.             | Upgrade to a release above `2.70.0`; regenerate lockfile and run canonical verify by 2026-07-31.                      |
+| `cookie`        |      Low | Low/transitive through SvelteKit; ToneTrainer has no server cookie boundary.                                                                                                                    | Resolved through the SvelteKit upgrade by 2026-07-31.                                                                 |
+| `devalue`       |     High | Low in packaged static app because untrusted network deserialization is not exposed; SSR/build tooling still consumes the package.                                                              | Upgrade transitive dependency beyond `5.8.0` through SvelteKit/Svelte by 2026-07-31.                                  |
+| `esbuild`       |      Low | Developer-only Windows dev-server file-read path; packaged runtime does not ship the dev server.                                                                                                | Upgrade to `0.28.1` or later through Vite by 2026-07-31; keep dev server loopback-only.                               |
+| `postcss`       | Moderate | Low: application CSS is repository-controlled and not generated from untrusted input.                                                                                                           | Upgrade to `8.5.10` or later through the frontend toolchain by 2026-07-31.                                            |
+| `svelte`        | Moderate | Reduced but non-zero: static application avoids a public SSR server, while DOM-clobbering/XSS variants can matter if untrusted HTML reaches rendering. No such HTML path is currently intended. | Upgrade beyond `5.55.6`, verify rendering and CSP, by 2026-07-31.                                                     |
+| `vite`          |     High | Developer-only dev-server traversal/file-read paths; packaged runtime does not include Vite server. Windows developers have the greatest exposure.                                              | Upgrade beyond `7.3.4` by 2026-07-31; bind development server to loopback and do not expose it to untrusted networks. |
+
+These are time-bounded risk acceptances, not permanent suppressions. A finding
+becomes blocking if its affected path is exposed in the packaged runtime, the
+review date expires, or a safe upgrade is available and verification succeeds.
+
+Future entries must include advisory identifier, dependency path, shipped-code
+assessment, owner, compensating control, remediation target and review date.

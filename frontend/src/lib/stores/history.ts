@@ -7,29 +7,40 @@
  * in-memory array and immediately persists to the database.
  */
 
-import { getAllSessions, insertSession } from '$lib/db';
+import { writable } from 'svelte/store';
+import {
+  getAllSessions,
+  insertSession,
+  reportPersistenceReadFailure,
+  type PersistenceResult,
+} from '$lib/db';
 
 export interface ToneRecord {
-  note: string;       // "Bb4"
+  note: string; // "Bb4"
   avgCents: number;
-  stability: number;  // std deviation
+  stability: number; // std deviation
   passed: boolean;
 }
 
 export interface SessionRecord {
-  id: string;              // ISO timestamp as unique key
-  date: string;            // YYYY-MM-DD
+  id: string; // ISO timestamp as unique key
+  date: string; // YYYY-MM-DD
   durationSeconds: number;
-  exerciseType: string;    // "long_tones"
-  exerciseName: string;    // i18n key
+  exerciseType: string; // "long_tones"
+  exerciseName: string; // i18n key
   tones: ToneRecord[];
-  accuracy: number;        // fraction passed (0..1)
-  avgCents: number;        // average |cent deviation|
+  accuracy: number; // fraction passed (0..1)
+  avgCents: number; // average |cent deviation|
 }
 
 // ── In-memory store ──
 
 let _history: SessionRecord[] = [];
+export const historyVersion = writable(0);
+
+function bumpHistoryVersion() {
+  historyVersion.update((value) => value + 1);
+}
 
 // ── Async persistence layer ──
 
@@ -44,8 +55,17 @@ export async function loadHistory(): Promise<void> {
       let tones: ToneRecord[] = [];
       try {
         const parsed = typeof r.tones === 'string' ? JSON.parse(r.tones) : r.tones;
-        tones = Array.isArray(parsed) ? parsed : [];
-      } catch { /* corrupt JSON — treat as empty */ }
+        if (!Array.isArray(parsed)) throw new Error(`Invalid tones for session ${r.id}`);
+        tones = parsed.filter(isToneRecord);
+        if (tones.length !== parsed.length) {
+          reportPersistenceReadFailure(
+            new Error(`Rejected ${parsed.length - tones.length} invalid tone record(s)`),
+            `session-tones:${r.id}`,
+          );
+        }
+      } catch (error) {
+        reportPersistenceReadFailure(error);
+      }
 
       return {
         id: r.id,
@@ -56,14 +76,29 @@ export async function loadHistory(): Promise<void> {
         exerciseName: r.exerciseType,
         tones,
         accuracy: r.accuracy,
-        avgCents: tones.length > 0
-          ? tones.reduce((s, t) => s + Math.abs(t.avgCents), 0) / tones.length
-          : 0,
+        avgCents:
+          tones.length > 0 ? tones.reduce((s, t) => s + Math.abs(t.avgCents), 0) / tones.length : 0,
       };
     });
-  } catch {
+    bumpHistoryVersion();
+  } catch (error) {
+    reportPersistenceReadFailure(error);
     // If persistence is unavailable keep whatever was in memory
   }
+}
+
+function isToneRecord(value: unknown): value is ToneRecord {
+  if (!value || typeof value !== 'object') return false;
+  const tone = value as Partial<ToneRecord>;
+  return (
+    typeof tone.note === 'string' &&
+    tone.note.length > 0 &&
+    typeof tone.avgCents === 'number' &&
+    Number.isFinite(tone.avgCents) &&
+    typeof tone.stability === 'number' &&
+    Number.isFinite(tone.stability) &&
+    typeof tone.passed === 'boolean'
+  );
 }
 
 // ── CRUD ──
@@ -82,35 +117,34 @@ export function getHistory(): SessionRecord[] {
  *
  * @param record - Completed session to save.
  */
-export async function saveSession(record: SessionRecord): Promise<void> {
+export async function saveSession(record: SessionRecord): Promise<PersistenceResult> {
   _history.push(record);
   // Keep last 500 sessions max in memory
   if (_history.length > 500) {
     _history = _history.slice(-500);
   }
+  bumpHistoryVersion();
 
-  try {
-    await insertSession({
-      id: record.id,
-      date: record.date,
-      exerciseType: record.exerciseType,
-      durationSeconds: record.durationSeconds,
-      accuracy: record.accuracy,
-      tones: JSON.stringify(record.tones),
-    });
-  } catch { /* persistence failure is non-fatal */ }
+  return insertSession({
+    id: record.id,
+    date: record.date,
+    exerciseType: record.exerciseType,
+    durationSeconds: record.durationSeconds,
+    accuracy: record.accuracy,
+    tones: JSON.stringify(record.tones),
+  });
 }
 
 // ── Derived stats ──
 
 /** Get sessions for a specific date (YYYY-MM-DD). */
 export function getSessionsForDate(date: string): SessionRecord[] {
-  return getHistory().filter(s => s.date === date);
+  return getHistory().filter((s) => s.date === date);
 }
 
 /** Get sessions within a date range. */
 export function getSessionsInRange(from: string, to: string): SessionRecord[] {
-  return getHistory().filter(s => s.date >= from && s.date <= to);
+  return getHistory().filter((s) => s.date >= from && s.date <= to);
 }
 
 /** Today's date as YYYY-MM-DD. */
@@ -136,7 +170,7 @@ export function getStreak(): number {
   if (history.length === 0) return 0;
 
   // Get unique practice dates, sorted desc
-  const dates = [...new Set(history.map(s => s.date))].sort().reverse();
+  const dates = [...new Set(history.map((s) => s.date))].sort().reverse();
 
   const todayStr = today();
   const yesterdayStr = daysAgo(1);
@@ -170,7 +204,7 @@ export function getWeekDays(): boolean[] {
     const d = new Date(mondayDate);
     d.setDate(mondayDate.getDate() + i);
     const dateStr = d.toISOString().slice(0, 10);
-    result[i] = history.some(s => s.date === dateStr);
+    result[i] = history.some((s) => s.date === dateStr);
   }
   return result;
 }
@@ -196,9 +230,11 @@ export function getWeekMinutes(): number {
 }
 
 /** Get per-note averages across all sessions (for weak spots). */
-export function getNoteTendencies(lastNDays = 30): Array<{ note: string; avgCents: number; count: number }> {
+export function getNoteTendencies(
+  lastNDays = 30,
+): Array<{ note: string; avgCents: number; count: number }> {
   const cutoff = daysAgo(lastNDays);
-  const sessions = getHistory().filter(s => s.date >= cutoff);
+  const sessions = getHistory().filter((s) => s.date >= cutoff);
 
   const map = new Map<string, { sum: number; count: number }>();
   for (const session of sessions) {
@@ -231,7 +267,7 @@ export function getRecentSessions(n = 20): SessionRecord[] {
 /** Average accuracy across sessions in last N days. */
 export function getAvgAccuracy(lastNDays = 30): number {
   const cutoff = daysAgo(lastNDays);
-  const sessions = getHistory().filter(s => s.date >= cutoff);
+  const sessions = getHistory().filter((s) => s.date >= cutoff);
   if (sessions.length === 0) return 0;
   return sessions.reduce((s, r) => s + r.accuracy, 0) / sessions.length;
 }
@@ -252,7 +288,7 @@ export function getDailyAggregates(lastNDays: number | null): Array<{
   if (history.length === 0) return [];
 
   const cutoff = lastNDays !== null ? daysAgo(lastNDays) : '0000-00-00';
-  const filtered = history.filter(s => s.date >= cutoff);
+  const filtered = history.filter((s) => s.date >= cutoff);
 
   // Group by date
   const map = new Map<string, { sessions: number; totalSeconds: number; accSum: number }>();
@@ -305,7 +341,7 @@ export function getDailyAggregates(lastNDays: number | null): Array<{
  */
 export function getSessionCount(lastNDays: number | null): number {
   const cutoff = lastNDays !== null ? daysAgo(lastNDays) : '0000-00-00';
-  return getHistory().filter(s => s.date >= cutoff).length;
+  return getHistory().filter((s) => s.date >= cutoff).length;
 }
 
 /**
@@ -316,6 +352,6 @@ export function getSessionCount(lastNDays: number | null): number {
  */
 export function getTotalMinutes(lastNDays: number | null): number {
   const cutoff = lastNDays !== null ? daysAgo(lastNDays) : '0000-00-00';
-  const sessions = getHistory().filter(s => s.date >= cutoff);
+  const sessions = getHistory().filter((s) => s.date >= cutoff);
   return Math.round(sessions.reduce((s, r) => s + r.durationSeconds, 0) / 60);
 }

@@ -22,7 +22,12 @@ function getCtx(): AudioContext {
 }
 
 /** Play a single note for the given duration. Returns a promise that resolves when done. */
-export function playNote(note: string, octave: number, durationMs = 600, volume = 0.3): Promise<void> {
+export function playNote(
+  note: string,
+  octave: number,
+  durationMs = 600,
+  volume = 0.3,
+): Promise<void> {
   const ctx = getCtx();
   const freq = noteToFrequency(note, octave);
   const now = ctx.currentTime;
@@ -65,13 +70,17 @@ export function playNote(note: string, octave: number, durationMs = 600, volume 
   osc2.start(now);
   osc2.stop(now + dur + 0.01);
 
-  return new Promise(resolve => setTimeout(resolve, durationMs));
+  return new Promise((resolve) => setTimeout(resolve, durationMs));
 }
 
 /** Play a sequence of notes with a short gap between them. */
-export async function playSequence(tones: Array<{ note: string; octave: number }>, noteMs = 500, gapMs = 80): Promise<void> {
+export async function playSequence(
+  tones: Array<{ note: string; octave: number }>,
+  noteMs = 500,
+  gapMs = 80,
+): Promise<void> {
   for (const t of tones) {
     await playNote(t.note, t.octave, noteMs);
-    await new Promise(r => setTimeout(r, gapMs));
+    await new Promise((r) => setTimeout(r, gapMs));
   }
 }

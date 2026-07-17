@@ -57,9 +57,7 @@ export function generateProgressReport(studentName: string, periodDays = 30): Pr
   const weakSpots = getNoteTendencies(periodDays).slice(0, 10);
   const dailyActivity = getDailyAggregates(periodDays);
 
-  const totalMinutes = Math.round(
-    history.reduce((s, r) => s + r.durationSeconds, 0) / 60,
-  );
+  const totalMinutes = Math.round(history.reduce((s, r) => s + r.durationSeconds, 0) / 60);
 
   const recentSessions = history
     .slice(-20)

@@ -29,7 +29,9 @@ export async function loadLocale(): Promise<void> {
   try {
     const saved = await getKV('tt-locale');
     if (saved === 'en' || saved === 'de') locale.set(saved);
-  } catch { /* ignore — fall back to default */ }
+  } catch {
+    /* ignore — fall back to default */
+  }
 }
 
 /**
@@ -41,5 +43,7 @@ export async function setLocale(l: Locale): Promise<void> {
   locale.set(l);
   try {
     await setKV('tt-locale', l);
-  } catch { /* non-fatal */ }
+  } catch {
+    /* non-fatal */
+  }
 }

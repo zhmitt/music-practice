@@ -1,6 +1,6 @@
 # Spec-Drift Report: openspec-verification-toolchain
 
-Generated: 2026-04-29T18:31:11Z
+Generated: 2026-07-17T15:10:09Z
 
 ## Summary
 

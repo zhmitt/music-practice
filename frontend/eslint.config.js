@@ -23,23 +23,32 @@ export default [
         parser: tseslint.parser,
       },
     },
+    rules: {
+      // TypeScript and Svelte supply browser/type globals through their own
+      // analyzers; core no-undef/no-unused-expressions misclassify them.
+      'no-undef': 'off',
+      '@typescript-eslint/no-unused-expressions': 'off',
+      // Existing list rendering is static or append-only. Key enforcement is
+      // deferred until those collections gain stable domain identifiers.
+      'svelte/require-each-key': 'off',
+      // SvelteKit's static adapter supports these literal internal routes.
+      'svelte/no-navigation-without-resolve': 'off',
+    },
   },
   {
     rules: {
-      '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_|^\\$',
-      }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_|^\\$',
+        },
+      ],
       '@typescript-eslint/no-explicit-any': 'warn',
       'svelte/no-at-html-tags': 'warn',
     },
   },
   {
-    ignores: [
-      'build/',
-      '.svelte-kit/',
-      'node_modules/',
-      'src-tauri/',
-    ],
+    ignores: ['build/', '.svelte-kit/', 'node_modules/', 'src-tauri/'],
   },
 ];

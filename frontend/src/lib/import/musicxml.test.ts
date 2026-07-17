@@ -15,18 +15,16 @@ import { parseMusicXML } from './musicxml';
  * Minimal valid MusicXML wrapper.
  * Wraps measure content in a complete but compact score document.
  */
-function xmlDoc(measureContent: string, options: {
-  workTitle?: string;
-  movementTitle?: string;
-  tempo?: number;
-  divisions?: number;
-} = {}): string {
-  const {
-    workTitle,
-    movementTitle,
-    tempo = 120,
-    divisions = 1,
-  } = options;
+function xmlDoc(
+  measureContent: string,
+  options: {
+    workTitle?: string;
+    movementTitle?: string;
+    tempo?: number;
+    divisions?: number;
+  } = {},
+): string {
+  const { workTitle, movementTitle, tempo = 120, divisions = 1 } = options;
 
   const workSection = workTitle ? `<work><work-title>${workTitle}</work-title></work>` : '';
   const movSection = movementTitle ? `<movement-title>${movementTitle}</movement-title>` : '';
@@ -121,7 +119,7 @@ describe('parseMusicXML', () => {
       const result = parseMusicXML(xml);
 
       expect(result.noteCount).toBe(3);
-      expect(result.exercise.tones.map(t => t.note)).toEqual(['C', 'G', 'E']);
+      expect(result.exercise.tones.map((t) => t.note)).toEqual(['C', 'G', 'E']);
     });
 
     it('skips rest elements', () => {
@@ -158,21 +156,21 @@ describe('parseMusicXML', () => {
       ['D', 0, 'D'],
       ['G', 0, 'G'],
       // Sharp cases
-      ['C', 1, 'C#'],   // C# stays C#
-      ['D', 1, 'Eb'],   // D# → Eb (enharmonic)
-      ['E', 1, 'F'],    // E# → F
-      ['F', 1, 'F#'],   // F# stays F#
-      ['G', 1, 'Ab'],   // G# → Ab
-      ['A', 1, 'Bb'],   // A# → Bb
-      ['B', 1, 'C'],    // B# → C
+      ['C', 1, 'C#'], // C# stays C#
+      ['D', 1, 'Eb'], // D# → Eb (enharmonic)
+      ['E', 1, 'F'], // E# → F
+      ['F', 1, 'F#'], // F# stays F#
+      ['G', 1, 'Ab'], // G# → Ab
+      ['A', 1, 'Bb'], // A# → Bb
+      ['B', 1, 'C'], // B# → C
       // Flat cases
-      ['C', -1, 'B'],   // Cb → B
-      ['D', -1, 'C#'],  // Db → C#
-      ['E', -1, 'Eb'],  // Eb stays Eb
-      ['F', -1, 'E'],   // Fb → E
-      ['G', -1, 'F#'],  // Gb → F#
-      ['A', -1, 'Ab'],  // Ab stays Ab
-      ['B', -1, 'Bb'],  // Bb stays Bb
+      ['C', -1, 'B'], // Cb → B
+      ['D', -1, 'C#'], // Db → C#
+      ['E', -1, 'Eb'], // Eb stays Eb
+      ['F', -1, 'E'], // Fb → E
+      ['G', -1, 'F#'], // Gb → F#
+      ['A', -1, 'Ab'], // Ab stays Ab
+      ['B', -1, 'Bb'], // Bb stays Bb
     ];
 
     it.each(cases)('step=%s alter=%d → %s', (step, alter, expected) => {

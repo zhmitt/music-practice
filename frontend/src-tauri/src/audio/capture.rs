@@ -1,57 +1,326 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use cpal::{Device, Host, Stream, StreamConfig};
+use cpal::{Device, StreamConfig};
 use ringbuf::traits::{Consumer, Observer, Producer, Split};
 use ringbuf::HeapRb;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::mpsc;
 use std::sync::Arc;
+use std::thread;
+use std::time::Duration;
 
 use crate::audio::types::{AudioDeviceInfo, AudioError};
 
 /// Buffer size for the ring buffer (enough for ~1 second at 48kHz).
 const RING_BUFFER_SIZE: usize = 48000;
+const OWNER_ACK_TIMEOUT: Duration = Duration::from_secs(2);
 
-/// Manages CPAL audio input stream.
-/// Note: Stream is stored separately because CPAL's Stream is !Send.
+struct CaptureState {
+    running: AtomicBool,
+    generation: AtomicU64,
+    error: std::sync::Mutex<Option<AudioError>>,
+    active_device_name: std::sync::Mutex<Option<String>>,
+}
+
+impl CaptureState {
+    fn new() -> Self {
+        Self {
+            running: AtomicBool::new(false),
+            generation: AtomicU64::new(0),
+            error: std::sync::Mutex::new(None),
+            active_device_name: std::sync::Mutex::new(None),
+        }
+    }
+
+    fn runtime_error(&self, generation: u64, error: AudioError) {
+        if self.generation.load(Ordering::Acquire) == generation {
+            let mut current_error = self.error.lock().unwrap();
+            *current_error = Some(error);
+            self.running.store(false, Ordering::Release);
+            *self.active_device_name.lock().unwrap() = None;
+        }
+    }
+}
+
+/// Manages CPAL audio input through a dedicated owner thread.
+/// The non-`Send` stream never crosses that thread boundary.
 pub struct AudioCapture {
-    host: Host,
+    owner: Box<dyn CaptureControl>,
     consumer: Option<ringbuf::HeapCons<f32>>,
     sample_rate: u32,
-    is_running: Arc<AtomicBool>,
+    state: Arc<CaptureState>,
 }
 
-// CPAL Stream handle — kept on the thread that created it.
-// We use a global static to hold the stream since it's !Send.
-static STREAM_HOLDER: std::sync::Mutex<Option<StreamHolder>> = std::sync::Mutex::new(None);
-
-struct StreamHolder {
-    _stream: Stream,
+struct CaptureStart {
+    sample_rate: u32,
+    device_name: String,
+    consumer: ringbuf::HeapCons<f32>,
 }
 
-// Safety: Stream is only accessed from the main thread via STREAM_HOLDER.
-// The stream callback runs on the audio thread but doesn't access StreamHolder.
-unsafe impl Send for StreamHolder {}
-unsafe impl Sync for StreamHolder {}
+trait CaptureControl: Send {
+    fn start(
+        &mut self,
+        device_name: Option<String>,
+        state: Arc<CaptureState>,
+    ) -> Result<CaptureStart, AudioError>;
+    fn stop(&mut self) -> Result<(), AudioError>;
+}
+
+enum CaptureCommand {
+    Start {
+        device_name: Option<String>,
+        state: Arc<CaptureState>,
+        reply: mpsc::SyncSender<Result<CaptureStart, AudioError>>,
+    },
+    Stop(mpsc::SyncSender<()>),
+    Shutdown,
+}
+
+struct CaptureOwner {
+    commands: mpsc::Sender<CaptureCommand>,
+    thread: Option<thread::JoinHandle<()>>,
+    timeout: Duration,
+}
+
+trait OwnedCaptureStream {
+    fn play(&mut self) -> Result<(), AudioError>;
+}
+
+trait CaptureBackend: Send + 'static {
+    fn build(
+        &mut self,
+        device_name: Option<&str>,
+        on_error: Arc<dyn Fn(AudioError) + Send + Sync>,
+    ) -> Result<(Box<dyn OwnedCaptureStream>, CaptureStart), AudioError>;
+}
+
+struct CpalCaptureBackend;
+struct CpalCaptureStream(cpal::Stream);
+
+impl OwnedCaptureStream for CpalCaptureStream {
+    fn play(&mut self) -> Result<(), AudioError> {
+        self.0
+            .play()
+            .map_err(|e| AudioError::Unknown(format!("Failed to start stream: {}", e)))
+    }
+}
+
+impl CaptureOwner {
+    fn spawn() -> Self {
+        Self::spawn_with(Box::new(CpalCaptureBackend), OWNER_ACK_TIMEOUT)
+    }
+
+    fn spawn_with(backend: Box<dyn CaptureBackend>, timeout: Duration) -> Self {
+        let (commands, receiver) = mpsc::channel();
+        let thread = thread::Builder::new()
+            .name("audio-capture-owner".into())
+            .spawn(move || capture_owner_loop(receiver, backend))
+            .expect("failed to spawn audio capture owner");
+        Self {
+            commands,
+            thread: Some(thread),
+            timeout,
+        }
+    }
+}
+
+impl CaptureControl for CaptureOwner {
+    fn start(
+        &mut self,
+        device_name: Option<String>,
+        state: Arc<CaptureState>,
+    ) -> Result<CaptureStart, AudioError> {
+        let (reply, response) = mpsc::sync_channel(1);
+        self.commands
+            .send(CaptureCommand::Start {
+                device_name,
+                state: state.clone(),
+                reply,
+            })
+            .map_err(|_| AudioError::AudioSubsystemUnavailable)?;
+        response.recv_timeout(self.timeout).map_err(|_| {
+            state.generation.fetch_add(1, Ordering::AcqRel);
+            state.running.store(false, Ordering::Release);
+            *state.error.lock().unwrap() = Some(AudioError::AudioSubsystemUnavailable);
+            AudioError::AudioSubsystemUnavailable
+        })?
+    }
+
+    fn stop(&mut self) -> Result<(), AudioError> {
+        let (reply, response) = mpsc::sync_channel(0);
+        self.commands
+            .send(CaptureCommand::Stop(reply))
+            .map_err(|_| AudioError::AudioSubsystemUnavailable)?;
+        response
+            .recv_timeout(self.timeout)
+            .map_err(|_| AudioError::AudioSubsystemUnavailable)
+    }
+}
+
+impl Drop for CaptureOwner {
+    fn drop(&mut self) {
+        let _ = self.commands.send(CaptureCommand::Shutdown);
+        if let Some(thread) = self.thread.take() {
+            let _ = thread.join();
+        }
+    }
+}
+
+fn capture_owner_loop(
+    commands: mpsc::Receiver<CaptureCommand>,
+    mut backend: Box<dyn CaptureBackend>,
+) {
+    // The stream is created, used, and dropped exclusively on this thread.
+    let mut stream: Option<Box<dyn OwnedCaptureStream>> = None;
+    while let Ok(command) = commands.recv() {
+        match command {
+            CaptureCommand::Start {
+                device_name,
+                state,
+                reply,
+            } => {
+                stream = None;
+                state.running.store(false, Ordering::Release);
+                *state.error.lock().unwrap() = None;
+                let generation = state.generation.fetch_add(1, Ordering::AcqRel) + 1;
+                let callback_state = state.clone();
+                let on_error = Arc::new(move |error| {
+                    callback_state.runtime_error(generation, error);
+                });
+                let result = backend.build(device_name.as_deref(), on_error).and_then(
+                    |(mut new_stream, start)| {
+                        new_stream.play()?;
+                        if state.generation.load(Ordering::Acquire) != generation {
+                            return Err(AudioError::AudioSubsystemUnavailable);
+                        }
+                        let current_error = state.error.lock().unwrap();
+                        if let Some(error) = current_error.clone() {
+                            return Err(error);
+                        }
+                        stream = Some(new_stream);
+                        state.running.store(true, Ordering::Release);
+                        drop(current_error);
+                        Ok(start)
+                    },
+                );
+                if let Err(error) = &result {
+                    *state.error.lock().unwrap() = Some(error.clone());
+                }
+                let _ = reply.send(result);
+            }
+            CaptureCommand::Stop(reply) => {
+                stream = None;
+                let _ = reply.send(());
+            }
+            CaptureCommand::Shutdown => break,
+        }
+    }
+    drop(stream);
+}
+
+impl CaptureBackend for CpalCaptureBackend {
+    fn build(
+        &mut self,
+        device_name: Option<&str>,
+        on_error: Arc<dyn Fn(AudioError) + Send + Sync>,
+    ) -> Result<(Box<dyn OwnedCaptureStream>, CaptureStart), AudioError> {
+        let host = cpal::default_host();
+        let device = get_device(&host, device_name)?;
+        let resolved_device_name = device.name().unwrap_or_default();
+        let config = find_config(&device)?;
+        let sample_rate = config.sample_rate.0;
+        let rb = HeapRb::<f32>::new(RING_BUFFER_SIZE);
+        let (mut producer, consumer) = rb.split();
+        let stream = device
+            .build_input_stream(
+                &config,
+                move |data: &[f32], _: &cpal::InputCallbackInfo| {
+                    let _ = producer.push_slice(data);
+                },
+                move |err| {
+                    log::error!("CPAL stream error: {}", err);
+                    on_error(AudioError::StreamInterrupted);
+                },
+                None,
+            )
+            .map_err(|e| AudioError::Unknown(format!("Failed to build input stream: {}", e)))?;
+        Ok((
+            Box::new(CpalCaptureStream(stream)),
+            CaptureStart {
+                sample_rate,
+                device_name: resolved_device_name,
+                consumer,
+            },
+        ))
+    }
+}
+
+fn get_device(host: &cpal::Host, device_name: Option<&str>) -> Result<Device, AudioError> {
+    if let Some(name) = device_name {
+        let devices = host
+            .input_devices()
+            .map_err(|_| AudioError::NoMicrophoneAvailable)?;
+        for device in devices {
+            if device.name().ok().as_deref() == Some(name) {
+                return Ok(device);
+            }
+        }
+        log::warn!("Requested device '{}' not found, using default", name);
+    }
+    host.default_input_device()
+        .ok_or(AudioError::NoMicrophoneAvailable)
+}
+
+fn find_config(device: &Device) -> Result<StreamConfig, AudioError> {
+    let supported = device
+        .supported_input_configs()
+        .map_err(|e| AudioError::Unknown(format!("Failed to query input configs: {}", e)))?;
+    let configs: Vec<_> = supported.collect();
+    for &target_rate in &[44100u32, 48000] {
+        for cfg in &configs {
+            if cfg.channels() >= 1
+                && cfg.min_sample_rate().0 <= target_rate
+                && cfg.max_sample_rate().0 >= target_rate
+            {
+                return Ok(StreamConfig {
+                    channels: 1,
+                    sample_rate: cpal::SampleRate(target_rate),
+                    buffer_size: cpal::BufferSize::Default,
+                });
+            }
+        }
+    }
+    Err(AudioError::UnsupportedSampleRate)
+}
 
 impl AudioCapture {
     pub fn new() -> Self {
         Self {
-            host: cpal::default_host(),
+            owner: Box::new(CaptureOwner::spawn()),
             consumer: None,
             sample_rate: 44100,
-            is_running: Arc::new(AtomicBool::new(false)),
+            state: Arc::new(CaptureState::new()),
+        }
+    }
+
+    #[cfg(test)]
+    fn with_owner(owner: Box<dyn CaptureControl>) -> Self {
+        Self {
+            owner,
+            consumer: None,
+            sample_rate: 44100,
+            state: Arc::new(CaptureState::new()),
         }
     }
 
     /// List available audio input devices.
     pub fn list_devices(&self) -> Result<Vec<AudioDeviceInfo>, AudioError> {
-        let default_name = self
-            .host
+        let host = cpal::default_host();
+        let default_name = host
             .default_input_device()
             .and_then(|d| d.name().ok())
             .unwrap_or_default();
 
-        let devices = self
-            .host
+        let devices = host
             .input_devices()
             .map_err(|e| AudioError::Unknown(format!("Failed to enumerate devices: {}", e)))?;
 
@@ -72,77 +341,23 @@ impl AudioCapture {
         Ok(infos)
     }
 
-    /// Find a device by name, or return the default input device.
-    fn get_device(&self, device_name: Option<&str>) -> Result<Device, AudioError> {
-        if let Some(name) = device_name {
-            let devices = self
-                .host
-                .input_devices()
-                .map_err(|_| AudioError::NoMicrophoneAvailable)?;
-
-            for device in devices {
-                if device.name().ok().as_deref() == Some(name) {
-                    return Ok(device);
-                }
-            }
-            // Requested device not found, fall back to default
-            log::warn!("Requested device '{}' not found, using default", name);
-        }
-
-        self.host
-            .default_input_device()
-            .ok_or(AudioError::NoMicrophoneAvailable)
-    }
-
     /// Start capturing audio from the specified device (or default).
     pub fn start(&mut self, device_name: Option<&str>) -> Result<u32, AudioError> {
-        if self.is_running.load(Ordering::Relaxed) {
+        if self.state.running.load(Ordering::Acquire) {
             self.stop();
         }
 
-        let device = self.get_device(device_name)?;
-
-        // Find supported config (prefer 44100, fall back to 48000)
-        let config = self.find_config(&device)?;
-        self.sample_rate = config.sample_rate.0;
-
-        // Create ring buffer
-        let rb = HeapRb::<f32>::new(RING_BUFFER_SIZE);
-        let (mut producer, consumer) = rb.split();
-        self.consumer = Some(consumer);
-
-        let is_running = self.is_running.clone();
-        is_running.store(true, Ordering::Relaxed);
-
-        let err_flag = is_running.clone();
-
-        let stream = device
-            .build_input_stream(
-                &config,
-                move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                    // Write samples to ring buffer (drop if full — better than blocking audio thread)
-                    let _ = producer.push_slice(data);
-                },
-                move |err| {
-                    log::error!("CPAL stream error: {}", err);
-                    err_flag.store(false, Ordering::Relaxed);
-                },
-                None, // no timeout
-            )
-            .map_err(|e| AudioError::Unknown(format!("Failed to build input stream: {}", e)))?;
-
-        stream
-            .play()
-            .map_err(|e| AudioError::Unknown(format!("Failed to start stream: {}", e)))?;
-
-        // Store stream in global holder (it's !Send so can't be in AudioCapture directly)
-        let mut holder = STREAM_HOLDER.lock().unwrap();
-        *holder = Some(StreamHolder { _stream: stream });
+        let started = self
+            .owner
+            .start(device_name.map(str::to_owned), self.state.clone())?;
+        self.sample_rate = started.sample_rate;
+        *self.state.active_device_name.lock().unwrap() = Some(started.device_name.clone());
+        self.consumer = Some(started.consumer);
 
         log::info!(
             "Audio capture started: {} Hz, device: {}",
             self.sample_rate,
-            device.name().unwrap_or_default()
+            started.device_name
         );
 
         Ok(self.sample_rate)
@@ -150,11 +365,13 @@ impl AudioCapture {
 
     /// Stop the audio capture stream.
     pub fn stop(&mut self) {
-        // Drop the stream from the global holder
-        let mut holder = STREAM_HOLDER.lock().unwrap();
-        *holder = None;
+        self.state.generation.fetch_add(1, Ordering::AcqRel);
+        self.state.running.store(false, Ordering::Release);
+        if let Err(error) = self.owner.stop() {
+            *self.state.error.lock().unwrap() = Some(error);
+        }
         self.consumer = None;
-        self.is_running.store(false, Ordering::Relaxed);
+        *self.state.active_device_name.lock().unwrap() = None;
         log::info!("Audio capture stopped");
     }
 
@@ -179,43 +396,152 @@ impl AudioCapture {
     }
 
     pub fn is_running(&self) -> bool {
-        self.is_running.load(Ordering::Relaxed)
+        self.state.running.load(Ordering::Acquire)
     }
 
-    /// Find a suitable mono input config at 44100 or 48000 Hz.
-    fn find_config(&self, device: &Device) -> Result<StreamConfig, AudioError> {
-        let supported = device
-            .supported_input_configs()
-            .map_err(|_| AudioError::MicrophonePermissionDenied)?;
+    pub fn active_device_name(&self) -> Option<String> {
+        self.state.active_device_name.lock().unwrap().clone()
+    }
 
-        let configs: Vec<_> = supported.collect();
-
-        // Try preferred sample rates in order
-        for &target_rate in &[44100u32, 48000] {
-            for cfg in &configs {
-                if cfg.channels() >= 1
-                    && cfg.min_sample_rate().0 <= target_rate
-                    && cfg.max_sample_rate().0 >= target_rate
-                {
-                    return Ok(StreamConfig {
-                        channels: 1, // mono
-                        sample_rate: cpal::SampleRate(target_rate),
-                        buffer_size: cpal::BufferSize::Default,
-                    });
-                }
-            }
-        }
-
-        Err(AudioError::UnsupportedSampleRate)
+    #[allow(dead_code)]
+    pub fn last_error(&self) -> Option<AudioError> {
+        self.state.error.lock().unwrap().clone()
     }
 }
 
 impl Drop for AudioCapture {
     fn drop(&mut self) {
-        // Drop the stream from the global holder
-        if let Ok(mut holder) = STREAM_HOLDER.lock() {
-            *holder = None;
+        self.state.generation.fetch_add(1, Ordering::AcqRel);
+        self.state.running.store(false, Ordering::Release);
+        let _ = self.owner.stop();
+        *self.state.active_device_name.lock().unwrap() = None;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::VecDeque;
+    type ErrorCallback = Arc<dyn Fn(AudioError) + Send + Sync>;
+
+    enum Plan {
+        BuildFail,
+        PlayFail,
+        Ok,
+        Slow,
+    }
+    struct FakeBackend {
+        plans: Arc<std::sync::Mutex<VecDeque<Plan>>>,
+        callbacks: Arc<std::sync::Mutex<Vec<ErrorCallback>>>,
+    }
+    struct FakeStream {
+        play_fail: bool,
+        delay: Duration,
+    }
+    impl OwnedCaptureStream for FakeStream {
+        fn play(&mut self) -> Result<(), AudioError> {
+            if !self.delay.is_zero() {
+                thread::sleep(self.delay);
+            }
+            if self.play_fail {
+                Err(AudioError::Unknown("play failed".into()))
+            } else {
+                Ok(())
+            }
         }
-        self.is_running.store(false, Ordering::Relaxed);
+    }
+    impl CaptureBackend for FakeBackend {
+        fn build(
+            &mut self,
+            _name: Option<&str>,
+            callback: ErrorCallback,
+        ) -> Result<(Box<dyn OwnedCaptureStream>, CaptureStart), AudioError> {
+            let plan = self.plans.lock().unwrap().pop_front().unwrap();
+            if matches!(plan, Plan::BuildFail) {
+                return Err(AudioError::Unknown("build failed".into()));
+            }
+            self.callbacks.lock().unwrap().push(callback);
+            let rb = HeapRb::<f32>::new(8);
+            let (_, consumer) = rb.split();
+            Ok((
+                Box::new(FakeStream {
+                    play_fail: matches!(plan, Plan::PlayFail),
+                    delay: if matches!(plan, Plan::Slow) {
+                        Duration::from_millis(60)
+                    } else {
+                        Duration::ZERO
+                    },
+                }),
+                CaptureStart {
+                    sample_rate: 48000,
+                    device_name: "Test input".into(),
+                    consumer,
+                },
+            ))
+        }
+    }
+    fn capture(
+        plans: Vec<Plan>,
+        timeout: Duration,
+    ) -> (AudioCapture, Arc<std::sync::Mutex<Vec<ErrorCallback>>>) {
+        let callbacks = Arc::new(std::sync::Mutex::new(Vec::new()));
+        let backend = FakeBackend {
+            plans: Arc::new(std::sync::Mutex::new(plans.into())),
+            callbacks: callbacks.clone(),
+        };
+        let owner = CaptureOwner::spawn_with(Box::new(backend), timeout);
+        (AudioCapture::with_owner(Box::new(owner)), callbacks)
+    }
+
+    #[test]
+    fn production_protocol_reports_build_failure() {
+        let (mut c, _) = capture(vec![Plan::BuildFail], Duration::from_secs(1));
+        assert!(c
+            .start(None)
+            .unwrap_err()
+            .to_string()
+            .contains("build failed"));
+        assert!(!c.is_running());
+    }
+    #[test]
+    fn production_protocol_reports_play_failure() {
+        let (mut c, _) = capture(vec![Plan::PlayFail], Duration::from_secs(1));
+        assert!(c
+            .start(None)
+            .unwrap_err()
+            .to_string()
+            .contains("play failed"));
+        assert!(!c.is_running());
+    }
+    #[test]
+    fn runtime_error_clears_running_and_active_metadata() {
+        let (mut c, callbacks) = capture(vec![Plan::Ok], Duration::from_secs(1));
+        c.start(None).unwrap();
+        callbacks.lock().unwrap()[0](AudioError::StreamInterrupted);
+        assert!(!c.is_running());
+        assert_eq!(c.active_device_name(), None);
+        assert!(matches!(
+            c.last_error(),
+            Some(AudioError::StreamInterrupted)
+        ));
+    }
+    #[test]
+    fn stale_callback_cannot_stop_restarted_stream() {
+        let (mut c, callbacks) = capture(vec![Plan::Ok, Plan::Ok], Duration::from_secs(1));
+        c.start(None).unwrap();
+        c.start(None).unwrap();
+        callbacks.lock().unwrap()[0](AudioError::StreamInterrupted);
+        assert!(c.is_running());
+    }
+    #[test]
+    fn acknowledgement_timeout_is_typed_and_invalidates_late_success() {
+        let (mut c, _) = capture(vec![Plan::Slow], Duration::from_millis(5));
+        assert!(matches!(
+            c.start(None),
+            Err(AudioError::AudioSubsystemUnavailable)
+        ));
+        thread::sleep(Duration::from_millis(80));
+        assert!(!c.is_running());
+        assert_eq!(c.active_device_name(), None);
     }
 }

@@ -6,5 +6,5 @@ Read AGENTS.md, the active OpenSpec change, and workflow/state/task-registry.md 
 Keep the main agent in an orchestration role.
 For bounded implementation work, prefer delegating to @opsx-implementer so coding details stay in an isolated subagent context.
 
-Implement from tasks.md, keep canonical artifacts current, and refresh deterministic state through workflow/scripts/tasks-sync.sh.
+Implement from tasks.md, keep canonical artifacts current, refresh deterministic state through workflow/scripts/tasks-sync.sh, and record meaningful checkpoints with workflow/scripts/milestone-sync.sh --summary "<what changed>".
 """

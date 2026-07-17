@@ -20,6 +20,15 @@ pub struct PitchDetector {
     noise_floor: f32,
 }
 
+#[derive(Debug, Clone)]
+pub struct PitchAnalysis {
+    pub status: &'static str,
+    pub raw_frequency_hz: Option<f64>,
+    pub raw_confidence: Option<f64>,
+    pub tentative_pitch: Option<PitchResult>,
+    pub detected_pitch: Option<PitchResult>,
+}
+
 impl PitchDetector {
     pub fn new(sample_rate: u32) -> Self {
         Self {
@@ -36,36 +45,95 @@ impl PitchDetector {
         self.reference_a4 = hz.clamp(430.0, 450.0);
     }
 
+    pub fn reference_a4(&self) -> f64 {
+        self.reference_a4
+    }
+
     pub fn set_profile(&mut self, profile: InstrumentProfile) {
         self.profile = profile;
+    }
+
+    pub fn profile(&self) -> InstrumentProfile {
+        self.profile.clone()
     }
 
     pub fn set_display_mode(&mut self, mode: DisplayMode) {
         self.display_mode = mode;
     }
 
+    pub fn display_mode(&self) -> DisplayMode {
+        self.display_mode
+    }
+
     /// Detect pitch from a buffer of mono f32 samples.
     /// Returns None if signal is below noise floor or no confident pitch found.
+    #[allow(dead_code)]
     pub fn detect(&self, samples: &[f32], timestamp_ms: u64) -> Option<PitchResult> {
-        // Check noise floor
+        self.analyze(samples, timestamp_ms).detected_pitch
+    }
+
+    pub fn analyze(&self, samples: &[f32], timestamp_ms: u64) -> PitchAnalysis {
         let rms = compute_rms(samples);
         if rms < self.noise_floor {
-            return None;
+            return PitchAnalysis {
+                status: "no_signal",
+                raw_frequency_hz: None,
+                raw_confidence: None,
+                tentative_pitch: None,
+                detected_pitch: None,
+            };
         }
 
-        // Run YIN
-        let (frequency_hz, confidence) = self.yin(samples)?;
+        let Some((frequency_hz, confidence)) = self.yin_raw(samples) else {
+            return PitchAnalysis {
+                status: "no_periodicity",
+                raw_frequency_hz: None,
+                raw_confidence: None,
+                tentative_pitch: None,
+                detected_pitch: None,
+            };
+        };
 
-        // Filter by instrument range
+        let tentative_pitch = Some(self.map_pitch_result(frequency_hz, confidence, timestamp_ms));
+
         if !self.profile.in_range(frequency_hz) {
-            return None;
+            return PitchAnalysis {
+                status: "out_of_range",
+                raw_frequency_hz: Some(frequency_hz),
+                raw_confidence: Some(confidence),
+                tentative_pitch,
+                detected_pitch: None,
+            };
         }
 
-        // Map frequency to note
+        if confidence < 0.4 {
+            return PitchAnalysis {
+                status: "low_confidence",
+                raw_frequency_hz: Some(frequency_hz),
+                raw_confidence: Some(confidence),
+                tentative_pitch,
+                detected_pitch: None,
+            };
+        }
+
+        PitchAnalysis {
+            status: "detected",
+            raw_frequency_hz: Some(frequency_hz),
+            raw_confidence: Some(confidence),
+            tentative_pitch: tentative_pitch.clone(),
+            detected_pitch: tentative_pitch,
+        }
+    }
+
+    fn map_pitch_result(
+        &self,
+        frequency_hz: f64,
+        confidence: f64,
+        timestamp_ms: u64,
+    ) -> PitchResult {
         let (concert_name, concert_octave, cent_deviation) =
             frequency_to_note(frequency_hz, self.reference_a4);
 
-        // Apply transposition if in notated mode
         let (note_name, octave) = if self.display_mode == DisplayMode::Notated
             && self.profile.transposition_semitones != 0
         {
@@ -78,18 +146,18 @@ impl PitchDetector {
             (concert_name, concert_octave)
         };
 
-        Some(PitchResult {
+        PitchResult {
             frequency_hz,
             note_name,
             octave,
             cent_deviation,
             confidence,
             timestamp_ms,
-        })
+        }
     }
 
     /// Core YIN algorithm. Returns (frequency_hz, confidence) or None.
-    fn yin(&self, samples: &[f32]) -> Option<(f64, f64)> {
+    fn yin_raw(&self, samples: &[f32]) -> Option<(f64, f64)> {
         let n = samples.len();
         if n < 4 {
             return None;
@@ -164,13 +232,7 @@ impl PitchDetector {
         };
 
         let frequency = self.sample_rate as f64 / tau_refined;
-        let confidence = 1.0 - best_val;
-
-        if confidence < 0.5 {
-            return None;
-        }
-
-        Some((frequency, confidence))
+        Some((frequency, 1.0 - best_val))
     }
 
     /// Minimum period in samples (corresponds to max frequency).

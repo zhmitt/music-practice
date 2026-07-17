@@ -47,15 +47,19 @@ export async function initTheme(): Promise<void> {
 
   // Load saved preference from kv store (async)
   try {
-    const saved = await getKV('tt-theme') as ThemeMode | null;
+    const saved = (await getKV('tt-theme')) as ThemeMode | null;
     if (saved && ['auto', 'dark', 'light'].includes(saved)) {
       themeMode.set(saved);
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 
   themeMode.subscribe((mode) => {
     applyTheme(mode);
-    setKV('tt-theme', mode).catch(() => { /* non-fatal */ });
+    setKV('tt-theme', mode).catch(() => {
+      /* non-fatal */
+    });
   });
 }
 

@@ -9,24 +9,34 @@
    */
   import { t } from '$lib/i18n';
   import {
-    earMode, earPhase, earResults, earCurrentQuestion, earCorrectAnswer,
-    earMelodyNotes, earMelodyProgress, earFeedback,
-    startIntervalId, answerIntervalId,
-    startMelodicDictation, startPitchMemory,
-    stopEarTraining, getEarScore, resetEarResults,
+    earPhase,
+    earResults,
+    earCurrentQuestion,
+    earCorrectAnswer,
+    earMelodyNotes,
+    earMelodyProgress,
+    earFeedback,
+    startIntervalId,
+    answerIntervalId,
+    startMelodicDictation,
+    startPitchMemory,
+    stopEarTraining,
+    getEarScore,
+    resetEarResults,
   } from '$lib/stores/earTraining';
   import { tonelabActive } from '$lib/stores/tonelab';
+  import PracticeNote from './PracticeNote.svelte';
 
   /** Interval buttons shown during the Interval Identification answering phase. */
   const INTERVALS_FOR_BUTTONS = [
-    { key: 'interval.unison',         label: 'P1' },
-    { key: 'interval.major_second',   label: 'M2' },
-    { key: 'interval.minor_third',    label: 'm3' },
-    { key: 'interval.major_third',    label: 'M3' },
+    { key: 'interval.unison', label: 'P1' },
+    { key: 'interval.major_second', label: 'M2' },
+    { key: 'interval.minor_third', label: 'm3' },
+    { key: 'interval.major_third', label: 'M3' },
     { key: 'interval.perfect_fourth', label: 'P4' },
-    { key: 'interval.perfect_fifth',  label: 'P5' },
-    { key: 'interval.major_sixth',    label: 'M6' },
-    { key: 'interval.octave',         label: 'P8' },
+    { key: 'interval.perfect_fifth', label: 'P5' },
+    { key: 'interval.major_sixth', label: 'M6' },
+    { key: 'interval.octave', label: 'P8' },
   ];
 
   type SubMode = 'interval_id' | 'melodic' | 'pitch_memory';
@@ -56,21 +66,30 @@
     <button
       class="ear-mode-btn"
       class:active={selectedMode === 'interval_id'}
-      onclick={() => { selectedMode = 'interval_id'; stopEarTraining(); }}
+      onclick={() => {
+        selectedMode = 'interval_id';
+        stopEarTraining();
+      }}
     >
       {$t('ear.interval_id')}
     </button>
     <button
       class="ear-mode-btn"
       class:active={selectedMode === 'melodic'}
-      onclick={() => { selectedMode = 'melodic'; stopEarTraining(); }}
+      onclick={() => {
+        selectedMode = 'melodic';
+        stopEarTraining();
+      }}
     >
       {$t('ear.melodic')}
     </button>
     <button
       class="ear-mode-btn"
       class:active={selectedMode === 'pitch_memory'}
-      onclick={() => { selectedMode = 'pitch_memory'; stopEarTraining(); }}
+      onclick={() => {
+        selectedMode = 'pitch_memory';
+        stopEarTraining();
+      }}
     >
       {$t('ear.pitch_memory')}
     </button>
@@ -93,14 +112,14 @@
       <p class="ear-hint">{$t('ear.activate_hint')}</p>
     {/if}
 
-  <!-- Listening: playing the reference notes -->
+    <!-- Listening: playing the reference notes -->
   {:else if $earPhase === 'listening'}
     <div class="ear-status">
       <div class="ear-listening-anim"></div>
       <span>{$t('ear.listening')}</span>
     </div>
 
-  <!-- Answering: user input phase -->
+    <!-- Answering: user input phase -->
   {:else if $earPhase === 'answering'}
     <div class="ear-question">{$earCurrentQuestion}</div>
 
@@ -110,7 +129,6 @@
           <button class="iv-btn" onclick={() => answerIntervalId(iv.key)}>{iv.label}</button>
         {/each}
       </div>
-
     {:else if selectedMode === 'melodic'}
       <div class="melody-progress">
         {#each $earMelodyNotes as n, i}
@@ -120,7 +138,7 @@
             class:current={i === $earMelodyProgress}
           >
             {#if i < $earMelodyProgress}
-              {n.note}{n.octave}
+              <PracticeNote note={n.note} octave={n.octave} size="sm" sourceMode="concert" />
             {:else if i === $earMelodyProgress}
               ?
             {:else}
@@ -130,13 +148,12 @@
         {/each}
       </div>
       <p class="ear-hint">{$t('ear.play_melody')}</p>
-
     {:else}
       <div class="memory-question">?</div>
       <p class="ear-hint">{$t('ear.play_note')}</p>
     {/if}
 
-  <!-- Result: feedback + score + next/stop -->
+    <!-- Result: feedback + score + next/stop -->
   {:else if $earPhase === 'result'}
     <div
       class="ear-feedback"
@@ -179,7 +196,11 @@
   }
 
   /* Sub-mode tabs */
-  .ear-modes { display: flex; gap: 4px; width: 100%; }
+  .ear-modes {
+    display: flex;
+    gap: 4px;
+    width: 100%;
+  }
 
   .ear-mode-btn {
     flex: 1;
@@ -199,7 +220,9 @@
     border-color: var(--accent);
     font-weight: 600;
   }
-  .ear-mode-btn:hover:not(.active) { background: var(--surface-hover); }
+  .ear-mode-btn:hover:not(.active) {
+    background: var(--surface-hover);
+  }
 
   /* Description + hint */
   .ear-desc {
@@ -230,7 +253,10 @@
     transition: all 0.15s;
     width: 100%;
   }
-  .ear-start-btn:hover { background: var(--accent); color: white; }
+  .ear-start-btn:hover {
+    background: var(--accent);
+    color: white;
+  }
 
   /* Listening animation */
   .ear-status {
@@ -248,8 +274,15 @@
     animation: pulse-dot 1s ease-in-out infinite;
   }
   @keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50%       { opacity: 0.4; transform: scale(0.8); }
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scale(0.8);
+    }
   }
 
   /* Question label */
@@ -285,7 +318,10 @@
   }
 
   /* Melodic dictation progress row */
-  .melody-progress { display: flex; gap: 6px; }
+  .melody-progress {
+    display: flex;
+    gap: 6px;
+  }
 
   .melody-dot {
     padding: 6px 10px;
@@ -295,8 +331,14 @@
     background: var(--surface-2);
     color: var(--text-3);
   }
-  .melody-dot.done    { background: var(--green); color: white; }
-  .melody-dot.current { background: var(--accent-soft); color: var(--accent); }
+  .melody-dot.done {
+    background: var(--green);
+    color: white;
+  }
+  .melody-dot.current {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
 
   /* Pitch memory question mark */
   .memory-question {
@@ -306,9 +348,16 @@
   }
 
   /* Result feedback */
-  .ear-feedback { font-size: 14px; font-weight: 700; }
-  .ear-feedback.correct { color: var(--green); }
-  .ear-feedback.wrong   { color: var(--red); }
+  .ear-feedback {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .ear-feedback.correct {
+    color: var(--green);
+  }
+  .ear-feedback.wrong {
+    color: var(--red);
+  }
 
   .ear-score {
     font-size: 16px;
@@ -317,18 +366,29 @@
   }
 
   /* Result dots */
-  .ear-dots { display: flex; gap: 4px; }
+  .ear-dots {
+    display: flex;
+    gap: 4px;
+  }
   .ear-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background: var(--surface-2);
   }
-  .ear-dot.correct { background: var(--green); }
-  .ear-dot.wrong   { background: var(--red); }
+  .ear-dot.correct {
+    background: var(--green);
+  }
+  .ear-dot.wrong {
+    background: var(--red);
+  }
 
   /* Next / Stop actions */
-  .ear-actions { display: flex; gap: 8px; width: 100%; }
+  .ear-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
 
   .ear-next-btn,
   .ear-stop-btn {
@@ -348,6 +408,10 @@
     color: white;
     border-color: var(--accent);
   }
-  .ear-next-btn:hover { filter: brightness(1.1); }
-  .ear-stop-btn:hover { background: var(--surface-hover); }
+  .ear-next-btn:hover {
+    filter: brightness(1.1);
+  }
+  .ear-stop-btn:hover {
+    background: var(--surface-hover);
+  }
 </style>

@@ -4,7 +4,7 @@ set -euo pipefail
 
 requested_change=""
 dry_run=false
-check=false
+check_mode=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -21,7 +21,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --check)
-      check=true
+      check_mode=true
       shift
       ;;
     *)
@@ -30,6 +30,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ "$dry_run" == true && "$check_mode" == true ]]; then
+  echo "Use either --dry-run or --check, not both." >&2
+  exit 1
+fi
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
@@ -44,72 +49,55 @@ count_matches() {
   fi
 }
 
-registry_timestamp() {
-  local existing_timestamp=""
-
-  if [[ "$check" == true && -f workflow/state/task-registry.md ]]; then
-    existing_timestamp="$(sed -n 's/^\*\*Last Updated:\*\* //p' workflow/state/task-registry.md | head -n 1)"
-  fi
-
-  if [[ -n "$existing_timestamp" ]]; then
-    echo "$existing_timestamp"
-  else
-    date '+%Y-%m-%d %H:%M:%S'
-  fi
+normalize_registry() {
+  local file="$1"
+  sed '/^\*\*Last Updated:\*\*/d' "$file"
 }
 
-render_registry() {
-  local target_file="$1"
-  local active_section=""
-  local draft_section=""
-  local ready_section=""
-  local archived_section=""
-  local active_count=0
-  local draft_count=0
-  local ready_count=0
-  local archived_count=0
-  local total_tasks=0
-  local completed_tasks=0
-  local timestamp
+active_changes=()
+while IFS= read -r line; do
+  active_changes+=("$line")
+done < <(find openspec/changes -mindepth 1 -maxdepth 1 -type d ! -name archive | sort)
 
-  active_changes=()
-  while IFS= read -r line; do
-    active_changes+=("$line")
-  done < <(find openspec/changes -mindepth 1 -maxdepth 1 -type d ! -name archive | sort)
+archived_changes=()
+while IFS= read -r line; do
+  archived_changes+=("$line")
+done < <(find openspec/changes/archive -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
 
-  archived_changes=()
-  while IFS= read -r line; do
-    archived_changes+=("$line")
-  done < <(find openspec/changes/archive -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+active_section=""
+backlog_section=""
+ready_section=""
+archived_section=""
 
-  if [[ ${#active_changes[@]} -gt 0 ]]; then
-    for change_dir in "${active_changes[@]}"; do
-      local change_id
-      local state
-      local next_step
-      local tasks_file
-      local task_total=0
-      local task_complete=0
-      local block
+active_count=0
+backlog_count=0
+ready_count=0
+archived_count=0
+total_tasks=0
+completed_tasks=0
 
-      change_id="$(basename "$change_dir")"
-      if [[ -n "$requested_change" && "$change_id" != "$requested_change" ]]; then
-        continue
-      fi
+if [[ ${#active_changes[@]} -gt 0 ]]; then
+  for change_dir in "${active_changes[@]}"; do
+    change_id="$(basename "$change_dir")"
+    if [[ -n "$requested_change" && "$change_id" != "$requested_change" ]]; then
+      continue
+    fi
 
-      state="$(workflow/scripts/phase-status.sh --change "$change_id" | awk -F': ' '/^State:/ {print $2}')"
-      next_step="$(workflow/scripts/phase-status.sh --change "$change_id" | awk -F': ' '/^Next:/ {print $2}')"
+    state="$(workflow/scripts/phase-status.sh --change "$change_id" | awk -F': ' '/^State:/ {print $2}')"
+    next_step="$(workflow/scripts/phase-status.sh --change "$change_id" | awk -F': ' '/^Next:/ {print $2}')"
 
-      tasks_file="$change_dir/tasks.md"
-      if [[ -f "$tasks_file" ]]; then
-        task_total="$(count_matches '^- \[( |x|X)\]' "$tasks_file")"
-        task_complete="$(count_matches '^- \[[xX]\]' "$tasks_file")"
-      fi
+    tasks_file="$change_dir/tasks.md"
+    task_total=0
+    task_complete=0
+    if [[ -f "$tasks_file" ]]; then
+      task_total="$(count_matches '^- \[( |x|X)\]' "$tasks_file")"
+      task_complete="$(count_matches '^- \[[xX]\]' "$tasks_file")"
+    fi
 
-      total_tasks=$((total_tasks + task_total))
-      completed_tasks=$((completed_tasks + task_complete))
+    total_tasks=$((total_tasks + task_total))
+    completed_tasks=$((completed_tasks + task_complete))
 
-      block=$(cat <<EOF
+    block=$(cat <<EOF
 ### ${change_id}
 
 - State: ${state}
@@ -119,35 +107,35 @@ render_registry() {
 EOF
 )
 
-      case "$state" in
-        draft)
-          draft_section+="$block"$'\n'
-          draft_count=$((draft_count + 1))
-          ;;
-        ready_for_archive)
-          ready_section+="$block"$'\n'
-          ready_count=$((ready_count + 1))
-          ;;
-        *)
-          active_section+="$block"$'\n'
-          active_count=$((active_count + 1))
-          ;;
-      esac
-    done
-  fi
+    case "$state" in
+      draft)
+        backlog_section+="$block"$'\n'
+        backlog_count=$((backlog_count + 1))
+        ;;
+      ready_for_archive)
+        ready_section+="$block"$'\n'
+        ready_count=$((ready_count + 1))
+        ;;
+      *)
+        active_section+="$block"$'\n'
+        active_count=$((active_count + 1))
+        ;;
+    esac
+  done
+fi
 
-  if [[ ${#archived_changes[@]} -gt 0 ]]; then
-    for change_dir in "${archived_changes[@]}"; do
-      local change_id
-      change_id="$(basename "$change_dir")"
-      archived_section+="- ${change_id}"$'\n'
-      archived_count=$((archived_count + 1))
-    done
-  fi
+if [[ ${#archived_changes[@]} -gt 0 ]]; then
+  for change_dir in "${archived_changes[@]}"; do
+    change_id="$(basename "$change_dir")"
+    archived_section+="- ${change_id}"$'\n'
+    archived_count=$((archived_count + 1))
+  done
+fi
 
-  timestamp="$(registry_timestamp)"
+tmp_file="$(mktemp)"
+timestamp="$(date '+%Y-%m-%d %H:%M:%S')"
 
-  cat > "$target_file" <<EOF
+cat > "$tmp_file" <<EOF
 # Task Registry
 
 Generated by \`workflow/scripts/tasks-sync.sh\`.
@@ -157,7 +145,7 @@ Generated by \`workflow/scripts/tasks-sync.sh\`.
 ## Summary
 
 - Active changes: ${active_count}
-- Draft changes: ${draft_count}
+- Draft changes: ${backlog_count}
 - Ready to archive: ${ready_count}
 - Archived changes: ${archived_count}
 - Task completion: ${completed_tasks}/${total_tasks}
@@ -166,73 +154,67 @@ Generated by \`workflow/scripts/tasks-sync.sh\`.
 
 EOF
 
-  if [[ -n "$active_section" ]]; then
-    printf '%s\n' "$active_section" >> "$target_file"
-  else
-    echo "*No active changes*" >> "$target_file"
-  fi
+if [[ -n "$active_section" ]]; then
+  printf '%s\n' "$active_section" >> "$tmp_file"
+else
+  echo "*No active changes*" >> "$tmp_file"
+fi
 
-  cat >> "$target_file" <<EOF
+cat >> "$tmp_file" <<EOF
 
 ## Draft Changes
 
 EOF
 
-  if [[ -n "$draft_section" ]]; then
-    printf '%s\n' "$draft_section" >> "$target_file"
-  else
-    echo "*No draft changes*" >> "$target_file"
-  fi
+if [[ -n "$backlog_section" ]]; then
+  printf '%s\n' "$backlog_section" >> "$tmp_file"
+else
+  echo "*No draft changes*" >> "$tmp_file"
+fi
 
-  cat >> "$target_file" <<EOF
+cat >> "$tmp_file" <<EOF
 
 ## Ready to Archive
 
 EOF
 
-  if [[ -n "$ready_section" ]]; then
-    printf '%s\n' "$ready_section" >> "$target_file"
-  else
-    echo "*No changes are ready to archive*" >> "$target_file"
-  fi
+if [[ -n "$ready_section" ]]; then
+  printf '%s\n' "$ready_section" >> "$tmp_file"
+else
+  echo "*No changes are ready to archive*" >> "$tmp_file"
+fi
 
-  cat >> "$target_file" <<EOF
+cat >> "$tmp_file" <<EOF
 
 ## Archived Changes
 
 EOF
 
-  if [[ -n "$archived_section" ]]; then
-    printf '%s\n' "$archived_section" >> "$target_file"
-  else
-    echo "*No archived changes*" >> "$target_file"
-  fi
-}
-
-tmp_file="$(mktemp)"
-render_registry "$tmp_file"
-
-if [[ "$check" == true ]]; then
-  if [[ ! -f workflow/state/task-registry.md ]]; then
-    echo "workflow/state/task-registry.md is missing" >&2
-    rm -f "$tmp_file"
-    exit 1
-  fi
-
-  if ! cmp -s "$tmp_file" workflow/state/task-registry.md; then
-    echo "workflow/state/task-registry.md is stale. Run workflow/scripts/tasks-sync.sh." >&2
-    rm -f "$tmp_file"
-    exit 1
-  fi
-
-  rm -f "$tmp_file"
-  echo "workflow/state/task-registry.md is current."
-  exit 0
+if [[ -n "$archived_section" ]]; then
+  printf '%s\n' "$archived_section" >> "$tmp_file"
+else
+  echo "*No archived changes*" >> "$tmp_file"
 fi
 
 if [[ "$dry_run" == true ]]; then
   cat "$tmp_file"
   rm -f "$tmp_file"
+elif [[ "$check_mode" == true ]]; then
+  if [[ ! -f workflow/state/task-registry.md ]]; then
+    echo "workflow/state/task-registry.md is missing. Run workflow/scripts/tasks-sync.sh." >&2
+    rm -f "$tmp_file"
+    exit 1
+  fi
+
+  if diff -u <(normalize_registry workflow/state/task-registry.md) <(normalize_registry "$tmp_file") >/dev/null; then
+    echo "Task registry is up to date."
+    rm -f "$tmp_file"
+    exit 0
+  fi
+
+  echo "workflow/state/task-registry.md is stale. Run workflow/scripts/tasks-sync.sh." >&2
+  rm -f "$tmp_file"
+  exit 1
 else
   mv "$tmp_file" workflow/state/task-registry.md
   echo "Updated workflow/state/task-registry.md"

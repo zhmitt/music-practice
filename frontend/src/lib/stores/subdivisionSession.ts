@@ -78,9 +78,12 @@ function scheduleClick(ctx: AudioContext, time: number, isDownbeat: boolean) {
 
 function subsPerBeat(type: SubdivisionType): number {
   switch (type) {
-    case 'eighth': return 2;
-    case 'triplet': return 3;
-    case 'sixteenth': return 4;
+    case 'eighth':
+      return 2;
+    case 'triplet':
+      return 3;
+    case 'sixteenth':
+      return 4;
   }
 }
 
@@ -89,7 +92,11 @@ function beatsPerBar(ts: '3/4' | '4/4'): number {
 }
 
 /** Build the expected slot grid for one bar. */
-function buildBarSlots(bpm: number, type: SubdivisionType, ts: '3/4' | '4/4'): Array<{ label: string; isMainBeat: boolean; expectedMs: number }> {
+function buildBarSlots(
+  bpm: number,
+  type: SubdivisionType,
+  ts: '3/4' | '4/4',
+): Array<{ label: string; isMainBeat: boolean; expectedMs: number }> {
   const beatMs = 60_000 / bpm;
   const numBeats = beatsPerBar(ts);
   const subs = subsPerBeat(type);
@@ -162,10 +169,13 @@ export async function startSubdivisionExercise() {
 
   // Transition to playing
   const toPlayingDelay = (exerciseStartSec - ctx.currentTime) * 1000;
-  setTimeout(() => {
-    subPhase.set('playing');
-    countdownBeat.set(0);
-  }, Math.max(0, toPlayingDelay));
+  setTimeout(
+    () => {
+      subPhase.set('playing');
+      countdownBeat.set(0);
+    },
+    Math.max(0, toPlayingDelay),
+  );
 
   // End and score
   const totalDurationMs = bars * numBeats * beatMs;
@@ -232,19 +242,23 @@ function scoreExercise(bpm: number, type: SubdivisionType, ts: '3/4' | '4/4', ba
 
     // Evenness = RMS of subdivision deviations for this bar
     const barSubDevs = slots
-      .filter(s => !s.isMainBeat && s.deviationMs !== null)
-      .map(s => s.deviationMs!);
-    const evenness = barSubDevs.length > 0
-      ? Math.round(Math.sqrt(barSubDevs.reduce((s, d) => s + d * d, 0) / barSubDevs.length))
-      : 0;
+      .filter((s) => !s.isMainBeat && s.deviationMs !== null)
+      .map((s) => s.deviationMs!);
+    const evenness =
+      barSubDevs.length > 0
+        ? Math.round(Math.sqrt(barSubDevs.reduce((s, d) => s + d * d, 0) / barSubDevs.length))
+        : 0;
 
     results.push({ barNumber: bar + 1, slots, evennessScore: evenness });
   }
 
   // Overall evenness
-  const overall = allSubDeviations.length > 0
-    ? Math.round(Math.sqrt(allSubDeviations.reduce((s, d) => s + d * d, 0) / allSubDeviations.length))
-    : 0;
+  const overall =
+    allSubDeviations.length > 0
+      ? Math.round(
+          Math.sqrt(allSubDeviations.reduce((s, d) => s + d * d, 0) / allSubDeviations.length),
+        )
+      : 0;
 
   barResults.set(results);
   overallEvenness.set(overall);

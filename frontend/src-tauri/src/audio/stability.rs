@@ -54,7 +54,12 @@ impl StabilityTracker {
         let mean: f64 = self.readings.iter().sum::<f64>() / n;
 
         // Population standard deviation
-        let variance: f64 = self.readings.iter().map(|&f| (f - mean).powi(2)).sum::<f64>() / n;
+        let variance: f64 = self
+            .readings
+            .iter()
+            .map(|&f| (f - mean).powi(2))
+            .sum::<f64>()
+            / n;
         let std_deviation = variance.sqrt();
 
         let (note_name, octave, _) = frequency_to_note(mean, self.reference_a4);
@@ -85,7 +90,7 @@ mod tests {
     #[test]
     fn test_stable_tone() {
         let mut tracker = StabilityTracker::new(43.0, 440.0); // ~43 readings/sec at 1024 hop
-        // Simulate 2 seconds of perfectly stable 440 Hz
+                                                              // Simulate 2 seconds of perfectly stable 440 Hz
         for _ in 0..86 {
             tracker.push(440.0);
         }

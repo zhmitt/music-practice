@@ -1,10 +1,17 @@
 <script lang="ts">
   import { t } from '$lib/i18n';
+  import PracticeNote from './PracticeNote.svelte';
   import {
-    targetPhase, targetNote, targetOctave, targetResults,
-    targetHoldProgress, targetCurrentCentsAvg,
-    startTargetTraining, stopTargetTraining, nextTarget, getTargetScore,
-    setInstrumentKey,
+    targetPhase,
+    targetNote,
+    targetOctave,
+    targetResults,
+    targetHoldProgress,
+    targetCurrentCentsAvg,
+    startTargetTraining,
+    stopTargetTraining,
+    nextTarget,
+    getTargetScore,
   } from '$lib/stores/targetTraining';
   import { tonelabActive } from '$lib/stores/tonelab';
 
@@ -13,23 +20,7 @@
     return rounded >= 0 ? `+${rounded}` : `${rounded}`;
   }
 
-  // Read instrument from localStorage to determine transposition key
-  function getInstrumentKey(): string {
-    try {
-      const raw = localStorage.getItem('tt-user-profile');
-      if (raw) {
-        const p = JSON.parse(raw);
-        const instr = p.instrument || 'horn_bb';
-        if (['horn_bb', 'trumpet_bb', 'clarinet_bb', 'double_horn'].includes(instr)) return 'bb';
-        if (instr === 'horn_f') return 'f';
-        return 'concert';
-      }
-    } catch { /* fall through to default */ }
-    return 'bb';
-  }
-
   function handleStart() {
-    setInstrumentKey(getInstrumentKey());
     startTargetTraining();
   }
 </script>
@@ -42,22 +33,38 @@
         <button class="target-start-btn" onclick={handleStart}>
           {$t('tonelab.target.start')}
         </button>
+      {:else}
+        <p class="target-helper">{$t('tonelab.activate_hint')}</p>
       {/if}
     </div>
   {:else}
     <!-- Current target -->
     <div class="target-current">
       <div class="target-label">{$t('tonelab.target.play')}</div>
-      <div class="target-note-big">{$targetNote}<sup>{$targetOctave}</sup></div>
+      <div class="target-note-big">
+        <PracticeNote
+          note={$targetNote}
+          octave={$targetOctave}
+          size="lg"
+          sourceMode="written"
+          accent
+        />
+      </div>
     </div>
 
     <!-- Hold progress ring -->
     <div class="hold-ring-wrap">
       <svg viewBox="0 0 80 80" class="hold-ring">
         <circle cx="40" cy="40" r="34" fill="none" stroke="var(--border)" stroke-width="4" />
-        <circle cx="40" cy="40" r="34" fill="none"
+        <circle
+          cx="40"
+          cy="40"
+          r="34"
+          fill="none"
           stroke={$targetPhase === 'result'
-            ? ($targetResults[$targetResults.length - 1]?.passed ? 'var(--green)' : 'var(--amber)')
+            ? $targetResults[$targetResults.length - 1]?.passed
+              ? 'var(--green)'
+              : 'var(--amber)'
             : 'var(--accent)'}
           stroke-width="4"
           stroke-dasharray={2 * Math.PI * 34}
@@ -76,7 +83,9 @@
           {#if $targetResults[$targetResults.length - 1]?.passed}
             <span class="hold-status good">{$t('tonelab.target.good')}</span>
           {:else}
-            <span class="hold-status warn">{fmtCents($targetResults[$targetResults.length - 1]?.avgCents ?? 0)}ct</span>
+            <span class="hold-status warn"
+              >{fmtCents($targetResults[$targetResults.length - 1]?.avgCents ?? 0)}ct</span
+            >
           {/if}
         {/if}
       </div>
@@ -104,7 +113,9 @@
     {#if $targetPhase === 'result'}
       <div class="target-actions">
         <button class="target-next-btn" onclick={nextTarget}>{$t('tonelab.target.next')}</button>
-        <button class="target-stop-btn" onclick={stopTargetTraining}>{$t('tonelab.target.stop')}</button>
+        <button class="target-stop-btn" onclick={stopTargetTraining}
+          >{$t('tonelab.target.stop')}</button
+        >
       </div>
     {/if}
   {/if}
@@ -121,13 +132,21 @@
     border-top: 1px solid var(--border);
   }
 
-  .target-prompt { text-align: center; }
+  .target-prompt {
+    text-align: center;
+  }
 
   .target-desc {
     font-size: 11px;
     color: var(--text-3);
     line-height: 1.4;
     margin: 0 0 12px;
+  }
+  .target-helper {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-3);
+    line-height: 1.5;
   }
 
   .target-start-btn {
@@ -142,9 +161,14 @@
     cursor: pointer;
     transition: all 0.15s;
   }
-  .target-start-btn:hover { background: var(--accent); color: white; }
+  .target-start-btn:hover {
+    background: var(--accent);
+    color: white;
+  }
 
-  .target-current { text-align: center; }
+  .target-current {
+    text-align: center;
+  }
 
   .target-label {
     font-size: 10px;
@@ -159,17 +183,16 @@
     font-weight: 900;
     letter-spacing: -2px;
   }
-  .target-note-big sup {
-    font-size: 16px;
-    font-weight: 600;
-  }
 
   .hold-ring-wrap {
     position: relative;
     width: 80px;
     height: 80px;
   }
-  .hold-ring { width: 100%; height: 100%; }
+  .hold-ring {
+    width: 100%;
+    height: 100%;
+  }
 
   .hold-center {
     position: absolute;
@@ -179,19 +202,36 @@
     justify-content: center;
   }
 
-  .hold-status { font-size: 11px; font-weight: 600; }
-  .hold-status.waiting  { color: var(--text-3); }
-  .hold-status.detecting { color: var(--accent); }
-  .hold-status.good    { color: var(--green); }
-  .hold-status.warn    { color: var(--amber); }
+  .hold-status {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .hold-status.waiting {
+    color: var(--text-3);
+  }
+  .hold-status.detecting {
+    color: var(--accent);
+  }
+  .hold-status.good {
+    color: var(--green);
+  }
+  .hold-status.warn {
+    color: var(--amber);
+  }
 
   .target-score {
     display: flex;
     gap: 12px;
     font-size: 13px;
   }
-  .score-passed { font-weight: 700; color: var(--green); }
-  .score-avg    { color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .score-passed {
+    font-weight: 700;
+    color: var(--green);
+  }
+  .score-avg {
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+  }
 
   .target-history {
     display: flex;
@@ -207,8 +247,12 @@
     background: var(--surface-2);
     transition: background 0.15s;
   }
-  .result-dot.passed { background: var(--green); }
-  .result-dot.failed { background: var(--amber); }
+  .result-dot.passed {
+    background: var(--green);
+  }
+  .result-dot.failed {
+    background: var(--amber);
+  }
 
   .target-actions {
     display: flex;
@@ -234,6 +278,10 @@
     color: white;
     border-color: var(--accent);
   }
-  .target-next-btn:hover { filter: brightness(1.1); }
-  .target-stop-btn:hover { background: var(--surface-hover); }
+  .target-next-btn:hover {
+    filter: brightness(1.1);
+  }
+  .target-stop-btn:hover {
+    background: var(--surface-hover);
+  }
 </style>

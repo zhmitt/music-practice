@@ -23,7 +23,7 @@
 
   let {
     data,
-    labels = [],
+    labels: _labels = [],
     type = 'line',
     color = 'var(--accent)',
     height = 80,
@@ -35,7 +35,9 @@
 
   // innerHeight is computed relative to the actual pixel height via viewBox scaling.
   // We keep the viewBox height = pixel height so the chart fills the container.
-  $effect(() => { /* trigger recalc on height change */ });
+  $effect(() => {
+    /* trigger recalc on height change */
+  });
 
   function innerH(): number {
     return height - padding.top - padding.bottom;
@@ -59,10 +61,8 @@
     return data
       .map((v, i) => {
         const x =
-          padding.left +
-          (data.length > 1 ? (i / (data.length - 1)) * innerW() : innerW() / 2);
-        const y =
-          padding.top + innerH() - ((v - min) / range) * innerH();
+          padding.left + (data.length > 1 ? (i / (data.length - 1)) * innerW() : innerW() / 2);
+        const y = padding.top + innerH() - ((v - min) / range) * innerH();
         return `${x},${y}`;
       })
       .join(' ');
@@ -99,7 +99,8 @@
     {#if data.length > 1}
       <!-- Area fill -->
       <polygon
-        points="{padding.left},{padding.top + innerH()} {getPoints()} {padding.left + innerW()},{padding.top + innerH()}"
+        points="{padding.left},{padding.top + innerH()} {getPoints()} {padding.left +
+          innerW()},{padding.top + innerH()}"
         fill={color}
         opacity="0.12"
       />

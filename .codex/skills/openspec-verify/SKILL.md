@@ -9,6 +9,12 @@ First run:
 workflow/scripts/post-impl-prepare.sh --summary "<what changed>"
 ```
 
+For intermediate progress checkpoints, prefer:
+
+```bash
+workflow/scripts/milestone-sync.sh --summary "<what changed>"
+```
+
 Then confirm:
 
 - tasks are complete
