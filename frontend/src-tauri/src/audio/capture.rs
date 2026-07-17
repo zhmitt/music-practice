@@ -79,6 +79,7 @@ struct CaptureOwner {
     commands: mpsc::Sender<CaptureCommand>,
     thread: Option<thread::JoinHandle<()>>,
     timeout: Duration,
+    wedged: Arc<AtomicBool>,
 }
 
 trait OwnedCaptureStream {
@@ -111,6 +112,7 @@ impl CaptureOwner {
 
     fn spawn_with(backend: Box<dyn CaptureBackend>, timeout: Duration) -> Self {
         let (commands, receiver) = mpsc::channel();
+        let wedged = Arc::new(AtomicBool::new(false));
         let thread = thread::Builder::new()
             .name("audio-capture-owner".into())
             .spawn(move || capture_owner_loop(receiver, backend))
@@ -119,6 +121,7 @@ impl CaptureOwner {
             commands,
             thread: Some(thread),
             timeout,
+            wedged,
         }
     }
 }
@@ -138,6 +141,7 @@ impl CaptureControl for CaptureOwner {
             })
             .map_err(|_| AudioError::AudioSubsystemUnavailable)?;
         response.recv_timeout(self.timeout).map_err(|_| {
+            self.wedged.store(true, Ordering::Release);
             state.generation.fetch_add(1, Ordering::AcqRel);
             state.running.store(false, Ordering::Release);
             *state.error.lock().unwrap() = Some(AudioError::AudioSubsystemUnavailable);
@@ -150,9 +154,10 @@ impl CaptureControl for CaptureOwner {
         self.commands
             .send(CaptureCommand::Stop(reply))
             .map_err(|_| AudioError::AudioSubsystemUnavailable)?;
-        response
-            .recv_timeout(self.timeout)
-            .map_err(|_| AudioError::AudioSubsystemUnavailable)
+        response.recv_timeout(self.timeout).map_err(|_| {
+            self.wedged.store(true, Ordering::Release);
+            AudioError::AudioSubsystemUnavailable
+        })
     }
 }
 
@@ -160,7 +165,12 @@ impl Drop for CaptureOwner {
     fn drop(&mut self) {
         let _ = self.commands.send(CaptureCommand::Shutdown);
         if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
+            if self.wedged.load(Ordering::Acquire) {
+                log::error!("Detaching wedged audio capture owner during shutdown");
+                drop(thread);
+            } else {
+                let _ = thread.join();
+            }
         }
     }
 }
@@ -378,6 +388,11 @@ impl AudioCapture {
     /// Read available samples from the ring buffer into the provided vec.
     /// Returns the number of samples read.
     pub fn read_samples(&mut self, buffer: &mut Vec<f32>) -> usize {
+        if !self.is_running() {
+            self.consumer = None;
+            buffer.clear();
+            return 0;
+        }
         if let Some(consumer) = &mut self.consumer {
             let available = consumer.occupied_len();
             if available == 0 {
@@ -403,7 +418,6 @@ impl AudioCapture {
         self.state.active_device_name.lock().unwrap().clone()
     }
 
-    #[allow(dead_code)]
     pub fn last_error(&self) -> Option<AudioError> {
         self.state.error.lock().unwrap().clone()
     }
@@ -424,11 +438,13 @@ mod tests {
     use std::collections::VecDeque;
     type ErrorCallback = Arc<dyn Fn(AudioError) + Send + Sync>;
 
+    #[derive(Clone, Copy)]
     enum Plan {
         BuildFail,
         PlayFail,
         Ok,
         Slow,
+        VerySlow,
     }
     struct FakeBackend {
         plans: Arc<std::sync::Mutex<VecDeque<Plan>>>,
@@ -437,6 +453,7 @@ mod tests {
     struct FakeStream {
         play_fail: bool,
         delay: Duration,
+        _producer: ringbuf::HeapProd<f32>,
     }
     impl OwnedCaptureStream for FakeStream {
         fn play(&mut self) -> Result<(), AudioError> {
@@ -462,15 +479,17 @@ mod tests {
             }
             self.callbacks.lock().unwrap().push(callback);
             let rb = HeapRb::<f32>::new(8);
-            let (_, consumer) = rb.split();
+            let (mut producer, consumer) = rb.split();
+            let _ = producer.push_slice(&[0.25; 4]);
             Ok((
                 Box::new(FakeStream {
                     play_fail: matches!(plan, Plan::PlayFail),
-                    delay: if matches!(plan, Plan::Slow) {
-                        Duration::from_millis(60)
-                    } else {
-                        Duration::ZERO
+                    delay: match plan {
+                        Plan::Slow => Duration::from_millis(60),
+                        Plan::VerySlow => Duration::from_millis(300),
+                        _ => Duration::ZERO,
                     },
+                    _producer: producer,
                 }),
                 CaptureStart {
                     sample_rate: 48000,
@@ -524,6 +543,9 @@ mod tests {
             c.last_error(),
             Some(AudioError::StreamInterrupted)
         ));
+        let mut stale = vec![1.0];
+        assert_eq!(c.read_samples(&mut stale), 0);
+        assert!(stale.is_empty());
     }
     #[test]
     fn stale_callback_cannot_stop_restarted_stream() {
@@ -543,5 +565,17 @@ mod tests {
         thread::sleep(Duration::from_millis(80));
         assert!(!c.is_running());
         assert_eq!(c.active_device_name(), None);
+    }
+
+    #[test]
+    fn known_wedged_owner_drop_detaches_without_waiting_for_worker() {
+        let (mut c, _) = capture(vec![Plan::VerySlow], Duration::from_millis(5));
+        assert!(matches!(
+            c.start(None),
+            Err(AudioError::AudioSubsystemUnavailable)
+        ));
+        let started = std::time::Instant::now();
+        drop(c);
+        assert!(started.elapsed() < Duration::from_millis(100));
     }
 }

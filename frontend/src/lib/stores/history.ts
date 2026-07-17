@@ -9,6 +9,7 @@
 
 import { writable } from 'svelte/store';
 import {
+  clearPersistenceFailure,
   getAllSessions,
   insertSession,
   reportPersistenceReadFailure,
@@ -63,8 +64,9 @@ export async function loadHistory(): Promise<void> {
             `session-tones:${r.id}`,
           );
         }
+        if (tones.length === parsed.length) clearPersistenceFailure(`session-tones:${r.id}`);
       } catch (error) {
-        reportPersistenceReadFailure(error);
+        reportPersistenceReadFailure(error, `session-tones:${r.id}`);
       }
 
       return {
@@ -81,8 +83,9 @@ export async function loadHistory(): Promise<void> {
       };
     });
     bumpHistoryVersion();
+    clearPersistenceFailure('history:read');
   } catch (error) {
-    reportPersistenceReadFailure(error);
+    reportPersistenceReadFailure(error, 'history:read');
     // If persistence is unavailable keep whatever was in memory
   }
 }
@@ -97,6 +100,7 @@ function isToneRecord(value: unknown): value is ToneRecord {
     Number.isFinite(tone.avgCents) &&
     typeof tone.stability === 'number' &&
     Number.isFinite(tone.stability) &&
+    tone.stability >= 0 &&
     typeof tone.passed === 'boolean'
   );
 }

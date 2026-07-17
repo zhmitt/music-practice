@@ -113,4 +113,42 @@ describe('browser persistence boundary', () => {
     expect(await getAllSessions()).toEqual([]);
     expect(get(persistenceStatus).degraded).toBe(true);
   });
+
+  it('clears a recovered session read failure after a valid reload', async () => {
+    localStorage.setItem('tt-session-history', '{bad json');
+    await getAllSessions();
+    expect(
+      get(persistenceStatus).failures.some((item) => item.identity === 'session-history:read'),
+    ).toBe(true);
+    localStorage.setItem('tt-session-history', JSON.stringify({ version: 1, records: [] }));
+    await getAllSessions();
+    expect(
+      get(persistenceStatus).failures.some((item) => item.identity === 'session-history:read'),
+    ).toBe(false);
+  });
+
+  it('rejects calendar-invalid session dates', async () => {
+    localStorage.setItem(
+      'tt-session-history',
+      JSON.stringify({
+        version: 1,
+        records: [
+          {
+            id: 'bad-date',
+            date: '2026-99-99',
+            exerciseType: 'long_tones',
+            durationSeconds: 2,
+            accuracy: 1,
+            tones: [],
+          },
+        ],
+      }),
+    );
+    expect(await getAllSessions()).toEqual([]);
+    expect(
+      get(persistenceStatus).failures.some(
+        (item) => item.identity === 'session-history:partial-validation',
+      ),
+    ).toBe(true);
+  });
 });

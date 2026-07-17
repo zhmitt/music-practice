@@ -4,7 +4,7 @@ import { get } from 'svelte/store';
 const mocks = vi.hoisted(() => ({
   acquire: vi.fn(),
   release: vi.fn(async () => true),
-  invoke: vi.fn(async () => undefined),
+  invoke: vi.fn(async (_command?: string): Promise<unknown> => undefined),
 }));
 vi.mock('./audioPreferences', () => ({
   acquireAudioLease: mocks.acquire,
@@ -16,11 +16,14 @@ vi.mock('$lib/db', () => ({
   safeInvoke: vi.fn(async () => undefined),
 }));
 
-import { droneActive, startToneLab, stopToneLab, switchMode } from './tonelab';
+import { droneActive, startToneLab, stopToneLab, switchMode, tonelabActive } from './tonelab';
 
 describe('ToneLab lifecycle', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.invoke.mockReset();
+    mocks.invoke.mockResolvedValue(undefined);
+    mocks.release.mockResolvedValue(true);
     mocks.acquire.mockResolvedValue({ id: 1, owner: 'tonelab', generation: 0 });
   });
 
@@ -47,5 +50,38 @@ describe('ToneLab lifecycle', () => {
     resolveAcquire(lateLease);
     await starting;
     expect(mocks.release).toHaveBeenCalledWith(lateLease);
+  });
+
+  it('completes capture cleanup when drone stop rejects', async () => {
+    await switchMode('drone');
+    await startToneLab();
+    mocks.invoke.mockImplementation(async (command?: string) => {
+      if (command === 'stop_drone') throw new Error('drone owner unavailable');
+    });
+    await expect(stopToneLab()).resolves.toBeUndefined();
+    expect(mocks.release).toHaveBeenCalled();
+    expect(get(tonelabActive)).toBe(false);
+    expect(get(droneActive)).toBe(false);
+  });
+
+  it('invalidates a pending drone start when mode changes', async () => {
+    await switchMode('free_play');
+    await startToneLab();
+    let resolveStart!: () => void;
+    mocks.invoke.mockImplementation((command?: string) => {
+      if (command === 'start_drone')
+        return new Promise<void>((resolve) => {
+          resolveStart = resolve;
+        });
+      return Promise.resolve();
+    });
+    const entering = switchMode('drone');
+    await Promise.resolve();
+    const leaving = switchMode('free_play');
+    resolveStart();
+    await Promise.all([entering, leaving]);
+    expect(get(droneActive)).toBe(false);
+    expect(mocks.invoke).toHaveBeenCalledWith('stop_drone');
+    await stopToneLab();
   });
 });

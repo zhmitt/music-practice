@@ -2,7 +2,9 @@ mod audio;
 
 use audio::drone::note_to_frequency;
 use audio::instrument::InstrumentProfile;
-use audio::types::{AudioDebugSnapshot, AudioDeviceInfo, AudioLevel, DisplayMode, PitchResult};
+use audio::types::{
+    AudioDebugSnapshot, AudioDeviceInfo, AudioLevel, DisplayMode, DroneRuntimeStatus, PitchResult,
+};
 use audio::{SharedDrone, SharedEngine};
 use tauri::State;
 
@@ -129,6 +131,12 @@ fn is_drone_playing(drone: State<SharedDrone>) -> Result<bool, String> {
     Ok(d.is_playing())
 }
 
+#[tauri::command]
+fn get_drone_runtime_status(drone: State<SharedDrone>) -> Result<DroneRuntimeStatus, String> {
+    let d = drone.lock().map_err(|e| e.to_string())?;
+    Ok(d.runtime_status())
+}
+
 // ── App Entry Point ─────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -156,6 +164,7 @@ pub fn run() {
             stop_drone,
             set_drone_note,
             is_drone_playing,
+            get_drone_runtime_status,
         ])
         .setup(move |app| {
             if cfg!(debug_assertions) {

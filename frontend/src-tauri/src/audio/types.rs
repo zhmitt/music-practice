@@ -26,6 +26,8 @@ pub struct AudioDebugSnapshot {
     pub sample_rate: u32,
     /// Currently active input device name, if known.
     pub active_device_name: Option<String>,
+    /// Last typed capture lifecycle failure, if any.
+    pub runtime_error: Option<AudioError>,
     /// Current detector state (`idle`, `buffering`, `no_signal`, `low_confidence`, etc.).
     pub detector_status: String,
     /// Latest meter snapshot.
@@ -77,6 +79,7 @@ impl Default for AudioDebugSnapshot {
             is_running: false,
             sample_rate: 0,
             active_device_name: None,
+            runtime_error: None,
             detector_status: "idle".to_string(),
             audio_level: AudioLevel::default(),
             analysis_buffer_len: 0,
@@ -114,6 +117,7 @@ pub enum OnsetType {
 pub enum AudioError {
     MicrophonePermissionDenied,
     NoMicrophoneAvailable,
+    NoAudioOutputAvailable,
     UnsupportedSampleRate,
     DeviceDisconnected { device_name: String },
     StreamInterrupted,
@@ -126,6 +130,7 @@ impl std::fmt::Display for AudioError {
         match self {
             Self::MicrophonePermissionDenied => write!(f, "Microphone permission denied"),
             Self::NoMicrophoneAvailable => write!(f, "No microphone available"),
+            Self::NoAudioOutputAvailable => write!(f, "No audio output available"),
             Self::UnsupportedSampleRate => write!(f, "Unsupported sample rate"),
             Self::DeviceDisconnected { device_name } => {
                 write!(f, "Device disconnected: {}", device_name)
@@ -138,6 +143,39 @@ impl std::fmt::Display for AudioError {
 }
 
 impl std::error::Error for AudioError {}
+
+/// Typed lifecycle state for the independently managed drone output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DroneRuntimeStatus {
+    pub is_playing: bool,
+    pub runtime_error: Option<AudioError>,
+}
+
+#[cfg(test)]
+mod runtime_status_tests {
+    use super::*;
+
+    #[test]
+    fn capture_debug_serializes_typed_runtime_error() {
+        let snapshot = AudioDebugSnapshot {
+            runtime_error: Some(AudioError::StreamInterrupted),
+            ..AudioDebugSnapshot::default()
+        };
+        let value = serde_json::to_value(snapshot).unwrap();
+        assert_eq!(value["runtime_error"], "StreamInterrupted");
+    }
+
+    #[test]
+    fn drone_status_serializes_typed_runtime_error() {
+        let status = DroneRuntimeStatus {
+            is_playing: false,
+            runtime_error: Some(AudioError::NoAudioOutputAvailable),
+        };
+        let value = serde_json::to_value(status).unwrap();
+        assert_eq!(value["is_playing"], false);
+        assert_eq!(value["runtime_error"], "NoAudioOutputAvailable");
+    }
+}
 
 /// Information about an available audio input device.
 #[derive(Debug, Clone, Serialize, Deserialize)]

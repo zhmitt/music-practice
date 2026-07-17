@@ -27,6 +27,7 @@
   import { matchesDisplayedTone } from '$lib/music/noteUtils';
   import PracticeNote from './PracticeNote.svelte';
   import StaffNotation from './StaffNotation.svelte';
+  import { runCancellableCountdown } from './playAlongLifecycle';
 
   /** Per-note outcome recorded after the play-along finishes. */
   export interface PlayAlongResult {
@@ -243,11 +244,18 @@
     phase = 'countdown';
 
     // 3-2-1 countdown
-    for (let i = 3; i >= 1; i--) {
-      countdownNum = i;
-      await sleep(700);
-    }
+    const countdownCompleted = await runCancellableCountdown(
+      3,
+      700,
+      sleep,
+      () => generation === pollingGeneration,
+      (step) => {
+        countdownNum = step;
+      },
+    );
+    if (!countdownCompleted) return;
 
+    const retainedLease = audioLease;
     const acquiredLease = await acquireAudioLease('playalong');
     if (generation !== pollingGeneration) {
       if (acquiredLease) await releaseAudioLease(acquiredLease);
@@ -257,6 +265,7 @@
       phase = 'idle';
       return;
     }
+    if (retainedLease) await releaseAudioLease(retainedLease);
     audioLease = acquiredLease;
 
     phase = 'playing';
@@ -265,7 +274,7 @@
   }
 
   /** Clean up timers and stop audio. */
-  function teardown(): void {
+  async function teardown(): Promise<void> {
     pollingGeneration++;
     if (tickTimer !== null) {
       clearTimeout(tickTimer);
@@ -276,21 +285,20 @@
       advanceTimeout = null;
     }
     if (audioLease) {
-      void releaseAudioLease(audioLease);
-      audioLease = null;
+      if (await releaseAudioLease(audioLease)) audioLease = null;
     }
   }
 
   /** Called when all notes have been processed. */
   function finishPlayAlong(): void {
-    teardown();
+    void teardown();
     phase = 'complete';
     onComplete?.(results);
   }
 
   /** User-initiated stop; resets to idle. */
   function stopPlayAlong(): void {
-    teardown();
+    void teardown();
     phase = 'idle';
     currentIdx = -1;
     results = [];

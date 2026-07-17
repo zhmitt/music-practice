@@ -24,3 +24,8 @@ review date expires, or a safe upgrade is available and verification succeeds.
 
 Future entries must include advisory identifier, dependency path, shipped-code
 assessment, owner, compensating control, remediation target and review date.
+
+`workflow/scripts/dependency-audit-check.py` normalizes the live `npm audit`
+inventory to package and severity, requires an unexpired review date and owner,
+and fails when the documented table is missing, adding, or misclassifying an
+entry. Advisory details remain report-only; stale or incomplete triage blocks.

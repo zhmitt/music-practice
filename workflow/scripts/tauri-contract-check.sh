@@ -23,6 +23,7 @@ types = {
     "Vec<AudioDeviceInfo>": "TauriAudioDeviceInfo[]",
     "Option<PitchResult>": "TauriPitchResult|null", "PitchResult": "TauriPitchResult",
     "AudioLevel": "TauriAudioLevel", "AudioDebugSnapshot": "TauriAudioDebugSnapshot",
+    "DroneRuntimeStatus": "TauriDroneRuntimeStatus",
 }
 
 def split_args(value):
@@ -37,6 +38,7 @@ def split_args(value):
     return result
 
 rust_signatures = []
+rust_by_name = {}
 pattern = re.compile(r"#\[tauri::command\]\s*fn\s+(\w+)\s*\((.*?)\)\s*->\s*Result<(.+?),\s*String>\s*\{", re.S)
 for name, raw_args, result_type in pattern.findall(rust):
     args = []
@@ -47,7 +49,18 @@ for name, raw_args, result_type in pattern.findall(rust):
         args.append(f"{camel(arg_name)}:{types[arg_type]}")
     result_type = re.sub(r"\s+", "", result_type)
     if result_type not in types: raise SystemExit(f"Unmapped Rust result type: {result_type}")
-    rust_signatures.append(f"{name}({','.join(args)})->{types[result_type]}")
+    signature = f"{name}({','.join(args)})->{types[result_type]}"
+    if name in rust_by_name: raise SystemExit(f"Duplicate parsed Rust command: {name}")
+    rust_by_name[name] = signature
+
+handler_block = re.search(r"tauri::generate_handler!\[(.*?)\]", rust, re.S)
+if not handler_block: raise SystemExit("tauri::generate_handler! inventory not found")
+handlers = [x.strip() for x in handler_block.group(1).split(",") if x.strip()]
+if len(handlers) != len(set(handlers)): raise SystemExit("Duplicate command in generate_handler inventory")
+unparsed = sorted(set(handlers) - set(rust_by_name))
+if unparsed:
+    raise SystemExit("Exported handlers lack a supported signature: " + ", ".join(unparsed))
+rust_signatures = [rust_by_name[name] for name in handlers]
 
 block = re.search(r"export interface TauriCommandMap \{(.*?)\n\}", ts, re.S)
 if not block: raise SystemExit("TauriCommandMap not found")

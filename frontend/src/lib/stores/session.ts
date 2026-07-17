@@ -88,8 +88,8 @@ export function getOverallProgress(): number {
 export async function startSession(plan: SessionPlan) {
   const generation = ++pollingGeneration;
   clearIntervals();
-  if (audioLease) await releaseAudioLease(audioLease);
-  audioLease = null;
+  const retainedLease = audioLease;
+  if (audioLease && (await releaseAudioLease(audioLease))) audioLease = null;
   // Reset state
   sessionPlan.set(plan);
   exerciseIndex.set(0);
@@ -112,11 +112,16 @@ export async function startSession(plan: SessionPlan) {
 
   // Start audio via Tauri
   const acquiredLease = await acquireAudioLease('session');
+  if (acquiredLease && retainedLease && audioLease?.id === retainedLease.id) {
+    await releaseAudioLease(retainedLease);
+    audioLease = null;
+  }
   if (generation !== pollingGeneration) {
     if (acquiredLease) await releaseAudioLease(acquiredLease);
     return;
   }
-  audioLease = acquiredLease;
+  if (!acquiredLease) return;
+  audioLease = acquiredLease ?? audioLease;
 
   // Activate session overlay
   sessionActive.set(true);
@@ -140,8 +145,7 @@ export async function stopSession() {
   await persistSessionResults();
 
   if (audioLease) {
-    await releaseAudioLease(audioLease);
-    audioLease = null;
+    if (await releaseAudioLease(audioLease)) audioLease = null;
   }
 
   sessionActive.set(false);

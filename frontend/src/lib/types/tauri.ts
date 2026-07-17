@@ -36,6 +36,12 @@ export interface TauriAudioDebugSnapshot {
   reference_a4: number;
   instrument_name: string;
   display_mode: string;
+  runtime_error: string | null;
+}
+
+export interface TauriDroneRuntimeStatus {
+  is_playing: boolean;
+  runtime_error: string | null;
 }
 
 /** Mirrors Rust `AudioLevel` from src-tauri/src/audio/types.rs */
@@ -82,6 +88,7 @@ export interface TauriCommandMap {
     result: void;
   };
   is_drone_playing: { args: undefined; result: boolean };
+  get_drone_runtime_status: { args: undefined; result: TauriDroneRuntimeStatus };
 }
 
 export type TauriCommandName = keyof TauriCommandMap;

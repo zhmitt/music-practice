@@ -24,6 +24,7 @@ export interface AudioLeaseHandle {
 const activeAudioLeases = new Map<number, AudioLeaseHandle>();
 let nextLeaseId = 1;
 let audioGeneration = 0;
+let captureAvailable = false;
 let audioTransition: Promise<unknown> = Promise.resolve();
 
 function serializeAudioTransition<T>(operation: () => Promise<T>): Promise<T> {
@@ -158,10 +159,11 @@ export async function acquireAudioLease(
 ): Promise<AudioLeaseHandle | null> {
   return serializeAudioTransition(async () => {
     const started =
-      activeAudioLeases.size > 0
+      activeAudioLeases.size > 0 && captureAvailable
         ? await syncAudioAnalysisContext(context)
         : await startPreferredAudioCapture(context);
     if (!started) return null;
+    captureAvailable = true;
     const handle = { id: nextLeaseId++, owner, generation: audioGeneration };
     activeAudioLeases.set(handle.id, handle);
     return handle;
@@ -170,13 +172,19 @@ export async function acquireAudioLease(
 
 export async function releaseAudioLease(handle: AudioLeaseHandle): Promise<boolean> {
   return serializeAudioTransition(async () => {
-    const released = activeAudioLeases.delete(handle.id);
-    if (!released || activeAudioLeases.size > 0) return true;
+    if (!activeAudioLeases.has(handle.id)) return true;
+    if (activeAudioLeases.size > 1) {
+      activeAudioLeases.delete(handle.id);
+      return true;
+    }
     if (!isTauriRuntime()) return true;
     try {
       await invokeTauri('stop_audio');
+      activeAudioLeases.delete(handle.id);
+      captureAvailable = false;
       return true;
     } catch (err) {
+      captureAvailable = false;
       console.warn('[ToneTrainer] failed to stop audio capture:', err);
       return false;
     }
@@ -196,11 +204,14 @@ export async function restartPreferredAudioCapture(
     try {
       const deviceName = get(selectedMicrophoneDevice);
       await invokeTauri('stop_audio');
+      captureAvailable = false;
       await invokeTauri('start_audio', { deviceName: deviceName || null });
+      captureAvailable = true;
       audioGeneration++;
       await syncAudioAnalysisContext(context);
       return true;
     } catch (err) {
+      captureAvailable = false;
       console.warn('[ToneTrainer] failed to restart audio capture:', err);
       return false;
     }

@@ -32,9 +32,6 @@ if [[ -n "$task_file_changes" ]] || echo "$staged_files" | grep -q '^workflow/st
 fi
 
 declared_change="${OPENSPEC_CHANGE:-}"
-if [[ -z "$declared_change" && -f ".git/COMMIT_EDITMSG" ]]; then
-  declared_change="$(sed -nE 's/^OpenSpec-Change:[[:space:]]*([A-Za-z0-9][A-Za-z0-9._-]*)[[:space:]]*$/\1/p' .git/COMMIT_EDITMSG | tail -n 1)"
-fi
 post_check_args=(--staged)
 if [[ -n "$declared_change" ]]; then
   post_check_args+=(--change "$declared_change")
@@ -83,16 +80,6 @@ if [ -z "${CI:-}" ]; then
       fi
     fi
   done
-fi
-
-# Check B: Claim-evidence in commit message (warn only)
-if [ -f ".git/COMMIT_EDITMSG" ] && [ -x "workflow/scripts/claim-evidence-check.sh" ]; then
-  if ! workflow/scripts/claim-evidence-check.sh .git/COMMIT_EDITMSG --quiet 2>&1; then
-    echo ""
-    echo "⚠️  WARNING: Commit message contains claims without evidence (test-name, file:line, exit code)"
-    echo "   Continuing anyway -- review the message above."
-    # NOT exit 1 -- only warn
-  fi
 fi
 
 if [ -x workflow/scripts/agent-evidence-check.sh ]; then

@@ -37,12 +37,17 @@ jobs:
         run: |
           workflow/scripts/pr-body-from-event.sh > /tmp/pr-body.md
           declared_change=$(workflow/scripts/openspec-change-from-body.sh /tmp/pr-body.md)
-          git diff --name-only "origin/${{ github.base_ref }}...HEAD" > /tmp/changed-files.txt
+          git diff --name-status "origin/${{ github.base_ref }}...HEAD" > /tmp/changed-files.txt
           workflow/scripts/openspec-implementation-guard.sh --change "$declared_change" < /tmp/changed-files.txt
           echo "id=$declared_change" >> "$GITHUB_OUTPUT"
+          if [[ -d "openspec/changes/archive/$declared_change" && ! -d "openspec/changes/$declared_change" ]]; then
+            echo "mode=archive" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=change" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run spec-drift-check per change
-        if: steps.changes.outputs.id != ''
+        if: steps.changes.outputs.id != '' && steps.changes.outputs.mode == 'change'
         run: |
           bash workflow/scripts/spec-drift-check.sh --change "${{ steps.changes.outputs.id }}"
 
@@ -73,10 +78,15 @@ jobs:
         run: |
           workflow/scripts/pr-body-from-event.sh > /tmp/pr-body.md
           declared_change=$(workflow/scripts/openspec-change-from-body.sh /tmp/pr-body.md)
-          git diff --name-only "origin/${{ github.base_ref }}...HEAD" > /tmp/changed-files.txt
+          git diff --name-status "origin/${{ github.base_ref }}...HEAD" > /tmp/changed-files.txt
           workflow/scripts/openspec-implementation-guard.sh --change "$declared_change" < /tmp/changed-files.txt
           echo "id=$declared_change" >> "$GITHUB_OUTPUT"
+          if [[ -d "openspec/changes/archive/$declared_change" && ! -d "openspec/changes/$declared_change" ]]; then
+            echo "mode=archive" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=change" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run change-done per change
-        if: steps.changes.outputs.id != ''
+        if: steps.changes.outputs.id != '' && steps.changes.outputs.mode == 'change'
         run: bash workflow/scripts/change-done.sh --change "${{ steps.changes.outputs.id }}"
