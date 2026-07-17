@@ -1,10 +1,10 @@
 # Next Session
 
-**Last Updated:** 2026-07-18 00:21:12
+**Last Updated:** 2026-07-18 00:35:54
 
 ## Last Summary
 
-External runtime evidence is complete: signed bundled WebView SQLite and audio hardware smokes passed, all nine hosted checks passed, PR 1 merged, and main protection is active. Developer ID distribution signing/notarization remains credential-blocked.
+External runtime evidence is implemented, verified, documented, and merged through protected PRs #1 and #2. All nine hosted checks and change-done for external-runtime-evidence pass. Only Developer ID distribution signing and Apple notarization remain blocked pending user-owned credentials; archive external-runtime-evidence in a future session if desired.
 
 ## Active Changes
 
