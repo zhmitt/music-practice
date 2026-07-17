@@ -1,15 +1,15 @@
 # Next Session
 
-**Last Updated:** 2026-07-18 00:04:36
+**Last Updated:** 2026-07-18 00:08:25
 
 ## Last Milestone
 
 - Change: external-runtime-evidence
-- Summary: Implemented and executed signed bundled WebView SQLite CRUD, real microphone capture, drone lifecycle, macOS bundle, hardened-runtime entitlement, and development signing evidence.
+- Summary: Pushed PR 1 and observed hosted workflow execution; local signed-bundle SQLite and audio evidence remains green after the final smoke and entitlement changes.
 - State: in_progress
-- Tasks complete: 6/14
-- Completed: Native WebView, audio hardware, bundle structure, entitlement, identifier, and Apple Development signature evidence.
-- Remaining: Push hosted PR, observe GitHub checks, configure branch protection, and close external evidence.
+- Tasks complete: 9/14
+- Completed: Remote branch push, PR creation, branch-protection audit, local canonical verify, signed bundled SQLite/audio smokes.
+- Remaining: Wait for final hosted checks, close their evidence tasks, and configure required checks.
 
 ## Active Changes
 
@@ -51,7 +51,7 @@
 
 - external-runtime-evidence: in_progress
 
-  Next: Commit and push the evidence branch for hosted validation.
+  Next: Resolve hosted gate results and enable main branch protection.
 
 - openspec-verification-toolchain: draft
 
@@ -59,4 +59,4 @@
 
 ## Recommended Next Step
 
-- Commit and push the evidence branch for hosted validation.
+- Resolve hosted gate results and enable main branch protection.
