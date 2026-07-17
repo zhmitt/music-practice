@@ -10,6 +10,7 @@
     refreshMicrophoneDevices,
     acquireAudioLease,
     releaseAudioLease,
+    releaseAudioLeaseDurably,
     type AudioLeaseHandle,
     selectedMicrophoneDevice,
     setSelectedMicrophoneDevice,
@@ -91,7 +92,7 @@
     stopPitchPolling();
     if (onboardingLease) {
       const lease = onboardingLease;
-      void releaseAudioLease(lease).then((released) => {
+      void releaseAudioLeaseDurably(lease).then((released) => {
         if (released && onboardingLease?.id === lease.id) onboardingLease = null;
       });
     }

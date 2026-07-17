@@ -39,14 +39,16 @@ if [[ "$staged_mode" == true ]]; then
   # when caller didn't pass --change explicitly. Avoids "multiple active
   # changes" deadlock when many changes are in flight simultaneously.
   if [[ -z "$requested_change" ]]; then
-    derived_changes="$(git diff --cached --name-only 2>/dev/null \
-      | grep -oE '^openspec/changes/[A-Za-z0-9][A-Za-z0-9._-]*' \
-      | sed 's|openspec/changes/||' \
-      | sort -u)"
+    derived_changes="$(git diff --cached --name-only 2>/dev/null | workflow/scripts/openspec-changes-from-paths.sh)"
     derived_count="$(printf '%s\n' "$derived_changes" | grep -cv '^$' || true)"
     if [[ "$derived_count" == "1" ]]; then
       requested_change="$derived_changes"
     fi
+  fi
+
+  if [[ -n "$requested_change" && -d "openspec/changes/archive/$requested_change" && ! -d "openspec/changes/$requested_change" ]]; then
+    git diff --cached --name-status | workflow/scripts/openspec-implementation-guard.sh --change "$requested_change" --mode archive
+    exit $?
   fi
 
   milestone_args=(--staged --mode enforce)

@@ -36,12 +36,18 @@ export interface TauriAudioDebugSnapshot {
   reference_a4: number;
   instrument_name: string;
   display_mode: string;
-  runtime_error: string | null;
+  runtime_error: TauriRuntimeError | null;
+}
+
+export interface TauriRuntimeError {
+  kind: string;
+  message: string;
+  device_name: string | null;
 }
 
 export interface TauriDroneRuntimeStatus {
   is_playing: boolean;
-  runtime_error: string | null;
+  runtime_error: TauriRuntimeError | null;
 }
 
 /** Mirrors Rust `AudioLevel` from src-tauri/src/audio/types.rs */

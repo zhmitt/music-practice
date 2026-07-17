@@ -22,10 +22,19 @@ for line in doc.splitlines():
 
 if len(sys.argv) != 2: raise SystemExit(f"Usage: {sys.argv[0]} <npm-audit.json>")
 audit = json.load(open(sys.argv[1]))
-actual = {name: value["severity"].lower() for name, value in audit.get("vulnerabilities", {}).items()}
-if actual != documented:
+actual = {}
+for name, value in audit.get("vulnerabilities", {}).items():
+    advisories=[]
+    for via in value.get("via",[]):
+        advisories.append((via.get("url") or str(via.get("source"))) if isinstance(via,dict) else "via:"+via)
+    actual[name]={"severity":value["severity"].lower(),"advisories":sorted(advisories),"paths":sorted(value.get("nodes",[]))}
+inventory_match=re.search(r"<!-- audit-inventory:start -->\s*```json\s*(.*?)\s*```\s*<!-- audit-inventory:end -->",doc,re.S)
+if not inventory_match: raise SystemExit("Dependency triage lacks structured advisory inventory.")
+inventory=json.loads(inventory_match.group(1))
+if actual != inventory:
     print("Dependency audit/triage inventory mismatch.", file=sys.stderr)
     print("audit:", json.dumps(actual, sort_keys=True), file=sys.stderr)
-    print("docs: ", json.dumps(documented, sort_keys=True), file=sys.stderr)
+    print("docs: ", json.dumps(inventory, sort_keys=True), file=sys.stderr)
     sys.exit(1)
+if {k:v["severity"] for k,v in actual.items()} != documented: raise SystemExit("Human triage table differs from structured inventory.")
 print(f"Dependency triage matches normalized audit inventory ({len(actual)} packages).")

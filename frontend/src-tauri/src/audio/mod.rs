@@ -19,7 +19,8 @@ use onset::OnsetDetector;
 use pitch::PitchDetector;
 use stability::StabilityTracker;
 use types::{
-    AudioDebugSnapshot, AudioDeviceInfo, AudioError, AudioLevel, DisplayMode, PitchResult,
+    AudioDebugSnapshot, AudioDeviceInfo, AudioError, AudioLevel, AudioRuntimeError, DisplayMode,
+    PitchResult,
 };
 
 /// Thread-safe wrapper around DroneSynth (separate from engine to avoid lock contention).
@@ -43,9 +44,6 @@ pub struct AudioEngine {
     latest_debug: AudioDebugSnapshot,
     /// Running sample count for timestamp calculation.
     samples_processed: u64,
-    /// Processing thread handle — stored for future graceful-shutdown support.
-    #[allow(dead_code)]
-    processing_handle: Option<thread::JoinHandle<()>>,
 }
 
 /// Thread-safe wrapper around AudioEngine.
@@ -69,7 +67,6 @@ impl AudioEngine {
             pitch_window_size: 4096,
             latest_debug: AudioDebugSnapshot::default(),
             samples_processed: 0,
-            processing_handle: None,
         }
     }
 
@@ -100,7 +97,11 @@ impl AudioEngine {
             is_running: true,
             sample_rate,
             active_device_name: self.capture.active_device_name(),
-            runtime_error: self.capture.last_error(),
+            runtime_error: self
+                .capture
+                .last_error()
+                .as_ref()
+                .map(AudioRuntimeError::from),
             detector_status: "buffering".to_string(),
             audio_level: AudioLevel::default(),
             analysis_buffer_len: 0,
@@ -126,12 +127,20 @@ impl AudioEngine {
 
     /// Process available audio samples. Call this periodically from a timer or processing loop.
     pub fn process(&mut self) {
+        // Runtime interruption serializes behind this complete batch, so a callback
+        // cannot invalidate capture between sample validation and analysis commit.
+        let processing_gate = self.capture.processing_gate();
+        let _processing = processing_gate.lock().unwrap();
         let mut buffer = Vec::new();
         let count = self.capture.read_samples(&mut buffer);
         self.latest_debug.is_running = self.capture.is_running();
         self.latest_debug.sample_rate = self.capture.sample_rate();
         self.latest_debug.active_device_name = self.capture.active_device_name();
-        self.latest_debug.runtime_error = self.capture.last_error();
+        self.latest_debug.runtime_error = self
+            .capture
+            .last_error()
+            .as_ref()
+            .map(AudioRuntimeError::from);
         self.latest_debug.reference_a4 = self.pitch_detector.reference_a4();
         self.latest_debug.instrument_name = self.pitch_detector.profile().name;
         self.latest_debug.display_mode = match self.pitch_detector.display_mode() {
@@ -230,7 +239,11 @@ impl AudioEngine {
         let mut snapshot = self.latest_debug.clone();
         snapshot.is_running = self.capture.is_running();
         snapshot.active_device_name = self.capture.active_device_name();
-        snapshot.runtime_error = self.capture.last_error();
+        snapshot.runtime_error = self
+            .capture
+            .last_error()
+            .as_ref()
+            .map(AudioRuntimeError::from);
         if !snapshot.is_running {
             snapshot.detector_status = "idle".to_string();
             snapshot.audio_level = AudioLevel::default();
@@ -271,10 +284,36 @@ pub fn create_drone() -> SharedDrone {
     Arc::new(Mutex::new(DroneSynth::new()))
 }
 
-/// Start a background processing loop for the engine.
-/// The loop reads audio, processes it, and updates state at ~60Hz.
-pub fn start_processing_loop(engine: SharedEngine) -> thread::JoinHandle<()> {
-    thread::spawn(move || loop {
+/// Owns cancellation and deterministic teardown for the processing worker.
+pub struct ProcessingLoop {
+    cancel: Arc<std::sync::atomic::AtomicBool>,
+    handle: Option<thread::JoinHandle<()>>,
+}
+
+impl ProcessingLoop {
+    pub fn shutdown(&mut self) {
+        self.cancel
+            .store(true, std::sync::atomic::Ordering::Release);
+        if let Some(handle) = self.handle.take() {
+            let _ = handle.join();
+        }
+    }
+}
+
+impl Drop for ProcessingLoop {
+    fn drop(&mut self) {
+        self.shutdown();
+    }
+}
+
+/// Start a cancellable background processing loop for the engine.
+pub fn start_processing_loop(engine: SharedEngine) -> ProcessingLoop {
+    let cancel = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let worker_cancel = cancel.clone();
+    let handle = thread::spawn(move || loop {
+        if worker_cancel.load(std::sync::atomic::Ordering::Acquire) {
+            break;
+        }
         let was_running = {
             let mut eng = engine.lock().unwrap();
             let was_running = eng.is_running();
@@ -286,5 +325,27 @@ pub fn start_processing_loop(engine: SharedEngine) -> thread::JoinHandle<()> {
         } else {
             Duration::from_millis(100)
         });
-    })
+    });
+    ProcessingLoop {
+        cancel,
+        handle: Some(handle),
+    }
+}
+
+#[cfg(test)]
+mod processing_loop_tests {
+    use super::*;
+
+    #[test]
+    fn app_like_processing_loop_shutdown_releases_engine_clone() {
+        let engine = create_engine();
+        let weak_engine = Arc::downgrade(&engine);
+        let mut processing_loop = start_processing_loop(engine.clone());
+        drop(engine);
+
+        let started = std::time::Instant::now();
+        processing_loop.shutdown();
+        assert!(started.elapsed() < Duration::from_millis(250));
+        assert!(weak_engine.upgrade().is_none());
+    }
 }

@@ -10,6 +10,10 @@ fi
 
 echo "🧪 Running canonical pre-commit checks..."
 
+if echo "$staged_files" | grep -q '^\.github/workflows/'; then
+  workflow/scripts/github-workflow-validate.sh
+fi
+
 legacy_specify_writes="$(echo "$staged_files" | grep -E '^\.specify/' || true)"
 legacy_specify_disallowed="$(echo "$legacy_specify_writes" | grep -Ev '^\.specify/README\.md$' || true)"
 if [[ -n "$legacy_specify_disallowed" ]]; then
@@ -68,8 +72,11 @@ fi
 # Check A: Spec-drift for active openspec changes
 # Gracefully skipped in CI (gate runs there instead).
 if [ -z "${CI:-}" ]; then
-  active_change_ids=$(git diff --cached --name-only | grep -oE 'openspec/changes/[A-Za-z0-9][A-Za-z0-9._-]*' | sed 's|openspec/changes/||' | sort -u || true)
+  active_change_ids=$(git diff --cached --name-only | workflow/scripts/openspec-changes-from-paths.sh || true)
   for cid in $active_change_ids; do
+    if [[ -d "openspec/changes/archive/$cid" && ! -d "openspec/changes/$cid" ]]; then
+      continue
+    fi
     if [ -x "workflow/scripts/spec-drift-check.sh" ]; then
       if ! workflow/scripts/spec-drift-check.sh --change "$cid" --quiet; then
         echo ""

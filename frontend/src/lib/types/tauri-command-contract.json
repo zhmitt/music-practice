@@ -16,5 +16,43 @@
     "start_drone(note:string,octave:number,referenceA4:number)->void",
     "stop_audio()->void",
     "stop_drone()->void"
-  ]
+  ],
+  "dtos": {
+    "AudioDebugSnapshot:TauriAudioDebugSnapshot": [
+      "active_device_name:string|null",
+      "analysis_buffer_len:number",
+      "audio_level:TauriAudioLevel",
+      "detector_status:string",
+      "display_mode:string",
+      "instrument_name:string",
+      "is_running:boolean",
+      "latest_pitch:TauriPitchResult|null",
+      "raw_confidence:number|null",
+      "raw_frequency_hz:number|null",
+      "reference_a4:number",
+      "runtime_error:TauriRuntimeError|null",
+      "sample_rate:number",
+      "tentative_pitch:TauriPitchResult|null",
+      "window_size:number"
+    ],
+    "AudioDeviceInfo:TauriAudioDeviceInfo": ["device_name:string", "is_default:boolean"],
+    "AudioLevel:TauriAudioLevel": ["is_clipping:boolean", "peak:number", "rms:number"],
+    "AudioRuntimeError:TauriRuntimeError": [
+      "device_name:string|null",
+      "kind:string",
+      "message:string"
+    ],
+    "DroneRuntimeStatus:TauriDroneRuntimeStatus": [
+      "is_playing:boolean",
+      "runtime_error:TauriRuntimeError|null"
+    ],
+    "PitchResult:TauriPitchResult": [
+      "cent_deviation:number",
+      "confidence:number",
+      "frequency_hz:number",
+      "note_name:string",
+      "octave:number",
+      "timestamp_ms:number"
+    ]
+  }
 }

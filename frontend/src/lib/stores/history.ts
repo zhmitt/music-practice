@@ -10,7 +10,7 @@
 import { writable } from 'svelte/store';
 import {
   clearPersistenceFailure,
-  getAllSessions,
+  getAllSessionsWithStatus,
   insertSession,
   reportPersistenceReadFailure,
   type PersistenceResult,
@@ -51,7 +51,9 @@ function bumpHistoryVersion() {
  */
 export async function loadHistory(): Promise<void> {
   try {
-    const rows = await getAllSessions();
+    const result = await getAllSessionsWithStatus();
+    if (!result.ok) return;
+    const rows = result.records;
     _history = rows.map((r) => {
       let tones: ToneRecord[] = [];
       try {

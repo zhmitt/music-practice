@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - run: workflow/scripts/github-workflow-check.py
+      - run: workflow/scripts/github-workflow-validate.sh
 
   frontend:
     name: Frontend Checks
@@ -75,8 +75,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - run: workflow/scripts/quality-gates-self-test.sh
 
-  native-package-smoke:
-    name: Native Package Smoke
+  native-build-smoke:
+    name: Native Build Smoke
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -96,4 +96,4 @@ jobs:
           cargo install tauri-cli --version 2.10.1 --locked
       - run: npm ci
         working-directory: frontend
-      - run: workflow/scripts/packaged-sqlite-smoke.sh
+      - run: workflow/scripts/native-build-sqlite-smoke.sh

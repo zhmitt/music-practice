@@ -14,11 +14,13 @@
    * <PlayAlong tones={scaleTones} title="Bb Major" onComplete={handleResults} />
    */
 
+  import { onDestroy } from 'svelte';
   import type { ToneTarget } from '$lib/types/session';
   import { t } from '$lib/i18n';
   import {
     acquireAudioLease,
     releaseAudioLease,
+    releaseAudioLeaseDurably,
     type AudioLeaseHandle,
   } from '$lib/stores/audioPreferences';
   import { invokeTauri } from '$lib/tauri/runtime';
@@ -92,6 +94,13 @@
   let advanceTimeout: ReturnType<typeof setTimeout> | null = null;
 
   let scrollContainer: HTMLDivElement | undefined = $state();
+
+  onDestroy(() => {
+    pollingGeneration++;
+    if (tickTimer !== null) clearTimeout(tickTimer);
+    if (advanceTimeout !== null) clearTimeout(advanceTimeout);
+    if (audioLease) void releaseAudioLeaseDurably(audioLease);
+  });
 
   // ── Derived ──────────────────────────────────────────────────────────────────
 

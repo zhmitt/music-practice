@@ -57,11 +57,30 @@ describe('ToneLab lifecycle', () => {
     await startToneLab();
     mocks.invoke.mockImplementation(async (command?: string) => {
       if (command === 'stop_drone') throw new Error('drone owner unavailable');
+      if (command === 'get_drone_runtime_status') {
+        return { is_playing: false, runtime_error: null };
+      }
     });
     await expect(stopToneLab()).resolves.toBeUndefined();
     expect(mocks.release).toHaveBeenCalled();
     expect(get(tonelabActive)).toBe(false);
     expect(get(droneActive)).toBe(false);
+  });
+
+  it('retains drone ownership when failed stop status still reports playing', async () => {
+    await switchMode('drone');
+    await startToneLab();
+    mocks.invoke.mockImplementation(async (command?: string) => {
+      if (command === 'stop_drone') throw new Error('stop failed');
+      if (command === 'get_drone_runtime_status') {
+        return {
+          is_playing: true,
+          runtime_error: { kind: 'stream_interrupted', message: 'retry stop', device_name: null },
+        };
+      }
+    });
+    await stopToneLab();
+    expect(get(droneActive)).toBe(true);
   });
 
   it('invalidates a pending drone start when mode changes', async () => {

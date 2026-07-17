@@ -5,13 +5,16 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 rust_file=${TAURI_CONTRACT_RUST_FILE:-$repo_root/frontend/src-tauri/src/lib.rs}
 ts_file=${TAURI_CONTRACT_TS_FILE:-$repo_root/frontend/src/lib/types/tauri.ts}
 manifest=${TAURI_CONTRACT_MANIFEST:-$repo_root/frontend/src/lib/types/tauri-command-contract.json}
+rust_types_file=${TAURI_CONTRACT_RUST_TYPES_FILE:-$repo_root/frontend/src-tauri/src/audio/types.rs}
 
-python3 - "$rust_file" "$ts_file" "$manifest" <<'PY'
+python3 - "$rust_file" "$rust_types_file" "$ts_file" "$manifest" <<'PY'
 import json, re, sys
-rust_path, ts_path, manifest_path = sys.argv[1:]
+rust_path, rust_types_path, ts_path, manifest_path = sys.argv[1:]
 rust = open(rust_path).read()
+rust_types = open(rust_types_path).read()
 ts = open(ts_path).read()
-expected = sorted(json.load(open(manifest_path))["commands"])
+contract = json.load(open(manifest_path))
+expected = sorted(contract["commands"])
 
 def camel(name):
     head, *tail = name.split("_")
@@ -94,5 +97,27 @@ def compare(label, actual):
 
 compare("Rust", rust_signatures)
 compare("TypeScript", ts_signatures)
-print(f"Tauri signature contract is aligned ({len(expected)} commands).")
+
+primitive = {"String":"string", "bool":"boolean", "f64":"number", "f32":"number", "u64":"number", "u32":"number", "usize":"number", "i8":"number"}
+named = {"AudioRuntimeError":"TauriRuntimeError"}
+def wire_type(value):
+    value=re.sub(r"\s+","",value)
+    if value.startswith("Option<") and value.endswith(">"):
+        return wire_type(value[7:-1])+"|null"
+    if value.startswith("Vec<") and value.endswith(">"):
+        return wire_type(value[4:-1])+"[]"
+    return primitive.get(value, named.get(value, "Tauri"+value))
+
+for pair, fields in contract.get("dtos", {}).items():
+    rust_name, ts_name = pair.split(":",1)
+    rmatch=re.search(rf"pub struct {rust_name}\s*\{{(.*?)\n\}}",rust_types,re.S)
+    if not rmatch: raise SystemExit(f"Rust DTO not found: {rust_name}")
+    rust_fields=sorted(f"{n}:{wire_type(t)}" for n,t in re.findall(r"pub\s+(\w+):\s*([^,]+),",rmatch.group(1)))
+    tmatch=re.search(rf"export interface {ts_name}\s*\{{(.*?)\n\}}",ts,re.S)
+    if not tmatch: raise SystemExit(f"TypeScript DTO not found: {ts_name}")
+    ts_fields=sorted(n+":"+re.sub(r"\s+","",t) for n,t in re.findall(r"^\s*(\w+):\s*([^;]+);",tmatch.group(1),re.M))
+    wanted=sorted(fields)
+    if rust_fields != wanted: raise SystemExit(f"Rust DTO field drift for {rust_name}: {rust_fields} != {wanted}")
+    if ts_fields != wanted: raise SystemExit(f"TypeScript DTO field drift for {ts_name}: {ts_fields} != {wanted}")
+print(f"Tauri contract aligned ({len(expected)} commands, {len(contract.get('dtos',{}))} DTOs).")
 PY

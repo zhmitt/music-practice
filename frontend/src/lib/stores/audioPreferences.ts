@@ -2,12 +2,18 @@ import { get, writable } from 'svelte/store';
 import { getKV, removeKV, setKV } from '$lib/db';
 import { invokeTauri, isTauriRuntime } from '$lib/tauri/runtime';
 import { getUserProfile, type Instrument } from '$lib/stores/onboarding';
-import type { TauriAudioDeviceInfo } from '$lib/types/tauri';
+import type { TauriAudioDeviceInfo, TauriRuntimeError } from '$lib/types/tauri';
 
 const STORAGE_KEY = 'tt-microphone-device';
 
 export const microphoneDevices = writable<TauriAudioDeviceInfo[]>([]);
 export const selectedMicrophoneDevice = writable<string | null>(null);
+export const audioCaptureStatus = writable<{ available: boolean; error: TauriRuntimeError | null }>(
+  {
+    available: false,
+    error: null,
+  },
+);
 
 export interface AudioAnalysisContext {
   instrument?: Instrument | null;
@@ -22,6 +28,7 @@ export interface AudioLeaseHandle {
   readonly generation: number;
 }
 const activeAudioLeases = new Map<number, AudioLeaseHandle>();
+const pendingLeaseCleanup = new Map<number, AudioLeaseHandle>();
 let nextLeaseId = 1;
 let audioGeneration = 0;
 let captureAvailable = false;
@@ -164,6 +171,9 @@ export async function acquireAudioLease(
         : await startPreferredAudioCapture(context);
     if (!started) return null;
     captureAvailable = true;
+    audioCaptureStatus.set({ available: true, error: null });
+    for (const pending of pendingLeaseCleanup.values()) activeAudioLeases.delete(pending.id);
+    pendingLeaseCleanup.clear();
     const handle = { id: nextLeaseId++, owner, generation: audioGeneration };
     activeAudioLeases.set(handle.id, handle);
     return handle;
@@ -175,20 +185,60 @@ export async function releaseAudioLease(handle: AudioLeaseHandle): Promise<boole
     if (!activeAudioLeases.has(handle.id)) return true;
     if (activeAudioLeases.size > 1) {
       activeAudioLeases.delete(handle.id);
+      pendingLeaseCleanup.delete(handle.id);
       return true;
     }
     if (!isTauriRuntime()) return true;
     try {
       await invokeTauri('stop_audio');
       activeAudioLeases.delete(handle.id);
+      pendingLeaseCleanup.delete(handle.id);
       captureAvailable = false;
+      audioCaptureStatus.set({ available: false, error: null });
       return true;
     } catch (err) {
       captureAvailable = false;
+      pendingLeaseCleanup.set(handle.id, handle);
+      audioCaptureStatus.set({
+        available: false,
+        error: { kind: 'stream_interrupted', message: 'Audio stop failed', device_name: null },
+      });
       console.warn('[ToneTrainer] failed to stop audio capture:', err);
       return false;
     }
   });
+}
+
+export function reportAudioRuntimeError(error: TauriRuntimeError | null): void {
+  audioCaptureStatus.set({ available: error === null && captureAvailable, error });
+}
+
+export async function refreshAudioRuntimeStatus(): Promise<void> {
+  if (!isTauriRuntime()) return;
+  try {
+    const snapshot = await invokeTauri('get_audio_debug');
+    reportAudioRuntimeError(snapshot.runtime_error);
+  } catch {
+    reportAudioRuntimeError({
+      kind: 'audio_subsystem_unavailable',
+      message: 'Audio runtime status unavailable',
+      device_name: null,
+    });
+  }
+}
+
+export async function releaseAudioLeaseDurably(handle: AudioLeaseHandle): Promise<boolean> {
+  const released = await releaseAudioLease(handle);
+  if (!released) pendingLeaseCleanup.set(handle.id, handle);
+  return released;
+}
+
+export async function retryPendingAudioCleanup(): Promise<boolean> {
+  let complete = true;
+  for (const handle of [...pendingLeaseCleanup.values()]) {
+    if (!(await releaseAudioLease(handle))) complete = false;
+  }
+  return complete;
 }
 
 export function hasAudioLease(owner: AudioLeaseOwner): boolean {
@@ -207,13 +257,26 @@ export async function restartPreferredAudioCapture(
       captureAvailable = false;
       await invokeTauri('start_audio', { deviceName: deviceName || null });
       captureAvailable = true;
+      audioCaptureStatus.set({ available: true, error: null });
       audioGeneration++;
       await syncAudioAnalysisContext(context);
       return true;
     } catch (err) {
       captureAvailable = false;
+      const recovered = activeAudioLeases.size > 0 && (await startPreferredAudioCapture(context));
+      captureAvailable = recovered;
+      audioCaptureStatus.set({
+        available: recovered,
+        error: recovered
+          ? null
+          : {
+              kind: 'audio_subsystem_unavailable',
+              message: 'Audio restart failed',
+              device_name: null,
+            },
+      });
       console.warn('[ToneTrainer] failed to restart audio capture:', err);
-      return false;
+      return recovered;
     }
   });
 }
