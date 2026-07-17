@@ -290,3 +290,10 @@ Append-only project status log for deterministic session handover.
 - Remaining: Wait for final hosted checks, close their evidence tasks, and configure required checks.
 - Evidence: openspec/changes/external-runtime-evidence/verification.md, workflow/state/reports/2026-07-17-external-runtime-evidence.md
 - Next: Resolve hosted gate results and enable main branch protection.
+
+## 2026-07-18 00:09:41
+- Change: external-runtime-evidence
+- Status: implemented
+- Summary: Completed native, hosted, branch-protection, audio hardware, signed WebView SQLite, and macOS packaging evidence; all 14 tasks are complete.
+- Evidence: openspec/changes/external-runtime-evidence/verification.md, workflow/state/reports/2026-07-17-external-runtime-evidence.md
+- Next: Archive the change into openspec/changes/archive/
