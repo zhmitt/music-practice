@@ -48,9 +48,7 @@ fi
 if [[ "$mode" == archive ]]; then
   [[ ! -d "$active_dir" && -d "$archive_dir" ]] || { echo "Archive guard: change must exist only in archive." >&2; exit 1; }
   "$deleted_active" && "$added_archive" || { echo "Archive guard: diff must move the declared active path into archive." >&2; exit 1; }
-  [[ -f "$archive_dir/tasks.md" && -f "$archive_dir/verification.md" ]] || { echo "Archive guard: completion artifacts are missing." >&2; exit 1; }
-  if grep -qE '^- \[ \]' "$archive_dir/tasks.md"; then echo "Archive guard: tasks remain incomplete." >&2; exit 1; fi
-  find "$repo_root/workflow/state/reports" -type f -name "*$declared_change*.md" | grep -q . || { echo "Archive guard: workflow report missing." >&2; exit 1; }
+  OPENSPEC_GUARD_ROOT="$repo_root" "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/archive-evidence-check.py" "$declared_change"
   echo "OpenSpec archive guard passed."
   exit 0
 fi

@@ -23,6 +23,13 @@ permissions:
   contents: read
 
 jobs:
+  workflow-bootstrap:
+    name: workflow-bootstrap
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - run: workflow/scripts/github-workflow-validate.sh
+
   # Job A: Spec-drift check per affected change
   spec-drift:
     name: spec-drift

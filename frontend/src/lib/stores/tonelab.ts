@@ -1,7 +1,7 @@
 import { writable, get } from 'svelte/store';
 import type { PitchSample, NoteTendency, ToneLabStats, ToneLabMode } from '$lib/types/tonelab';
 import { acquireAudioLease, releaseAudioLease, type AudioLeaseHandle } from './audioPreferences';
-import type { TauriPitchResult, TauriAudioLevel } from '$lib/types/tauri';
+import type { TauriPitchResult, TauriAudioLevel, TauriRuntimeError } from '$lib/types/tauri';
 import { getKV, safeInvoke } from '$lib/db';
 import { invokeTauri } from '$lib/tauri/runtime';
 
@@ -33,6 +33,7 @@ export const stats = writable<ToneLabStats>({ toneCount: 0, accuracy: 0, avgCent
 export const droneNote = writable('Bb');
 export const droneOctave = writable(3);
 export const droneActive = writable(false);
+export const droneRuntimeError = writable<TauriRuntimeError | null>(null);
 
 // ── Internal state ──
 
@@ -119,8 +120,9 @@ async function startDrone(expectedGeneration = droneGeneration) {
       return;
     }
     droneActive.set(true);
+    droneRuntimeError.set(null);
   } catch {
-    droneActive.set(false);
+    await reconcileDroneStatus();
   }
 }
 
@@ -128,11 +130,30 @@ async function stopDrone(): Promise<boolean> {
   if (!get(droneActive)) return true;
   try {
     await invokeTauri('stop_drone');
+    droneActive.set(false);
+    droneRuntimeError.set(null);
     return true;
   } catch {
-    return false;
+    const isPlaying = await reconcileDroneStatus();
+    return !isPlaying;
   } finally {
-    droneActive.set(false);
+    // Native status is authoritative after a rejected transition.
+  }
+}
+
+async function reconcileDroneStatus(): Promise<boolean> {
+  try {
+    const status = await invokeTauri('get_drone_runtime_status');
+    droneActive.set(status.is_playing);
+    droneRuntimeError.set(status.runtime_error);
+    return status.is_playing;
+  } catch {
+    droneRuntimeError.set({
+      kind: 'audio_subsystem_unavailable',
+      message: 'Drone runtime status unavailable',
+      device_name: null,
+    });
+    return get(droneActive);
   }
 }
 

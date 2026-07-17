@@ -12,6 +12,7 @@
     selectedMicrophoneDevice,
     setSelectedMicrophoneDevice,
     syncAudioAnalysisContext,
+    reportAudioRuntimeError,
   } from '$lib/stores/audioPreferences';
   import { settingsOpen } from '$lib/stores/navigation';
   import {
@@ -189,6 +190,7 @@
       return;
     }
     if (!snapshot) return;
+    reportAudioRuntimeError(snapshot.runtime_error);
 
     const signature = [
       snapshot.detector_status,

@@ -127,6 +127,20 @@ describe('browser persistence boundary', () => {
     ).toBe(false);
   });
 
+  it('clears recovered history failures when the corrupt key is removed', async () => {
+    localStorage.setItem('tt-session-history', '{bad json');
+    await getAllSessions();
+    localStorage.removeItem('tt-session-history');
+    expect(await getAllSessions()).toEqual([]);
+    expect(
+      get(persistenceStatus).failures.some(
+        (item) =>
+          item.identity === 'session-history:read' ||
+          item.identity === 'session-history:partial-validation',
+      ),
+    ).toBe(false);
+  });
+
   it('rejects calendar-invalid session dates', async () => {
     localStorage.setItem(
       'tt-session-history',

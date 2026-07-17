@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use crate::audio::types::{AudioError, DroneRuntimeStatus};
+use crate::audio::types::{AudioError, AudioRuntimeError, DroneRuntimeStatus};
 
 const OWNER_ACK_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -320,7 +320,7 @@ impl DroneSynth {
     pub fn runtime_status(&self) -> DroneRuntimeStatus {
         DroneRuntimeStatus {
             is_playing: self.is_playing(),
-            runtime_error: self.last_error(),
+            runtime_error: self.last_error().as_ref().map(AudioRuntimeError::from),
         }
     }
 }
@@ -527,10 +527,9 @@ mod tests {
         ));
         let status = d.runtime_status();
         assert!(!status.is_playing);
-        assert!(matches!(
-            status.runtime_error,
-            Some(AudioError::StreamInterrupted)
-        ));
+        let runtime_error = status.runtime_error.unwrap();
+        assert_eq!(runtime_error.kind, "stream_interrupted");
+        assert_eq!(runtime_error.message, "Audio stream interrupted");
     }
     #[test]
     fn stale_callback_cannot_stop_restarted_drone() {

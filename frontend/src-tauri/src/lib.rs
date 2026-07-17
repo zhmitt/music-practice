@@ -144,11 +144,13 @@ pub fn run() {
     let engine = audio::create_engine();
     let engine_for_loop = engine.clone();
     let drone = audio::create_drone();
+    let processing_loop = audio::start_processing_loop(engine_for_loop);
 
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::new().build())
         .manage(engine)
         .manage(drone)
+        .manage(processing_loop)
         .invoke_handler(tauri::generate_handler![
             start_audio,
             stop_audio,
@@ -174,9 +176,6 @@ pub fn run() {
                         .build(),
                 )?;
             }
-
-            // Start the audio processing loop in background
-            audio::start_processing_loop(engine_for_loop);
 
             Ok(())
         })

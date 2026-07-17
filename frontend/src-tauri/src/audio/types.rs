@@ -27,7 +27,7 @@ pub struct AudioDebugSnapshot {
     /// Currently active input device name, if known.
     pub active_device_name: Option<String>,
     /// Last typed capture lifecycle failure, if any.
-    pub runtime_error: Option<AudioError>,
+    pub runtime_error: Option<AudioRuntimeError>,
     /// Current detector state (`idle`, `buffering`, `no_signal`, `low_confidence`, etc.).
     pub detector_status: String,
     /// Latest meter snapshot.
@@ -113,7 +113,8 @@ pub enum OnsetType {
 }
 
 /// Recoverable audio subsystem error.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
 pub enum AudioError {
     MicrophonePermissionDenied,
     NoMicrophoneAvailable,
@@ -144,11 +145,41 @@ impl std::fmt::Display for AudioError {
 
 impl std::error::Error for AudioError {}
 
+/// Stable IPC representation for runtime failures.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AudioRuntimeError {
+    pub kind: String,
+    pub message: String,
+    pub device_name: Option<String>,
+}
+
+impl From<&AudioError> for AudioRuntimeError {
+    fn from(error: &AudioError) -> Self {
+        let (kind, device_name) = match error {
+            AudioError::MicrophonePermissionDenied => ("microphone_permission_denied", None),
+            AudioError::NoMicrophoneAvailable => ("no_microphone_available", None),
+            AudioError::NoAudioOutputAvailable => ("no_audio_output_available", None),
+            AudioError::UnsupportedSampleRate => ("unsupported_sample_rate", None),
+            AudioError::DeviceDisconnected { device_name } => {
+                ("device_disconnected", Some(device_name.clone()))
+            }
+            AudioError::StreamInterrupted => ("stream_interrupted", None),
+            AudioError::AudioSubsystemUnavailable => ("audio_subsystem_unavailable", None),
+            AudioError::Unknown(_) => ("unknown", None),
+        };
+        Self {
+            kind: kind.to_string(),
+            message: error.to_string(),
+            device_name,
+        }
+    }
+}
+
 /// Typed lifecycle state for the independently managed drone output.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DroneRuntimeStatus {
     pub is_playing: bool,
-    pub runtime_error: Option<AudioError>,
+    pub runtime_error: Option<AudioRuntimeError>,
 }
 
 #[cfg(test)]
@@ -158,22 +189,43 @@ mod runtime_status_tests {
     #[test]
     fn capture_debug_serializes_typed_runtime_error() {
         let snapshot = AudioDebugSnapshot {
-            runtime_error: Some(AudioError::StreamInterrupted),
+            runtime_error: Some(AudioRuntimeError::from(&AudioError::StreamInterrupted)),
             ..AudioDebugSnapshot::default()
         };
         let value = serde_json::to_value(snapshot).unwrap();
-        assert_eq!(value["runtime_error"], "StreamInterrupted");
+        assert_eq!(value["runtime_error"]["kind"], "stream_interrupted");
+        assert_eq!(
+            value["runtime_error"]["message"],
+            "Audio stream interrupted"
+        );
+        assert!(value["runtime_error"]["device_name"].is_null());
     }
 
     #[test]
     fn drone_status_serializes_typed_runtime_error() {
         let status = DroneRuntimeStatus {
             is_playing: false,
-            runtime_error: Some(AudioError::NoAudioOutputAvailable),
+            runtime_error: Some(AudioRuntimeError::from(&AudioError::NoAudioOutputAvailable)),
         };
         let value = serde_json::to_value(status).unwrap();
         assert_eq!(value["is_playing"], false);
-        assert_eq!(value["runtime_error"], "NoAudioOutputAvailable");
+        assert_eq!(value["runtime_error"]["kind"], "no_audio_output_available");
+        assert_eq!(
+            value["runtime_error"]["message"],
+            "No audio output available"
+        );
+        assert!(value["runtime_error"]["device_name"].is_null());
+    }
+
+    #[test]
+    fn payload_error_has_stable_tagged_shape() {
+        let error = AudioRuntimeError::from(&AudioError::DeviceDisconnected {
+            device_name: "USB Mic".to_string(),
+        });
+        let value = serde_json::to_value(error).unwrap();
+        assert_eq!(value["kind"], "device_disconnected");
+        assert_eq!(value["message"], "Device disconnected: USB Mic");
+        assert_eq!(value["device_name"], "USB Mic");
     }
 }
 

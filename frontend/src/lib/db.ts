@@ -288,6 +288,15 @@ export async function removeKV(key: string): Promise<PersistenceResult> {
 // ---------------------------------------------------------------------------
 // Sessions helpers
 // ---------------------------------------------------------------------------
+let lastSessionReadSucceeded = true;
+
+export async function getAllSessionsWithStatus(): Promise<{
+  ok: boolean;
+  records: SessionRecord[];
+}> {
+  const records = await getAllSessions();
+  return { ok: lastSessionReadSucceeded, records };
+}
 
 /**
  * Retrieve all session records ordered by date ascending.
@@ -295,11 +304,16 @@ export async function removeKV(key: string): Promise<PersistenceResult> {
  * @returns Array of session records.
  */
 export async function getAllSessions(): Promise<SessionRecord[]> {
+  lastSessionReadSucceeded = true;
   if (!isTauriRuntime()) {
     // Browser fallback: read from localStorage kv blob
     try {
       const raw = localStorage.getItem('tt-session-history');
-      if (!raw) return [];
+      if (!raw) {
+        clearPersistenceFailure('session-history:read');
+        clearPersistenceFailure('session-history:partial-validation');
+        return [];
+      }
       // The localStorage format stores full SessionRecord objects (with tones as array).
       // Wrap them so callers always get the DB-shaped record.
       const decoded: unknown = JSON.parse(raw);
@@ -314,6 +328,7 @@ export async function getAllSessions(): Promise<SessionRecord[]> {
         tones: typeof r.tones === 'string' ? r.tones : JSON.stringify(r.tones ?? []),
       }));
     } catch (error) {
+      lastSessionReadSucceeded = false;
       reportPersistenceReadFailure(error, 'session-history:read');
       return [];
     }
@@ -332,20 +347,38 @@ export async function getAllSessions(): Promise<SessionRecord[]> {
         created_at: string;
       }>
     >('SELECT * FROM sessions ORDER BY date ASC, created_at ASC');
-    clearPersistenceFailure('get-all-sessions');
-
-    return rows.map((r) => ({
+    const candidates = rows.map((r) => ({
       id: r.id,
       date: r.date,
       exerciseType: r.exercise_type,
       durationSeconds: r.duration_seconds,
       accuracy: r.accuracy,
-      tones: r.tones,
+      tones: parseTones(r.tones),
       createdAt: r.created_at,
     }));
+    const valid = decodeBrowserSessions(candidates);
+    clearPersistenceFailure('get-all-sessions');
+    return valid.map((r) => ({
+      id: String(r.id),
+      date: String(r.date),
+      exerciseType: String(r.exerciseType),
+      durationSeconds: Number(r.durationSeconds),
+      accuracy: Number(r.accuracy),
+      tones: JSON.stringify(r.tones),
+      createdAt: typeof r.createdAt === 'string' ? r.createdAt : undefined,
+    }));
   } catch (error) {
+    lastSessionReadSucceeded = false;
     reportPersistenceReadFailure(error, 'get-all-sessions');
     return [];
+  }
+}
+
+function parseTones(value: string): unknown {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
   }
 }
 

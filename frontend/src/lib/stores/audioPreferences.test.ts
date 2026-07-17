@@ -15,6 +15,7 @@ import {
   releaseAudioLease,
   restartPreferredAudioCapture,
   hasAudioLease,
+  releaseAudioLeaseDurably,
 } from './audioPreferences';
 
 describe('audio leases', () => {
@@ -84,7 +85,7 @@ describe('audio leases', () => {
       }
       return undefined;
     });
-    expect(await restartPreferredAudioCapture()).toBe(false);
+    expect(await restartPreferredAudioCapture()).toBe(true);
     const recovered = await acquireAudioLease('tonelab');
     expect(recovered).not.toBeNull();
     expect(invoke.mock.calls.filter(([command]) => command === 'start_audio')).toHaveLength(3);
@@ -99,5 +100,15 @@ describe('audio leases', () => {
     expect(hasAudioLease('session')).toBe(true);
     expect(await releaseAudioLease(lease!)).toBe(true);
     expect(hasAudioLease('session')).toBe(false);
+  });
+
+  it('transfers orphaned teardown ownership during the next recovered acquire', async () => {
+    const orphan = await acquireAudioLease('playalong');
+    invoke.mockRejectedValueOnce(new Error('unmount stop failed'));
+    expect(await releaseAudioLeaseDurably(orphan!)).toBe(false);
+    const replacement = await acquireAudioLease('session');
+    expect(replacement).not.toBeNull();
+    expect(hasAudioLease('playalong')).toBe(false);
+    await releaseAudioLease(replacement!);
   });
 });

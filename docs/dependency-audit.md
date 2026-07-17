@@ -29,3 +29,63 @@ assessment, owner, compensating control, remediation target and review date.
 inventory to package and severity, requires an unexpired review date and owner,
 and fails when the documented table is missing, adding, or misclassifying an
 entry. Advisory details remain report-only; stale or incomplete triage blocks.
+
+<!-- audit-inventory:start -->
+
+```json
+{
+  "@sveltejs/kit": {
+    "advisories": [
+      "https://github.com/advisories/GHSA-2crg-3p73-43xp",
+      "https://github.com/advisories/GHSA-3f6h-2hrp-w5wx",
+      "https://github.com/advisories/GHSA-hgv7-v322-mmgr",
+      "via:cookie"
+    ],
+    "paths": ["node_modules/@sveltejs/kit"],
+    "severity": "high"
+  },
+  "cookie": {
+    "advisories": ["https://github.com/advisories/GHSA-pxg6-pf52-xh8x"],
+    "paths": ["node_modules/cookie"],
+    "severity": "low"
+  },
+  "devalue": {
+    "advisories": ["https://github.com/advisories/GHSA-77vg-94rm-hx3p"],
+    "paths": ["node_modules/devalue"],
+    "severity": "high"
+  },
+  "esbuild": {
+    "advisories": ["https://github.com/advisories/GHSA-g7r4-m6w7-qqqr"],
+    "paths": ["node_modules/esbuild"],
+    "severity": "low"
+  },
+  "postcss": {
+    "advisories": ["https://github.com/advisories/GHSA-qx2v-qp2m-jg93"],
+    "paths": ["node_modules/postcss"],
+    "severity": "moderate"
+  },
+  "svelte": {
+    "advisories": [
+      "https://github.com/advisories/GHSA-9rmh-mm8f-r9h6",
+      "https://github.com/advisories/GHSA-f3cj-j4f6-wq85",
+      "https://github.com/advisories/GHSA-pr6f-5x2q-rwfp",
+      "https://github.com/advisories/GHSA-rcqx-6q8c-2c42"
+    ],
+    "paths": ["node_modules/svelte"],
+    "severity": "moderate"
+  },
+  "vite": {
+    "advisories": [
+      "https://github.com/advisories/GHSA-4w7w-66w2-5vf9",
+      "https://github.com/advisories/GHSA-fx2h-pf6j-xcff",
+      "https://github.com/advisories/GHSA-p9ff-h696-f583",
+      "https://github.com/advisories/GHSA-v2wj-q39q-566r",
+      "https://github.com/advisories/GHSA-v6wh-96g9-6wx3"
+    ],
+    "paths": ["node_modules/vite"],
+    "severity": "high"
+  }
+}
+```
+
+<!-- audit-inventory:end -->

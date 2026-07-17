@@ -1,10 +1,10 @@
 # Next Session
 
-**Last Updated:** 2026-07-17 23:24:52
+**Last Updated:** 2026-07-17 23:43:31
 
 ## Last Summary
 
-Completed engineering-quality-hardening-v3: all audit findings were documented and remediated; canonical verify and change-done are green. External residual evidence remains hosted GitHub/branch protection, physical audio hardware, and GUI WebView SQLite CRUD.
+Completed engineering-quality-hardening-v4 after a fresh post-V3 audit: all reproduced residuals are fixed, canonical verify and change-done are green; hosted GitHub, physical audio, and GUI WebView SQLite remain external evidence.
 
 ## Active Changes
 
@@ -37,6 +37,10 @@ Completed engineering-quality-hardening-v3: all audit findings were documented a
   Next: Archive the change into openspec/changes/archive/
 
 - engineering-quality-hardening-v3: ready_for_archive
+
+  Next: Archive the change into openspec/changes/archive/
+
+- engineering-quality-hardening-v4: ready_for_archive
 
   Next: Archive the change into openspec/changes/archive/
 

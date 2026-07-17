@@ -19,6 +19,7 @@ struct CaptureState {
     generation: AtomicU64,
     error: std::sync::Mutex<Option<AudioError>>,
     active_device_name: std::sync::Mutex<Option<String>>,
+    processing_gate: Arc<std::sync::Mutex<()>>,
 }
 
 impl CaptureState {
@@ -28,10 +29,12 @@ impl CaptureState {
             generation: AtomicU64::new(0),
             error: std::sync::Mutex::new(None),
             active_device_name: std::sync::Mutex::new(None),
+            processing_gate: Arc::new(std::sync::Mutex::new(())),
         }
     }
 
     fn runtime_error(&self, generation: u64, error: AudioError) {
+        let _processing = self.processing_gate.lock().unwrap();
         if self.generation.load(Ordering::Acquire) == generation {
             let mut current_error = self.error.lock().unwrap();
             *current_error = Some(error);
@@ -388,11 +391,17 @@ impl AudioCapture {
     /// Read available samples from the ring buffer into the provided vec.
     /// Returns the number of samples read.
     pub fn read_samples(&mut self, buffer: &mut Vec<f32>) -> usize {
+        self.read_samples_inner(buffer, || {})
+    }
+
+    fn read_samples_inner(&mut self, buffer: &mut Vec<f32>, after_check: impl FnOnce()) -> usize {
+        let generation = self.state.generation.load(Ordering::Acquire);
         if !self.is_running() {
             self.consumer = None;
             buffer.clear();
             return 0;
         }
+        after_check();
         if let Some(consumer) = &mut self.consumer {
             let available = consumer.occupied_len();
             if available == 0 {
@@ -400,6 +409,11 @@ impl AudioCapture {
             }
             buffer.resize(available, 0.0);
             consumer.pop_slice(&mut buffer[..available]);
+            if !self.is_running() || self.state.generation.load(Ordering::Acquire) != generation {
+                self.consumer = None;
+                buffer.clear();
+                return 0;
+            }
             available
         } else {
             0
@@ -420,6 +434,10 @@ impl AudioCapture {
 
     pub fn last_error(&self) -> Option<AudioError> {
         self.state.error.lock().unwrap().clone()
+    }
+
+    pub fn processing_gate(&self) -> Arc<std::sync::Mutex<()>> {
+        self.state.processing_gate.clone()
     }
 }
 
@@ -554,6 +572,38 @@ mod tests {
         c.start(None).unwrap();
         callbacks.lock().unwrap()[0](AudioError::StreamInterrupted);
         assert!(c.is_running());
+    }
+    #[test]
+    fn callback_between_running_check_and_pop_discards_samples() {
+        let (mut c, callbacks) = capture(vec![Plan::Ok], Duration::from_secs(1));
+        c.start(None).unwrap();
+        let callback = callbacks.lock().unwrap()[0].clone();
+        let mut samples = Vec::new();
+        let count = c.read_samples_inner(&mut samples, move || {
+            callback(AudioError::StreamInterrupted);
+        });
+        assert_eq!(count, 0);
+        assert!(samples.is_empty());
+        assert!(!c.is_running());
+    }
+    #[test]
+    fn runtime_callback_waits_for_processing_gate() {
+        let (mut c, callbacks) = capture(vec![Plan::Ok], Duration::from_secs(1));
+        c.start(None).unwrap();
+        let gate = c.processing_gate();
+        let guard = gate.lock().unwrap();
+        let callback = callbacks.lock().unwrap()[0].clone();
+        let (done_tx, done_rx) = mpsc::sync_channel(1);
+        let worker = thread::spawn(move || {
+            callback(AudioError::StreamInterrupted);
+            let _ = done_tx.send(());
+        });
+        assert!(done_rx.recv_timeout(Duration::from_millis(20)).is_err());
+        assert!(c.is_running());
+        drop(guard);
+        done_rx.recv_timeout(Duration::from_secs(1)).unwrap();
+        worker.join().unwrap();
+        assert!(!c.is_running());
     }
     #[test]
     fn acknowledgement_timeout_is_typed_and_invalidates_late_success() {

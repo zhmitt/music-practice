@@ -26,6 +26,11 @@
   import { loadImportedPieces } from '$lib/stores/imports';
   import { loadLocale, t } from '$lib/i18n';
   import { loadNotePreferences } from '$lib/stores/notePreferences';
+  import {
+    audioCaptureStatus,
+    restartPreferredAudioCapture,
+    refreshAudioRuntimeStatus,
+  } from '$lib/stores/audioPreferences';
 
   let { children } = $props();
 
@@ -49,6 +54,11 @@
     if (!checkOnboardingCompleted()) {
       onboardingVisible.set(true);
     }
+  });
+
+  onMount(() => {
+    const timer = setInterval(() => void refreshAudioRuntimeStatus(), 1000);
+    return () => clearInterval(timer);
   });
 
   function handleKeydown(e: KeyboardEvent) {
@@ -129,6 +139,13 @@
   </aside>
 {/if}
 
+{#if $audioCaptureStatus.error}
+  <aside class="persistence-warning audio-warning" role="alert">
+    <span>Audio unavailable: {$audioCaptureStatus.error.message}</span>
+    <button type="button" onclick={() => void restartPreferredAudioCapture()}>Retry</button>
+  </aside>
+{/if}
+
 <style>
   .app {
     display: grid;
@@ -174,6 +191,10 @@
     border: 0;
     border-radius: 6px;
     cursor: pointer;
+  }
+
+  .audio-warning {
+    bottom: 76px;
   }
 
   @media (max-width: 768px) {

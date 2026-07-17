@@ -214,3 +214,52 @@ Append-only project status log for deterministic session handover.
 - Change: openspec-verification-toolchain
 - State: draft
 - Next: Complete proposal and delta specs
+
+## 2026-07-17 23:34:21
+- Change: engineering-quality-hardening-v4
+- Status: checkpointed
+- Summary: Created V4 from the fresh post-V3 audit with reproduced frontend, Rust audio, persistence, and governance findings.
+- Completed: Read-only audit, negative probes, proposal, design, requirements, and task plan.
+- Remaining: Implement all reproduced findings and pass canonical completion evidence.
+- Evidence: openspec/changes/engineering-quality-hardening-v4/verification.md, workflow/state/reports/2026-07-17-engineering-quality-hardening-v4.md
+- Next: Complete bounded V4 implementation and verification.
+
+## 2026-07-17 23:42:35
+- Change: engineering-quality-hardening-v4
+- Status: implemented
+- Summary: Implemented all V4 post-audit remediations across runtime ownership, audio concurrency and teardown, persistence recovery, independent workflow validation, archive evidence, DTO shapes, and advisory identity parity.
+- Evidence: openspec/changes/engineering-quality-hardening-v4/verification.md, workflow/state/reports/2026-07-17-engineering-quality-hardening-v4.md
+- Next: Archive the change into openspec/changes/archive/
+
+## 2026-07-17 23:43:31
+- Summary: Completed engineering-quality-hardening-v4 after a fresh post-V3 audit: all reproduced residuals are fixed, canonical verify and change-done are green; hosted GitHub, physical audio, and GUI WebView SQLite remain external evidence.
+- Change: 2026-03-31-app-shell-foundation
+- State: draft
+- Next: Complete proposal and delta specs
+- Change: 2026-03-31-audio-pitch-engine
+- State: draft
+- Next: Complete proposal and delta specs
+- Change: 2026-04-04-student-practice-journeys
+- State: in_progress
+- Next: Complete remaining tasks
+- Change: 2026-04-06-bb-horn-practice-pedagogy
+- State: in_progress
+- Next: Complete remaining tasks
+- Change: add-canonical-milestone-sync
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-followup
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-v3
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-v4
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: openspec-verification-toolchain
+- State: draft
+- Next: Complete proposal and delta specs
