@@ -144,6 +144,12 @@ export function reportPersistenceReadFailure(
   return result;
 }
 
+export function clearPersistenceFailure(identity: string): void {
+  pendingRetries.delete(identity);
+  persistenceFailures.delete(identity);
+  publishPersistenceStatus();
+}
+
 // ---------------------------------------------------------------------------
 // SQLite singleton (Tauri path)
 // ---------------------------------------------------------------------------
@@ -203,9 +209,11 @@ async function getDb(): Promise<import('@tauri-apps/plugin-sql').default> {
 export async function getKV(key: string): Promise<string | null> {
   if (!isTauriRuntime()) {
     try {
-      return localStorage.getItem(key);
+      const value = localStorage.getItem(key);
+      clearPersistenceFailure(`get-kv:${key}`);
+      return value;
     } catch (error) {
-      reportPersistenceReadFailure(error);
+      reportPersistenceReadFailure(error, `get-kv:${key}`);
       return null;
     }
   }
@@ -215,6 +223,7 @@ export async function getKV(key: string): Promise<string | null> {
     const rows = await db.select<Array<{ value: string }>>('SELECT value FROM kv WHERE key = ?', [
       key,
     ]);
+    clearPersistenceFailure(`get-kv:${key}`);
     return rows.length > 0 ? rows[0].value : null;
   } catch (error) {
     reportPersistenceReadFailure(error, `get-kv:${key}`);
@@ -295,6 +304,7 @@ export async function getAllSessions(): Promise<SessionRecord[]> {
       // Wrap them so callers always get the DB-shaped record.
       const decoded: unknown = JSON.parse(raw);
       const parsed = decodeBrowserSessions(decoded);
+      clearPersistenceFailure('session-history:read');
       return parsed.map((r) => ({
         id: String(r.id ?? ''),
         date: String(r.date ?? ''),
@@ -304,7 +314,7 @@ export async function getAllSessions(): Promise<SessionRecord[]> {
         tones: typeof r.tones === 'string' ? r.tones : JSON.stringify(r.tones ?? []),
       }));
     } catch (error) {
-      reportPersistenceReadFailure(error);
+      reportPersistenceReadFailure(error, 'session-history:read');
       return [];
     }
   }
@@ -322,6 +332,7 @@ export async function getAllSessions(): Promise<SessionRecord[]> {
         created_at: string;
       }>
     >('SELECT * FROM sessions ORDER BY date ASC, created_at ASC');
+    clearPersistenceFailure('get-all-sessions');
 
     return rows.map((r) => ({
       id: r.id,
@@ -409,6 +420,8 @@ function decodeBrowserSessions(value: unknown): Array<Record<string, unknown>> {
       'session-history:partial-validation',
     );
   }
+  if (valid.length === records.length)
+    clearPersistenceFailure('session-history:partial-validation');
   return valid;
 }
 
@@ -419,7 +432,7 @@ function isBrowserSessionRecord(record: unknown): record is Record<string, unkno
     typeof value.id === 'string' &&
     value.id.length > 0 &&
     typeof value.date === 'string' &&
-    /^\d{4}-\d{2}-\d{2}$/.test(value.date) &&
+    isIsoDate(value.date) &&
     typeof value.exerciseType === 'string' &&
     value.exerciseType.length > 0 &&
     typeof value.durationSeconds === 'number' &&
@@ -434,6 +447,12 @@ function isBrowserSessionRecord(record: unknown): record is Record<string, unkno
   );
 }
 
+function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
 function isToneRecord(tone: unknown): boolean {
   if (!tone || typeof tone !== 'object') return false;
   const value = tone as Record<string, unknown>;
@@ -444,6 +463,7 @@ function isToneRecord(tone: unknown): boolean {
     Number.isFinite(value.avgCents) &&
     typeof value.stability === 'number' &&
     Number.isFinite(value.stability) &&
+    value.stability >= 0 &&
     typeof value.passed === 'boolean'
   );
 }
@@ -491,6 +511,7 @@ export async function initDb(): Promise<void> {
   if (!isTauriRuntime()) return; // browser: nothing to initialise
   try {
     await getDb();
+    clearPersistenceFailure('db-initialization');
   } catch (error) {
     reportPersistenceReadFailure(error, 'db-initialization');
   }

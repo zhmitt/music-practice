@@ -283,6 +283,15 @@ describe('Session store', () => {
       expect(get(sessionActive)).toBe(false);
     });
 
+    it('retains and retries ownership after final release fails', async () => {
+      await startSession(SIMPLE_PLAN);
+      mockReleaseLease.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+      await stopSession();
+      await startSession(SIMPLE_PLAN);
+      expect(mockReleaseLease).toHaveBeenCalledTimes(2);
+      expect(mockAcquireLease).toHaveBeenCalledTimes(2);
+    });
+
     it('deactivates session and sets completed', async () => {
       await startFresh();
       await stopSession();

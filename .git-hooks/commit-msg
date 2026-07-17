@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+
+message_file=${1:-}
+[[ -f "$message_file" ]] || { echo "commit-msg: message file missing" >&2; exit 1; }
+staged=$(git diff --cached --name-status --diff-filter=ACDMRTUXB)
+if printf '%s\n' "$staged" | grep -qE $'^[A-Z][0-9]*\t(frontend/|src/|app/|packages/|\.github/workflows/|workflow/scripts/)'; then
+  declared=$(workflow/scripts/openspec-change-from-body.sh "$message_file")
+  printf '%s\n' "$staged" | workflow/scripts/openspec-implementation-guard.sh --change "$declared"
+fi
+
+if ! workflow/scripts/claim-evidence-check.sh "$message_file" --quiet 2>&1; then
+  echo "WARNING: commit message contains claims without nearby evidence." >&2
+fi

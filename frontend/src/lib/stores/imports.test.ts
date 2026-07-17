@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { get } from 'svelte/store';
 
-const { getKV, setKV, reportFailure } = vi.hoisted(() => ({
+const { getKV, setKV, reportFailure, clearFailure } = vi.hoisted(() => ({
   getKV: vi.fn(),
   setKV: vi.fn(async () => ({ ok: true })),
   reportFailure: vi.fn(),
+  clearFailure: vi.fn(),
 }));
 vi.mock('$lib/db', () => ({
   getKV,
   setKV,
   reportPersistenceReadFailure: reportFailure,
+  clearPersistenceFailure: clearFailure,
 }));
 
 import { importedPieces, loadImportedPieces } from './imports';
@@ -59,5 +61,41 @@ describe('imported-piece persistence validation', () => {
     await loadImportedPieces();
     expect(get(importedPieces)).toEqual([]);
     expect(reportFailure).toHaveBeenCalledOnce();
+  });
+
+  it('rejects semantic date and note-count mismatches', async () => {
+    getKV.mockResolvedValue(
+      JSON.stringify({
+        version: 1,
+        records: [
+          {
+            id: 'piece',
+            title: 'Scale',
+            noteCount: 2,
+            importedAt: '2026-99-99',
+            exercise: {
+              id: 'exercise',
+              type: 'scale',
+              nameKey: 'scale',
+              descriptionKey: 'desc',
+              tones: [{ note: 'Bb', octave: 4, durationSec: 2 }],
+            },
+          },
+        ],
+      }),
+    );
+    await loadImportedPieces();
+    expect(get(importedPieces)).toEqual([]);
+    expect(reportFailure).toHaveBeenCalledWith(
+      expect.any(Error),
+      'imported-pieces:partial-validation',
+    );
+  });
+
+  it('clears recovered imported-piece read and validation failures', async () => {
+    getKV.mockResolvedValue(JSON.stringify({ version: 1, records: [] }));
+    await loadImportedPieces();
+    expect(clearFailure).toHaveBeenCalledWith('imported-pieces:partial-validation');
+    expect(clearFailure).toHaveBeenCalledWith('imported-pieces:read');
   });
 });

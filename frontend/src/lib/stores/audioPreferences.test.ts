@@ -14,6 +14,7 @@ import {
   acquireAudioLease,
   releaseAudioLease,
   restartPreferredAudioCapture,
+  hasAudioLease,
 } from './audioPreferences';
 
 describe('audio leases', () => {
@@ -70,5 +71,33 @@ describe('audio leases', () => {
     expect(stop).toBeGreaterThanOrEqual(0);
     expect(restart).toBeGreaterThan(stop);
     await releaseAudioLease(session!);
+  });
+
+  it('recovers capture on acquire after restart stopped but failed to start', async () => {
+    const first = await acquireAudioLease('session');
+    let failStart = true;
+    invoke.mockImplementation(async (command: string) => {
+      if (command === 'is_audio_running') return false;
+      if (command === 'start_audio' && failStart) {
+        failStart = false;
+        throw new Error('device unavailable');
+      }
+      return undefined;
+    });
+    expect(await restartPreferredAudioCapture()).toBe(false);
+    const recovered = await acquireAudioLease('tonelab');
+    expect(recovered).not.toBeNull();
+    expect(invoke.mock.calls.filter(([command]) => command === 'start_audio')).toHaveLength(3);
+    await releaseAudioLease(first!);
+    await releaseAudioLease(recovered!);
+  });
+
+  it('retains final ownership until a failed native stop can be retried', async () => {
+    const lease = await acquireAudioLease('session');
+    invoke.mockRejectedValueOnce(new Error('stop interrupted'));
+    expect(await releaseAudioLease(lease!)).toBe(false);
+    expect(hasAudioLease('session')).toBe(true);
+    expect(await releaseAudioLease(lease!)).toBe(true);
+    expect(hasAudioLease('session')).toBe(false);
   });
 });

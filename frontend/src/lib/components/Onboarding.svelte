@@ -89,7 +89,12 @@
   onDestroy(() => {
     leaseGeneration++;
     stopPitchPolling();
-    if (onboardingLease) void releaseAudioLease(onboardingLease);
+    if (onboardingLease) {
+      const lease = onboardingLease;
+      void releaseAudioLease(lease).then((released) => {
+        if (released && onboardingLease?.id === lease.id) onboardingLease = null;
+      });
+    }
   });
 
   function next() {
@@ -217,7 +222,11 @@
     leaseGeneration++;
     stopPitchPolling();
     if (onboardingLease) {
-      await releaseAudioLease(onboardingLease);
+      const released = await releaseAudioLease(onboardingLease);
+      if (!released) {
+        micDenied.set(true);
+        return;
+      }
       onboardingLease = null;
     }
     const profile = {

@@ -38,6 +38,7 @@ export const droneActive = writable(false);
 
 let tickTimer: ReturnType<typeof setTimeout> | null = null;
 let pollingGeneration = 0;
+let droneGeneration = 0;
 let audioLease: AudioLeaseHandle | null = null;
 let lastNoteKey = '';
 let toneTransitions = 0;
@@ -60,28 +61,34 @@ export async function startToneLab() {
     clearTimeout(tickTimer);
     tickTimer = null;
   }
-  if (audioLease) await releaseAudioLease(audioLease);
-  audioLease = null;
+  const retainedLease = audioLease;
+  if (audioLease && (await releaseAudioLease(audioLease))) audioLease = null;
   resetState();
 
   const acquiredLease = await acquireAudioLease('tonelab');
+  if (acquiredLease && retainedLease && audioLease?.id === retainedLease.id) {
+    await releaseAudioLease(retainedLease);
+    audioLease = null;
+  }
   if (generation !== pollingGeneration) {
     if (acquiredLease) await releaseAudioLease(acquiredLease);
     return;
   }
-  audioLease = acquiredLease;
+  if (!acquiredLease) return;
+  audioLease = acquiredLease ?? audioLease;
 
   tonelabActive.set(true);
   scheduleTick(generation);
 
   // If drone mode, start the drone
   if (get(tonelabMode) === 'drone') {
-    await startDrone(generation);
+    await startDrone(++droneGeneration);
   }
 }
 
 export async function stopToneLab() {
   pollingGeneration++;
+  droneGeneration++;
   if (tickTimer) {
     clearTimeout(tickTimer);
     tickTimer = null;
@@ -91,8 +98,7 @@ export async function stopToneLab() {
   await stopDrone();
 
   if (audioLease) {
-    await releaseAudioLease(audioLease);
-    audioLease = null;
+    if (await releaseAudioLease(audioLease)) audioLease = null;
   }
 
   tonelabActive.set(false);
@@ -100,14 +106,14 @@ export async function stopToneLab() {
 
 // ── Drone control ──
 
-async function startDrone(expectedGeneration = pollingGeneration) {
+async function startDrone(expectedGeneration = droneGeneration) {
   const note = get(droneNote);
   const octave = get(droneOctave);
   const stored = await getKV('tt-tuning');
   const referenceA4 = stored ? parseFloat(stored) : 442;
   try {
     await invokeTauri('start_drone', { note, octave, referenceA4 });
-    if (expectedGeneration !== pollingGeneration) {
+    if (expectedGeneration !== droneGeneration) {
       await invokeTauri('stop_drone');
       droneActive.set(false);
       return;
@@ -118,10 +124,13 @@ async function startDrone(expectedGeneration = pollingGeneration) {
   }
 }
 
-async function stopDrone() {
-  if (!get(droneActive)) return;
+async function stopDrone(): Promise<boolean> {
+  if (!get(droneActive)) return true;
   try {
     await invokeTauri('stop_drone');
+    return true;
+  } catch {
+    return false;
   } finally {
     droneActive.set(false);
   }
@@ -141,6 +150,7 @@ export async function setDroneNote(note: string, octave: number) {
 
 /** Switch tone lab mode. If switching to/from drone, handle drone lifecycle. */
 export async function switchMode(mode: ToneLabMode) {
+  const generation = ++droneGeneration;
   const wasActive = get(tonelabActive);
   const prevMode = get(tonelabMode);
 
@@ -153,7 +163,7 @@ export async function switchMode(mode: ToneLabMode) {
     }
     // Start drone if entering drone mode
     if (mode === 'drone' && prevMode !== 'drone') {
-      await startDrone();
+      await startDrone(generation);
     }
   }
 }

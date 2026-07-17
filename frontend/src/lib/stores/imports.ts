@@ -4,7 +4,13 @@
 
 import { writable } from 'svelte/store';
 import type { ExerciseDef } from '$lib/types/session';
-import { getKV, reportPersistenceReadFailure, setKV, type PersistenceResult } from '$lib/db';
+import {
+  clearPersistenceFailure,
+  getKV,
+  reportPersistenceReadFailure,
+  setKV,
+  type PersistenceResult,
+} from '$lib/db';
 
 export interface ImportedPiece {
   id: string;
@@ -35,11 +41,21 @@ function isImportedPiece(value: unknown): value is ImportedPiece {
   const piece = value as Partial<ImportedPiece>;
   return (
     typeof piece.id === 'string' &&
+    piece.id.length > 0 &&
     typeof piece.title === 'string' &&
-    Number.isFinite(piece.noteCount) &&
-    typeof piece.importedAt === 'string' &&
-    isExercise(piece.exercise)
+    piece.title.length > 0 &&
+    Number.isInteger(piece.noteCount) &&
+    (piece.noteCount ?? -1) >= 0 &&
+    isIsoDate(piece.importedAt) &&
+    isExercise(piece.exercise) &&
+    piece.noteCount === piece.exercise.tones.length
   );
+}
+
+function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 function isExercise(value: unknown): value is ExerciseDef {
@@ -50,12 +66,15 @@ function isExercise(value: unknown): value is ExerciseDef {
     exercise.id.length > 0 &&
     (exercise.type === 'long_tones' || exercise.type === 'scale' || exercise.type === 'custom') &&
     typeof exercise.nameKey === 'string' &&
+    exercise.nameKey.length > 0 &&
     typeof exercise.descriptionKey === 'string' &&
+    exercise.descriptionKey.length > 0 &&
     Array.isArray(exercise.tones) &&
     exercise.tones.every(
       (tone) =>
         !!tone &&
         typeof tone.note === 'string' &&
+        tone.note.length > 0 &&
         Number.isInteger(tone.octave) &&
         Number.isFinite(tone.durationSec) &&
         tone.durationSec > 0,
@@ -87,6 +106,8 @@ function decodePieces(raw: string): ImportedPiece[] {
       'imported-pieces:partial-validation',
     );
   }
+  if (valid.length === records.length)
+    clearPersistenceFailure('imported-pieces:partial-validation');
   return valid;
 }
 
@@ -100,8 +121,9 @@ export async function loadImportedPieces(): Promise<void> {
   try {
     const raw = await getKV(STORAGE_KEY);
     if (raw) importedPieces.set(decodePieces(raw));
+    clearPersistenceFailure('imported-pieces:read');
   } catch (error) {
-    reportPersistenceReadFailure(error);
+    reportPersistenceReadFailure(error, 'imported-pieces:read');
     importedPieces.set([]);
   }
 }

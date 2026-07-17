@@ -4,6 +4,7 @@
     "get_audio_debug()->TauriAudioDebugSnapshot",
     "get_audio_level()->TauriAudioLevel",
     "get_devices()->TauriAudioDeviceInfo[]",
+    "get_drone_runtime_status()->TauriDroneRuntimeStatus",
     "get_pitch()->TauriPitchResult|null",
     "is_audio_running()->boolean",
     "is_drone_playing()->boolean",

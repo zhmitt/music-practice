@@ -6,7 +6,7 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use crate::audio::types::AudioError;
+use crate::audio::types::{AudioError, DroneRuntimeStatus};
 
 const OWNER_ACK_TIMEOUT: Duration = Duration::from_secs(2);
 
@@ -72,6 +72,7 @@ struct DroneOwner {
     commands: mpsc::Sender<DroneCommand>,
     thread: Option<thread::JoinHandle<()>>,
     timeout: Duration,
+    wedged: Arc<AtomicBool>,
 }
 
 trait OwnedDroneStream {
@@ -103,6 +104,7 @@ impl DroneOwner {
     }
     fn spawn_with(backend: Box<dyn DroneBackend>, timeout: Duration) -> Self {
         let (commands, receiver) = mpsc::channel();
+        let wedged = Arc::new(AtomicBool::new(false));
         let thread = thread::Builder::new()
             .name("audio-drone-owner".into())
             .spawn(move || drone_owner_loop(receiver, backend))
@@ -111,6 +113,7 @@ impl DroneOwner {
             commands,
             thread: Some(thread),
             timeout,
+            wedged,
         }
     }
 }
@@ -134,6 +137,7 @@ impl DroneControl for DroneOwner {
             })
             .map_err(|_| AudioError::AudioSubsystemUnavailable)?;
         response.recv_timeout(self.timeout).map_err(|_| {
+            self.wedged.store(true, Ordering::Release);
             state.generation.fetch_add(1, Ordering::AcqRel);
             state.playing.store(false, Ordering::Release);
             *state.error.lock().unwrap() = Some(AudioError::AudioSubsystemUnavailable);
@@ -146,9 +150,10 @@ impl DroneControl for DroneOwner {
         self.commands
             .send(DroneCommand::Stop(reply))
             .map_err(|_| AudioError::AudioSubsystemUnavailable)?;
-        response
-            .recv_timeout(self.timeout)
-            .map_err(|_| AudioError::AudioSubsystemUnavailable)
+        response.recv_timeout(self.timeout).map_err(|_| {
+            self.wedged.store(true, Ordering::Release);
+            AudioError::AudioSubsystemUnavailable
+        })
     }
 }
 
@@ -156,7 +161,12 @@ impl Drop for DroneOwner {
     fn drop(&mut self) {
         let _ = self.commands.send(DroneCommand::Shutdown);
         if let Some(thread) = self.thread.take() {
-            let _ = thread.join();
+            if self.wedged.load(Ordering::Acquire) {
+                log::error!("Detaching wedged drone owner during shutdown");
+                drop(thread);
+            } else {
+                let _ = thread.join();
+            }
         }
     }
 }
@@ -303,9 +313,15 @@ impl DroneSynth {
         self.state.playing.load(Ordering::Acquire)
     }
 
-    #[allow(dead_code)]
     pub fn last_error(&self) -> Option<AudioError> {
         self.state.error.lock().unwrap().clone()
+    }
+
+    pub fn runtime_status(&self) -> DroneRuntimeStatus {
+        DroneRuntimeStatus {
+            is_playing: self.is_playing(),
+            runtime_error: self.last_error(),
+        }
     }
 }
 
@@ -327,9 +343,7 @@ impl DroneBackend for CpalDroneBackend {
         on_error: Arc<dyn Fn(AudioError) + Send + Sync>,
     ) -> Result<(Box<dyn OwnedDroneStream>, String), AudioError> {
         let host = cpal::default_host();
-        let device = host
-            .default_output_device()
-            .ok_or(AudioError::NoMicrophoneAvailable)?;
+        let device = require_output_device(host.default_output_device())?;
         let config = find_output_config(&device).map_err(AudioError::Unknown)?;
         let sample_rate = config.sample_rate.0 as f64;
         let channels = config.channels as usize;
@@ -376,6 +390,10 @@ impl DroneBackend for CpalDroneBackend {
     }
 }
 
+fn require_output_device(device: Option<cpal::Device>) -> Result<cpal::Device, AudioError> {
+    device.ok_or(AudioError::NoAudioOutputAvailable)
+}
+
 fn find_output_config(device: &cpal::Device) -> Result<StreamConfig, String> {
     let configs: Vec<_> = device
         .supported_output_configs()
@@ -415,11 +433,13 @@ mod tests {
     use super::*;
     use std::collections::VecDeque;
     type ErrorCallback = Arc<dyn Fn(AudioError) + Send + Sync>;
+    #[derive(Clone, Copy)]
     enum Plan {
         BuildFail,
         PlayFail,
         Ok,
         Slow,
+        VerySlow,
     }
     struct FakeBackend {
         plans: Arc<std::sync::Mutex<VecDeque<Plan>>>,
@@ -458,10 +478,10 @@ mod tests {
             Ok((
                 Box::new(FakeStream {
                     fail: matches!(plan, Plan::PlayFail),
-                    delay: if matches!(plan, Plan::Slow) {
-                        Duration::from_millis(60)
-                    } else {
-                        Duration::ZERO
+                    delay: match plan {
+                        Plan::Slow => Duration::from_millis(60),
+                        Plan::VerySlow => Duration::from_millis(300),
+                        _ => Duration::ZERO,
                     },
                 }),
                 "Test output".into(),
@@ -505,6 +525,12 @@ mod tests {
             d.last_error(),
             Some(AudioError::StreamInterrupted)
         ));
+        let status = d.runtime_status();
+        assert!(!status.is_playing);
+        assert!(matches!(
+            status.runtime_error,
+            Some(AudioError::StreamInterrupted)
+        ));
     }
     #[test]
     fn stale_callback_cannot_stop_restarted_drone() {
@@ -523,6 +549,23 @@ mod tests {
         assert!(matches!(
             d.last_error(),
             Some(AudioError::AudioSubsystemUnavailable)
+        ));
+    }
+
+    #[test]
+    fn known_wedged_owner_drop_detaches_without_waiting_for_worker() {
+        let (mut d, _) = drone(vec![Plan::VerySlow], Duration::from_millis(5));
+        assert!(d.start(440.0).unwrap_err().contains("unavailable"));
+        let started = std::time::Instant::now();
+        drop(d);
+        assert!(started.elapsed() < Duration::from_millis(100));
+    }
+
+    #[test]
+    fn missing_output_error_is_distinct_from_missing_microphone() {
+        assert!(matches!(
+            require_output_device(None),
+            Err(AudioError::NoAudioOutputAvailable)
         ));
     }
 

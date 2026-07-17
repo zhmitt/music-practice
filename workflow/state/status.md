@@ -161,3 +161,56 @@ Append-only project status log for deterministic session handover.
 - Remaining: Complete the remaining tracked tasks.
 - Evidence: openspec/changes/engineering-quality-hardening-followup/verification.md, workflow/state/reports/2026-07-17-engineering-quality-hardening-followup.md
 - Next: Complete remaining tasks
+
+## 2026-07-17 23:13:36
+- Change: engineering-quality-hardening-v3
+- Status: checkpointed
+- Summary: Created the V3 hardening change from the post-commit audit and started implementation across frontend, Rust audio, and governance.
+- Completed: Proposal, design, requirements, task plan, and audit prioritization.
+- Remaining: Implement and verify every tracked remediation.
+- Evidence: openspec/changes/engineering-quality-hardening-v3/verification.md, workflow/state/reports/2026-07-17-engineering-quality-hardening-v3.md
+- Next: Complete bounded implementation work and run canonical verification.
+
+## 2026-07-17 23:23:44
+- Change: engineering-quality-hardening-v3
+- Status: checkpointed
+- Summary: Implemented all V3 audit remediations across CI, governance, frontend lifecycle recovery, persistence validation, Rust audio teardown/status, contract completeness, and native package evidence; canonical verification is green.
+- Evidence: openspec/changes/engineering-quality-hardening-v3/verification.md, workflow/state/reports/2026-07-17-engineering-quality-hardening-v3.md
+- Next: Complete remaining tasks
+
+## 2026-07-17 23:24:39
+- Change: engineering-quality-hardening-v3
+- Status: implemented
+- Summary: All 23 V3 hardening tasks are implemented with canonical, negative-path, contract, dependency, and native-build evidence.
+- Evidence: openspec/changes/engineering-quality-hardening-v3/verification.md, workflow/state/reports/2026-07-17-engineering-quality-hardening-v3.md
+- Next: Archive the change into openspec/changes/archive/
+
+## 2026-07-17 23:24:52
+- Summary: Completed engineering-quality-hardening-v3: all audit findings were documented and remediated; canonical verify and change-done are green. External residual evidence remains hosted GitHub/branch protection, physical audio hardware, and GUI WebView SQLite CRUD.
+- Change: 2026-03-31-app-shell-foundation
+- State: draft
+- Next: Complete proposal and delta specs
+- Change: 2026-03-31-audio-pitch-engine
+- State: draft
+- Next: Complete proposal and delta specs
+- Change: 2026-04-04-student-practice-journeys
+- State: in_progress
+- Next: Complete remaining tasks
+- Change: 2026-04-06-bb-horn-practice-pedagogy
+- State: in_progress
+- Next: Complete remaining tasks
+- Change: add-canonical-milestone-sync
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-followup
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: engineering-quality-hardening-v3
+- State: ready_for_archive
+- Next: Archive the change into openspec/changes/archive/
+- Change: openspec-verification-toolchain
+- State: draft
+- Next: Complete proposal and delta specs

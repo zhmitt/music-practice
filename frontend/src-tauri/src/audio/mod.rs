@@ -100,6 +100,7 @@ impl AudioEngine {
             is_running: true,
             sample_rate,
             active_device_name: self.capture.active_device_name(),
+            runtime_error: self.capture.last_error(),
             detector_status: "buffering".to_string(),
             audio_level: AudioLevel::default(),
             analysis_buffer_len: 0,
@@ -130,6 +131,7 @@ impl AudioEngine {
         self.latest_debug.is_running = self.capture.is_running();
         self.latest_debug.sample_rate = self.capture.sample_rate();
         self.latest_debug.active_device_name = self.capture.active_device_name();
+        self.latest_debug.runtime_error = self.capture.last_error();
         self.latest_debug.reference_a4 = self.pitch_detector.reference_a4();
         self.latest_debug.instrument_name = self.pitch_detector.profile().name;
         self.latest_debug.display_mode = match self.pitch_detector.display_mode() {
@@ -140,6 +142,16 @@ impl AudioEngine {
         if count == 0 {
             if !self.capture.is_running() {
                 self.latest_debug.detector_status = "idle".to_string();
+                self.analysis_buffer.clear();
+                self.latest_pitch = None;
+                self.latest_level = AudioLevel::default();
+                self.latest_debug.audio_level = AudioLevel::default();
+                self.latest_debug.analysis_buffer_len = 0;
+                self.latest_debug.raw_frequency_hz = None;
+                self.latest_debug.raw_confidence = None;
+                self.latest_debug.tentative_pitch = None;
+                self.latest_debug.latest_pitch = None;
+                self.stability_tracker.reset();
             }
             return;
         }
@@ -215,7 +227,20 @@ impl AudioEngine {
     }
 
     pub fn latest_debug(&self) -> AudioDebugSnapshot {
-        self.latest_debug.clone()
+        let mut snapshot = self.latest_debug.clone();
+        snapshot.is_running = self.capture.is_running();
+        snapshot.active_device_name = self.capture.active_device_name();
+        snapshot.runtime_error = self.capture.last_error();
+        if !snapshot.is_running {
+            snapshot.detector_status = "idle".to_string();
+            snapshot.audio_level = AudioLevel::default();
+            snapshot.analysis_buffer_len = 0;
+            snapshot.raw_frequency_hz = None;
+            snapshot.raw_confidence = None;
+            snapshot.tentative_pitch = None;
+            snapshot.latest_pitch = None;
+        }
+        snapshot
     }
 
     pub fn set_reference_tuning(&mut self, hz: f64) {
@@ -249,20 +274,17 @@ pub fn create_drone() -> SharedDrone {
 /// Start a background processing loop for the engine.
 /// The loop reads audio, processes it, and updates state at ~60Hz.
 pub fn start_processing_loop(engine: SharedEngine) -> thread::JoinHandle<()> {
-    thread::spawn(move || {
-        loop {
-            {
-                let mut eng = engine.lock().unwrap();
-                if !eng.is_running() {
-                    // Sleep longer when not running
-                    drop(eng);
-                    thread::sleep(Duration::from_millis(100));
-                    continue;
-                }
-                eng.process();
-            }
-            // ~60Hz processing rate
-            thread::sleep(Duration::from_millis(16));
-        }
+    thread::spawn(move || loop {
+        let was_running = {
+            let mut eng = engine.lock().unwrap();
+            let was_running = eng.is_running();
+            eng.process();
+            was_running
+        };
+        thread::sleep(if was_running {
+            Duration::from_millis(16)
+        } else {
+            Duration::from_millis(100)
+        });
     })
 }
