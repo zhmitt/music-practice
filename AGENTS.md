@@ -69,6 +69,25 @@ Rules:
 5. Handoffs between tools or workspaces must record the change id when present, branch name, commit hash or stash reference, current workspace mode, and intended target workspace or tool.
 6. Run `workflow/scripts/workspace-status.sh` before branch/worktree handoffs when there is any doubt about current ownership.
 
+### Large artifacts and working copies
+
+Before creating a large copy, use the existing work record to identify its
+consumer, canonical source and release condition. Use the checked artifact at
+its existing CI, build or provider location unless a consumer needs a local
+copy. Keep only the local working copy needed for that operation and release it
+at its agreed endpoint. Keep the compact result and source identity; retain
+required original bytes where recovery or audit can actually retrieve and verify
+them within the required time. An expiring CI artifact is a handoff, not a
+durable rollback source. Do not create another record or retention mechanism.
+
+End retention when the purpose ends. For each affected release target, keep
+the current artifact and configuration and one verified, named predecessor.
+Release the old predecessor once its replacement is verified. Keep compact
+historical results, identities and checksums. Retain older original bytes
+only for a named recovery need, an open investigation or a documented
+retention obligation, with an end condition. Once those needs are resolved,
+retire the exact obsolete payloads under the owner's cleanup authority.
+
 ## Workflow
 
 ### Start / Resume
