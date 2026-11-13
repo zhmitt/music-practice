@@ -80,6 +80,14 @@ required original bytes where recovery or audit can actually retrieve and verify
 them within the required time. An expiring CI artifact is a handoff, not a
 durable rollback source. Do not create another record or retention mechanism.
 
+End retention when the purpose ends. For each affected release target, keep
+the current artifact and configuration and one verified, named predecessor.
+Release the old predecessor once its replacement is verified. Keep compact
+historical results, identities and checksums. Retain older original bytes
+only for a named recovery need, an open investigation or a documented
+retention obligation, with an end condition. Once those needs are resolved,
+retire the exact obsolete payloads under the owner's cleanup authority.
+
 ## Workflow
 
 ### Start / Resume
